@@ -1,8 +1,9 @@
+console.log("Imported SAMPLE_PROFILES:", SAMPLE_PROFILES);
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, Star, Settings2, TrendingUp, Zap } from "lucide-react";
+import { Heart, X, Star, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileCard } from "./ProfileCard";
 import { ActionButtons } from "./ActionButtons";
@@ -21,13 +22,21 @@ export function DiscoveryScreen() {
   const [userEloRating, setUserEloRating] = useState(1000);
   const [dailyLikes, setDailyLikes] = useState(0);
   const [dailySuperLikes, setDailySuperLikes] = useState(0);
+  const [passedProfiles, setPassedProfiles] = useState<string[]>([]);
   const { toast } = useToast();
   const { updateRating, getUserRating, getRatingTier } = useEloRating();
 
+  // ✅ initialize user data first
   useEffect(() => {
-    loadProfiles();
     initializeUserData();
   }, []);
+
+  // ✅ once userEloRating is ready, load profiles
+  useEffect(() => {
+    if (userEloRating) {
+      loadProfiles();
+    }
+  }, [userEloRating]);
 
   const initializeUserData = async () => {
     try {
@@ -38,6 +47,7 @@ export function DiscoveryScreen() {
         setUserEloRating(userData.eloRating || 1000);
         setDailyLikes(userData.dailyLikes || 0);
         setDailySuperLikes(userData.dailySuperLikes || 0);
+        setPassedProfiles(userData.passedProfiles || []);
       } else {
         // In real mode, fetch from database
         const { data: { user } } = await supabase.auth.getUser();
@@ -69,7 +79,9 @@ export function DiscoveryScreen() {
       const filteredProfiles = SAMPLE_PROFILES
         .filter(profile => {
           const contentCheck = filterProfile(profile);
-          return contentCheck.isAppropriate || contentCheck.severity === 'low';
+          console.log("Checking profile:", profile.full_name, contentCheck);
+          return (contentCheck.isAppropriate || contentCheck.severity === 'low') && 
+                 !passedProfiles.includes(profile.user_id);
         })
         .sort((a, b) => {
           // Sort by ELO rating similarity to user for better matches
@@ -80,14 +92,54 @@ export function DiscoveryScreen() {
         });
 
       // Fallback to all sample profiles if filtering removed everything
-      const result = filteredProfiles.length > 0 ? filteredProfiles : SAMPLE_PROFILES;
+      const result = filteredProfiles.length > 0 ? filteredProfiles : SAMPLE_PROFILES.filter(p => !passedProfiles.includes(p.user_id));
+      console.log("✅ Loaded profiles:", result);   // 👈 check what's inside
       setProfiles(result);
+      setCurrentIndex(0);
       setLoading(false);
     } catch (error) {
       console.error("Error loading profiles:", error);
       setLoading(false);
     }
   };
+
+  const handleRewind = useCallback(() => {
+    if (passedProfiles.length > 0) {
+      const lastPassedId = passedProfiles[passedProfiles.length - 1];
+      const lastPassedProfile = SAMPLE_PROFILES.find(p => p.user_id === lastPassedId);
+      
+      if (lastPassedProfile) {
+        setPassedProfiles(prev => prev.slice(0, -1));
+        setProfiles(prev => [lastPassedProfile, ...prev]);
+        setCurrentIndex(0);
+        
+        // Update localStorage
+        const tempUser = localStorage.getItem('temp-user');
+        if (tempUser) {
+          const userData = JSON.parse(tempUser);
+          userData.passedProfiles = passedProfiles.slice(0, -1);
+          localStorage.setItem('temp-user', JSON.stringify(userData));
+        }
+        
+        toast({
+          title: "Profile restored! ↩️",
+          description: `${lastPassedProfile.full_name} is back in your stack.`,
+        });
+      }
+    } else {
+      toast({
+        title: "No profiles to rewind",
+        description: "You haven't passed any profiles yet.",
+      });
+    }
+  }, [passedProfiles, toast]);
+
+  const handleBoost = useCallback(() => {
+    toast({
+      title: "Boost activated! 🚀",
+      description: "Your profile will be shown to more people for the next 30 minutes.",
+    });
+  }, [toast]);
 
   const handleSwipe = useCallback(async (action: 'like' | 'pass' | 'superlike') => {
     if (currentIndex >= profiles.length) return;
@@ -118,6 +170,7 @@ export function DiscoveryScreen() {
     setSwipeCount(prev => prev + 1);
     if (action === 'like') setDailyLikes(prev => prev + 1);
     if (action === 'superlike') setDailySuperLikes(prev => prev + 1);
+    if (action === 'pass') setPassedProfiles(prev => [...prev, profile.user_id]);
     
     try {
       const tempUser = localStorage.getItem('temp-user');
@@ -140,6 +193,7 @@ export function DiscoveryScreen() {
         const userData = JSON.parse(tempUser);
         userData.dailyLikes = dailyLikes + (action === 'like' ? 1 : 0);
         userData.dailySuperLikes = dailySuperLikes + (action === 'superlike' ? 1 : 0);
+        userData.passedProfiles = action === 'pass' ? [...passedProfiles, profile.user_id] : passedProfiles;
         localStorage.setItem('temp-user', JSON.stringify(userData));
         
         if (isMatch) {
@@ -154,6 +208,13 @@ export function DiscoveryScreen() {
             toast({
               title: "Super Like sent! ⭐",
               description: `${profile.full_name} will see you super liked them!`,
+            });
+          }, 300);
+        } else if (action === 'like') {
+          setTimeout(() => {
+            toast({
+              title: "Like sent! 💚",
+              description: `You liked ${profile.full_name}. Hope they like you back!`,
             });
           }, 300);
         }
@@ -211,37 +272,76 @@ export function DiscoveryScreen() {
       console.error("Error recording interaction:", error);
       setSwipeAnimation(null);
     }
-  }, [currentIndex, profiles, dailyLikes, dailySuperLikes, userEloRating, toast, updateRating]);
+  }, [currentIndex, profiles, dailyLikes, dailySuperLikes, userEloRating, passedProfiles, toast, updateRating]);
 
+  // ✅ clear UI states
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-background to-primary/5">
+        <div className="text-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Finding amazing people for you...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (profiles.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background to-primary/5">
+        <div className="h-32 w-32 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center mb-6">
+          <Heart className="h-16 w-16 text-primary/60" />
+        </div>
+        <h2 className="text-3xl font-bold mb-4 gradient-text">No profiles available 😢</h2>
+        <p className="text-muted-foreground mb-8 text-center max-w-md">
+          Try adjusting your filters or check back later for new people to connect with.
+        </p>
+        <div className="flex gap-4">
+          <Button onClick={loadProfiles} className="bg-gradient-to-r from-primary to-primary/80">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Reload Profiles
+          </Button>
+          {passedProfiles.length > 0 && (
+            <Button variant="outline" onClick={handleRewind}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Rewind Last
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
 
   if (currentIndex >= profiles.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="h-24 w-24 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center mb-6">
-          <Heart className="h-12 w-12 text-primary-foreground" />
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background to-primary/5">
+        <div className="h-32 w-32 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center mb-8 animate-pulse">
+          <Heart className="h-16 w-16 text-primary-foreground" />
         </div>
-        <h2 className="text-2xl font-bold mb-3">You're all caught up! 🎉</h2>
-        <p className="text-muted-foreground mb-6 text-center">
+        <h2 className="text-3xl font-bold mb-4 gradient-text">You're all caught up! 🎉</h2>
+        <p className="text-muted-foreground mb-8 text-center max-w-md">
           You've seen {swipeCount} profiles today.<br/>
           Check back later for new people to connect with.
         </p>
-        <Button 
-          onClick={() => {
-            setCurrentIndex(0);
-            setSwipeCount(0);
-            loadProfiles();
-          }}
-          className="bg-gradient-to-r from-primary to-primary/80"
-        >
-          Show me more profiles
-        </Button>
+        <div className="flex gap-4">
+          <Button 
+            onClick={() => {
+              setCurrentIndex(0);
+              setSwipeCount(0);
+              loadProfiles();
+            }}
+            className="bg-gradient-to-r from-primary to-primary/80"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Show me more profiles
+          </Button>
+          {passedProfiles.length > 0 && (
+            <Button variant="outline" onClick={handleRewind}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Rewind Last
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -249,28 +349,33 @@ export function DiscoveryScreen() {
   const currentProfile = profiles[currentIndex];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-border/50 backdrop-blur-sm">
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className="flex flex-col">
-              <h2 className="text-lg font-bold gradient-text">Discover</h2>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline" className="text-xs">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Discover
+              </h2>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Badge variant="outline" className="text-xs bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+                  <Sparkles className="h-3 w-3 mr-1" />
                   {profiles.length - currentIndex} left
                 </Badge>
-                <Badge variant="outline" className="text-xs bg-gradient-to-r from-like/10 to-like/5">
+                <Badge variant="outline" className="text-xs bg-gradient-to-r from-green-500/10 to-green-600/5 border-green-500/20">
+                  <Heart className="h-3 w-3 mr-1 text-green-600" />
                   {100 - dailyLikes} likes
                 </Badge>
-                <Badge variant="outline" className="text-xs bg-gradient-to-r from-superlike/10 to-superlike/5">
+                <Badge variant="outline" className="text-xs bg-gradient-to-r from-yellow-500/10 to-orange-500/5 border-yellow-500/20">
+                  <Star className="h-3 w-3 mr-1 text-yellow-600" />
                   {5 - dailySuperLikes} ⭐
                 </Badge>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
               <TrendingUp className="h-3 w-3 text-primary" />
               <span className="font-medium">{getRatingTier(userEloRating).tier}</span>
               <span className="text-muted-foreground">({userEloRating})</span>
@@ -279,16 +384,21 @@ export function DiscoveryScreen() {
               variant="ghost" 
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
+              className="hover:bg-primary/10"
             >
-              <Settings2 className="h-4 w-4" />
+              <Filter className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Profile Card with Animation */}
-      <div className="flex-1 p-4 relative">
-        <div className={`${swipeAnimation ? `swipe-${swipeAnimation}` : ''}`}>
+      {/* Profile Card with Enhanced Animation */}
+      <div className="flex-1 p-4 relative overflow-hidden">
+        <div className={`h-full transition-all duration-300 ${
+          swipeAnimation === 'left' ? 'transform -translate-x-full rotate-12 opacity-0' :
+          swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' :
+          swipeAnimation === 'up' ? 'transform -translate-y-full scale-110 opacity-0' : ''
+        }`}>
           <ProfileCard
             profile={currentProfile}
             onLike={() => handleSwipe('like')}
@@ -297,11 +407,23 @@ export function DiscoveryScreen() {
           />
         </div>
         
-        {/* Next profile preview */}
+        {/* Next profile preview with enhanced styling */}
         {profiles[currentIndex + 1] && (
-          <div className="absolute inset-0 p-4 z-[-1] opacity-50 scale-95">
+          <div className="absolute inset-0 p-4 z-[-1] opacity-30 scale-95 transform rotate-1">
             <ProfileCard
               profile={profiles[currentIndex + 1]}
+              onLike={() => {}}
+              onPass={() => {}}
+              onSuperLike={() => {}}
+            />
+          </div>
+        )}
+
+        {/* Third profile preview */}
+        {profiles[currentIndex + 2] && (
+          <div className="absolute inset-0 p-4 z-[-2] opacity-15 scale-90 transform -rotate-1">
+            <ProfileCard
+              profile={profiles[currentIndex + 2]}
               onLike={() => {}}
               onPass={() => {}}
               onSuperLike={() => {}}
@@ -311,11 +433,13 @@ export function DiscoveryScreen() {
       </div>
 
       {/* Enhanced Action Buttons */}
-      <div className="bg-gradient-to-t from-background/90 to-transparent pb-4">
+      <div className="bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-sm">
         <ActionButtons
           onPass={() => handleSwipe('pass')}
           onSuperLike={() => handleSwipe('superlike')}
           onLike={() => handleSwipe('like')}
+          onRewind={passedProfiles.length > 0 ? handleRewind : undefined}
+          onBoost={handleBoost}
           disabled={loading || swipeAnimation !== null}
           likesRemaining={100 - dailyLikes}
           superLikesRemaining={5 - dailySuperLikes}

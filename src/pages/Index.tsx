@@ -1,3 +1,4 @@
+
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { MainLayout } from "@/components/layout/MainLayout";
 
@@ -10,3 +11,4 @@ const Index = () => {
 };
 
 export default Index;
+

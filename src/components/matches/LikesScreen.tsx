@@ -3,8 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, Star, Clock } from "lucide-react";
+import { Heart, Star, Clock, Sparkles } from "lucide-react";
 import { SAMPLE_PROFILES, Profile } from "@/data/sampleProfiles";
+import { useToast } from "@/hooks/use-toast";
 
 interface PendingLike {
   id: string;
@@ -15,9 +16,10 @@ interface PendingLike {
 
 export function LikesScreen() {
   const [filter, setFilter] = useState<'all' | 'recent' | 'superlikes'>('all');
+  const { toast } = useToast();
   
   // Simulate pending likes from sample profiles
-  const [pendingLikes] = useState<PendingLike[]>([
+  const [pendingLikes, setPendingLikes] = useState<PendingLike[]>([
     {
       id: "1",
       profile: SAMPLE_PROFILES[0],
@@ -77,26 +79,63 @@ export function LikesScreen() {
   };
 
   const handleLikeBack = (likeId: string) => {
-    // Simulate liking back - in real app this would create a match
-    console.log("Liked back:", likeId);
+    const like = pendingLikes.find(l => l.id === likeId);
+    if (!like) return;
+
+    // Remove from pending likes
+    setPendingLikes(prev => prev.filter(l => l.id !== likeId));
+    
+    // Show match notification
+    toast({
+      title: "It's a Match! 🎉",
+      description: `You and ${like.profile.full_name} liked each other! Start chatting now.`,
+    });
+
+    // Simulate match creation - in real app this would be saved to database
+    const tempUser = localStorage.getItem('temp-user');
+    if (tempUser) {
+      const userData = JSON.parse(tempUser);
+      const matches = userData.matches || [];
+      matches.push({
+        id: Date.now().toString(),
+        profile: like.profile,
+        matchedAt: new Date().toISOString(),
+        type: 'mutual_like'
+      });
+      userData.matches = matches;
+      localStorage.setItem('temp-user', JSON.stringify(userData));
+    }
+
+    console.log("✅ Match created with:", like.profile.full_name);
   };
 
   const handlePass = (likeId: string) => {
-    // Simulate passing - remove from list
-    console.log("Passed on:", likeId);
+    const like = pendingLikes.find(l => l.id === likeId);
+    if (!like) return;
+
+    // Remove from pending likes
+    setPendingLikes(prev => prev.filter(l => l.id !== likeId));
+    
+    toast({
+      title: "Profile passed",
+      description: `You passed on ${like.profile.full_name}.`,
+    });
+
+    console.log("❌ Passed on:", like.profile.full_name);
   };
 
   if (pendingLikes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-        <div className="h-24 w-24 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center mb-6">
-          <Heart className="h-12 w-12 text-primary-foreground" />
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background to-primary/5">
+        <div className="h-32 w-32 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center mb-6">
+          <Heart className="h-16 w-16 text-primary/60" />
         </div>
-        <h2 className="text-2xl font-bold mb-3">No likes yet</h2>
-        <p className="text-muted-foreground mb-6">
-          When someone likes your profile, they'll appear here!
+        <h2 className="text-3xl font-bold mb-4 gradient-text">No likes yet</h2>
+        <p className="text-muted-foreground mb-8 text-center max-w-md">
+          When someone likes your profile, they'll appear here! Keep swiping to increase your chances.
         </p>
         <Button className="bg-gradient-to-r from-primary to-primary/80">
+          <Sparkles className="h-4 w-4 mr-2" />
           Improve Your Profile
         </Button>
       </div>
@@ -106,11 +145,12 @@ export function LikesScreen() {
   return (
     <div className="h-full flex flex-col">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-border/50 backdrop-blur-sm">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-2xl font-bold gradient-text">Likes</h1>
-            <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-primary/5 text-primary">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Likes</h1>
+            <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-primary/5 text-primary border border-primary/20">
+              <Heart className="h-3 w-3 mr-1" />
               {pendingLikes.length} people like you
             </Badge>
           </div>
@@ -123,7 +163,7 @@ export function LikesScreen() {
                 variant={filter === filterType ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFilter(filterType)}
-                className={filter === filterType ? "bg-primary" : ""}
+                className={filter === filterType ? "bg-primary shadow-lg" : "hover:bg-primary/10"}
               >
                 {filterType === 'all' && 'All'}
                 {filterType === 'recent' && 'Recent'}
@@ -131,7 +171,6 @@ export function LikesScreen() {
               </Button>
             ))}
           </div>
-
         </div>
       </div>
 
@@ -140,53 +179,58 @@ export function LikesScreen() {
           {getFilteredLikes().map((like) => (
             <Card 
               key={like.id} 
-              className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.02] hover:bg-gradient-to-r hover:from-card hover:to-primary/5 relative overflow-hidden"
+              className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] hover:bg-gradient-to-r hover:from-card hover:to-primary/5 relative overflow-hidden border-2 hover:border-primary/20"
             >
               <CardContent className="p-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <div className="relative">
                     <div className="transition-all duration-200">
-                      <Avatar className="h-16 w-16">
+                      <Avatar className="h-16 w-16 ring-2 ring-primary/20">
                         <AvatarImage src={like.profile.photos[0]?.url} />
-                        <AvatarFallback>{like.profile.full_name[0]}</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
+                          {like.profile.full_name[0]}
+                        </AvatarFallback>
                       </Avatar>
                     </div>
                     {like.type === 'superlike' && (
-                      <div className="absolute -top-1 -right-1 h-6 w-6 bg-gradient-to-br from-superlike to-superlike/80 rounded-full flex items-center justify-center">
-                        <Star className="h-3 w-3 text-white fill-white" />
+                      <div className="absolute -top-1 -right-1 h-7 w-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Star className="h-4 w-4 text-white fill-white" />
                       </div>
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
-                    <div className="transition-all duration-200">
-                      <p className="font-medium truncate">{like.profile.full_name}, {like.profile.age}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Year {like.profile.year} • {like.profile.branch}
-                      </p>
-                    </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div className="transition-all duration-200">
+                        <p className="font-semibold text-lg truncate">{like.profile.full_name}, {like.profile.age}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Year {like.profile.year} • {like.profile.branch}
+                        </p>
+                        {like.profile.hometown && (
+                          <p className="text-xs text-muted-foreground">From {like.profile.hometown}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-2 py-1 rounded-full">
                         <Clock className="h-3 w-3" />
                         {formatTime(like.timestamp)}
                       </div>
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 mt-3">
                       <Button 
                         size="sm" 
                         variant="outline"
                         onClick={() => handlePass(like.id)}
-                        className="flex-1"
+                        className="flex-1 border-red-500/30 text-red-600 hover:bg-red-50 hover:border-red-500 transition-all duration-300"
                       >
                         Pass
                       </Button>
                       <Button 
                         size="sm"
                         onClick={() => handleLikeBack(like.id)}
-                        className="flex-1 bg-gradient-to-r from-like to-like/80 hover:from-like/90 hover:to-like/70"
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                       >
-                        <Heart className="h-3 w-3 mr-1" />
+                        <Heart className="h-4 w-4 mr-1" />
                         Like Back
                       </Button>
                     </div>
@@ -194,10 +238,19 @@ export function LikesScreen() {
                 </div>
 
                 {like.type === 'superlike' && (
-                  <div className="mt-3 p-2 bg-gradient-to-r from-superlike/10 to-superlike/5 rounded-lg border border-superlike/20">
-                    <p className="text-xs text-superlike font-medium flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current" />
-                      This person super liked you!
+                  <div className="mt-4 p-3 bg-gradient-to-r from-blue-500/10 to-blue-600/5 rounded-lg border border-blue-500/20">
+                    <p className="text-sm text-blue-700 font-medium flex items-center gap-2">
+                      <Star className="h-4 w-4 fill-current" />
+                      This person super liked you! They really want to connect.
+                    </p>
+                  </div>
+                )}
+
+                {/* Bio preview */}
+                {like.profile.bio && (
+                  <div className="mt-3 p-2 bg-muted/20 rounded-lg">
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      "{like.profile.bio.substring(0, 100)}{like.profile.bio.length > 100 ? '...' : ''}"
                     </p>
                   </div>
                 )}
