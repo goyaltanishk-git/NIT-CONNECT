@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, Star, Clock, Filter, Eye, EyeOff, Zap } from "lucide-react";
+import { Heart, Star, Clock } from "lucide-react";
 import { SAMPLE_PROFILES, Profile } from "@/data/sampleProfiles";
 
 interface PendingLike {
@@ -15,7 +15,6 @@ interface PendingLike {
 
 export function LikesScreen() {
   const [filter, setFilter] = useState<'all' | 'recent' | 'superlikes'>('all');
-  const [showBlurred, setShowBlurred] = useState(true);
   
   // Simulate pending likes from sample profiles
   const [pendingLikes] = useState<PendingLike[]>([
@@ -133,23 +132,6 @@ export function LikesScreen() {
             ))}
           </div>
 
-          {/* Premium upsell */}
-          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium text-primary">Get Premium</p>
-                    <p className="text-xs text-muted-foreground">See who likes you without blur</p>
-                  </div>
-                </div>
-                <Button size="sm" className="bg-gradient-to-r from-primary to-primary/80">
-                  Upgrade
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
@@ -163,7 +145,7 @@ export function LikesScreen() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className={`${showBlurred ? 'blur-sm' : ''} transition-all duration-200`}>
+                    <div className="transition-all duration-200">
                       <Avatar className="h-16 w-16">
                         <AvatarImage src={like.profile.photos[0]?.url} />
                         <AvatarFallback>{like.profile.full_name[0]}</AvatarFallback>
@@ -178,12 +160,12 @@ export function LikesScreen() {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
-                      <div className={`${showBlurred ? 'blur-sm' : ''} transition-all duration-200`}>
-                        <p className="font-medium truncate">{like.profile.full_name}, {like.profile.age}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Year {like.profile.year} • {like.profile.branch}
-                        </p>
-                      </div>
+                    <div className="transition-all duration-200">
+                      <p className="font-medium truncate">{like.profile.full_name}, {like.profile.age}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Year {like.profile.year} • {like.profile.branch}
+                      </p>
+                    </div>
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {formatTime(like.timestamp)}

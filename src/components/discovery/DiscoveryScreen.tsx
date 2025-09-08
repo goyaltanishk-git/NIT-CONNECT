@@ -78,8 +78,10 @@ export function DiscoveryScreen() {
           const diffB = Math.abs((b.elo_rating || 1000) - userRating);
           return diffA - diffB;
         });
-      
-      setProfiles(filteredProfiles);
+
+      // Fallback to all sample profiles if filtering removed everything
+      const result = filteredProfiles.length > 0 ? filteredProfiles : SAMPLE_PROFILES;
+      setProfiles(result);
       setLoading(false);
     } catch (error) {
       console.error("Error loading profiles:", error);
@@ -95,16 +97,16 @@ export function DiscoveryScreen() {
     // Check daily limits
     if (action === 'like' && dailyLikes >= 100) {
       toast({
-        title: "Daily limit reached! 💎",
-        description: "You've used all your likes today. Get Premium for unlimited likes!",
+        title: "Daily like limit reached",
+        description: "You've used all your likes today. Try again tomorrow.",
       });
       return;
     }
     
     if (action === 'superlike' && dailySuperLikes >= 5) {
       toast({
-        title: "Daily limit reached! ⭐",
-        description: "You've used all your super likes today. Premium gets you more!",
+        title: "Daily super like limit reached",
+        description: "You've used all your super likes today. Try again tomorrow.",
       });
       return;
     }

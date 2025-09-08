@@ -181,24 +181,6 @@ export function ProfileScreen() {
           </CardContent>
         </Card>
 
-        {/* Premium Features Teaser */}
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-6 text-center">
-            <div className="flex justify-center mb-3">
-              <div className="h-16 w-16 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center">
-                <Zap className="h-8 w-8 text-primary-foreground" />
-              </div>
-            </div>
-            <h3 className="text-lg font-bold text-primary mb-2">Upgrade to Premium</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Unlimited likes, see who liked you, boost your profile, and more!
-            </p>
-            <Button className="bg-gradient-to-r from-primary to-primary/80 w-full">
-              <Shield className="h-4 w-4 mr-2" />
-              Get Premium
-            </Button>
-          </CardContent>
-        </Card>
 
         {/* Interests */}
         <Card>
