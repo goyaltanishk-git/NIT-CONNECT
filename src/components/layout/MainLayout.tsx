@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Heart, MessageCircle, User, Flame, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DiscoveryScreen } from "@/components/discovery/DiscoveryScreen";
-import { MatchesScreen } from "@/components/matches/MatchesScreen";
+import { LikesScreen } from "@/components/matches/LikesScreen";
 import { ChatScreen } from "@/components/chat/ChatScreen";
 import { ProfileScreen } from "@/components/profile/ProfileScreen";
 
@@ -14,7 +14,7 @@ export function MainLayout() {
 
   const tabs = [
     { id: 'discover' as Tab, icon: Flame, label: 'Discover' },
-    { id: 'matches' as Tab, icon: Heart, label: 'Matches' },
+    { id: 'matches' as Tab, icon: Heart, label: 'Likes' },
     { id: 'chat' as Tab, icon: MessageCircle, label: 'Chat' },
     { id: 'profile' as Tab, icon: User, label: 'Profile' }
   ];
@@ -32,7 +32,7 @@ export function MainLayout() {
       {/* Main Content */}
       <main className="flex-1 overflow-hidden">
         {activeTab === 'discover' && <DiscoveryScreen />}
-        {activeTab === 'matches' && <MatchesScreen />}
+        {activeTab === 'matches' && <LikesScreen />}
         {activeTab === 'chat' && <ChatScreen />}
         {activeTab === 'profile' && <ProfileScreen />}
       </main>
