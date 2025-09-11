@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, Star, Clock, Sparkles } from "lucide-react";
+import { LikesScreenIntegrated } from "./LikesScreenIntegrated";
+import { useAuth } from "@/hooks/useAuth";
 import { SAMPLE_PROFILES, Profile } from "@/data/sampleProfiles";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +17,18 @@ interface PendingLike {
 }
 
 export function LikesScreen() {
+  const { user, loading: authLoading } = useAuth();
+  
+  // If user is authenticated, use backend integration
+  if (user && !authLoading) {
+    return <LikesScreenIntegrated />;
+  }
+  
+  // Fallback to demo mode with sample data
+  return <LikesScreenDemo />;
+}
+
+function LikesScreenDemo() {
   const [filter, setFilter] = useState<'all' | 'recent' | 'superlikes'>('all');
   const { toast } = useToast();
   

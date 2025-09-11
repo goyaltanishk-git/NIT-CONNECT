@@ -8,11 +8,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProfileCard } from "./ProfileCard";
 import { ActionButtons } from "./ActionButtons";
 import { useToast } from "@/hooks/use-toast";
-import { useEloRating } from "@/hooks/useEloRating";
+import { useAuth } from "@/hooks/useAuth";
+import { DiscoveryScreenIntegrated } from "./DiscoveryScreenIntegrated";
 import { SAMPLE_PROFILES, Profile } from "@/data/sampleProfiles";
+import { useEloRating } from "@/hooks/useEloRating";
 import { filterProfile } from "@/utils/contentFilter";
 
 export function DiscoveryScreen() {
+  const { user, loading: authLoading } = useAuth();
+  
+  // If user is authenticated, use backend integration
+  if (user && !authLoading) {
+    return <DiscoveryScreenIntegrated />;
+  }
+  
+  // Fallback to demo mode with sample profiles
+  return <DiscoveryScreenDemo />;
+}
+
+function DiscoveryScreenDemo() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
