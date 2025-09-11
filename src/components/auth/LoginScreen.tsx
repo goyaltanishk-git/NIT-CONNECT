@@ -5,11 +5,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Heart, Mail } from "lucide-react";
+import { Heart, Mail, Shield } from "lucide-react";
 
 export function LoginScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authStep, setAuthStep] = useState<'email' | 'otp'>('email');
   const { toast } = useToast();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -76,7 +77,7 @@ export function LoginScreen() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">College Email</Label>
               <div className="relative">
