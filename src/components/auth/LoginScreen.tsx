@@ -7,12 +7,18 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, Mail } from "lucide-react";
 
+function generateOTP(length = 6) {
+  return Math.floor(100000 + Math.random() * 900000).toString().slice(0, length);
+}
+
 export function LoginScreen() {
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [step, setStep] = useState<"email" | "otp">("email");
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const { toast } = useToast(); 
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email.endsWith('@nitkkr.ac.in')) {
@@ -27,23 +33,85 @@ export function LoginScreen() {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const generatedOtp = generateOTP();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+      const { error } = await supabase.from("email_otps").insert({
         email,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
+        otp: generatedOtp,
+        expires_at: expiresAt
       });
 
       if (error) throw error;
 
+      // Send the OTP via your email API (e.g. Resend or SendGrid)
+    await fetch('http://localhost:3001/api/send-otp', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email, otp: generatedOtp }),
+});
+
+      setStep("otp");
+
       toast({
-        title: "Check your email!",
-        description: "We've sent you a login link. Click it to sign in."
+        title: "OTP Sent",
+        description: "Check your email for the OTP"
       });
+
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("email_otps")
+        .select("*")
+        .eq("email", email)
+        .eq("otp", otp)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      const record = data?.[0];
+      const now = new Date();
+
+      if (!record || new Date(record.expires_at) < now) {
+        toast({
+          title: "Invalid or Expired OTP",
+          description: "Please try again",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Simulate logged in user
+      const fakeUser = {
+        id: 'user-' + Date.now(),
+        email,
+        created_at: new Date().toISOString(),
+        role: 'authenticated'
+      };
+
+      localStorage.setItem('temp-user', JSON.stringify(fakeUser));
+      window.location.reload();
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "OTP verification failed",
         variant: "destructive"
       });
     } finally {
@@ -68,52 +136,64 @@ export function LoginScreen() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">College Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.name@nitkkr.ac.in"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+          {step === "email" ? (
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">College Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.name@nitkkr.ac.in"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
               </div>
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-              disabled={loading}
-            >
-              {loading ? "Sending..." : "Continue with Email"}
-            </Button>
-            
-            {/* Temporary bypass button */}
-            <Button 
-              type="button"
-              variant="outline" 
-              className="w-full border-primary/20 hover:bg-primary/5"
-              onClick={() => {
-                // Simulate logged in user by setting a fake session
-                const fakeUser = {
-                  id: 'temp-user-' + Date.now(),
-                  email: 'temp@nitkkr.ac.in',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  aud: 'authenticated',
-                  role: 'authenticated'
-                };
-                localStorage.setItem('temp-user', JSON.stringify(fakeUser));
-                window.location.reload();
-              }}
-            >
-              🚀 Skip Email (Demo Mode)
-            </Button>
-          </form>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Sending..." : "Send OTP"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleOtpSubmit} className="space-y-4">
+              <Label htmlFor="otp">Enter OTP sent to {email}</Label>
+              <Input
+                id="otp"
+                type="text"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="6-digit OTP"
+                required
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Verifying..." : "Verify OTP"}
+              </Button>
+            </form>
+          )}
+
+          {/* Optional Demo Mode */}
+          <Button 
+            type="button"
+            variant="outline" 
+            className="w-full mt-4 border-primary/20 hover:bg-primary/5"
+            onClick={() => {
+              const fakeUser = {
+                id: 'temp-user-' + Date.now(),
+                email: 'temp@nitkkr.ac.in',
+                created_at: new Date().toISOString(),
+                role: 'authenticated'
+              };
+              localStorage.setItem('temp-user', JSON.stringify(fakeUser));
+              window.location.reload();
+            }}
+          >
+            🚀 Skip (Demo Mode)
+          </Button>
+
           <div className="mt-6 text-xs text-center text-muted-foreground">
             By continuing, you agree to our Terms of Service and Privacy Policy.
             <br />
