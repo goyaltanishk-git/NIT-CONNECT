@@ -1,0 +1,248 @@
+import { useState, useEffect } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { StoryViewer } from "./StoryViewer";
+import { AddStoryModal } from "./AddStoryModal";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Story {
+  id: string;
+  user_id: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  caption?: string;
+  created_at: string;
+  expires_at: string;
+  user: {
+    full_name: string;
+    photos: string[];
+  };
+  is_viewed?: boolean;
+}
+
+interface StoryView {
+  viewer_id: string;
+}
+
+interface StoryData {
+  id: string;
+  user_id: string;
+  media_url: string;
+  media_type: 'image' | 'video';
+  caption?: string;
+  created_at: string;
+  expires_at: string;
+  user_profiles: {
+    full_name: string;
+    photos: string[];
+  };
+  story_views: StoryView[];
+}
+
+interface UserStoryGroup {
+  user: {
+    full_name: string;
+    photos: string[];
+  };
+  stories: Story[];
+  hasUnviewed: boolean;
+}
+
+interface StoriesCarouselProps {
+  currentUserId: string;
+}
+
+export function StoriesCarousel({ currentUserId }: StoriesCarouselProps) {
+  const [stories, setStories] = useState<Story[]>([]);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
+  const [showAddStory, setShowAddStory] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStories();
+  }, []);
+
+  const loadStories = async () => {
+    try {
+      // Get active stories with user info
+      const { data: storiesData, error } = await supabase
+        .from('user_stories')
+        .select(`
+          *,
+          user_profiles!user_stories_user_id_fkey (
+            full_name,
+            photos
+          ),
+          story_views!left (
+            viewer_id
+          )
+        `)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group stories by user and mark viewed status
+      const groupedStories: { [userId: string]: Story[] } = {};
+      
+      storiesData?.forEach((story: StoryData) => {
+        const isViewed = story.story_views.some((view: StoryView) => view.viewer_id === currentUserId);
+        
+        const storyWithUser: Story = {
+          ...story,
+          user: story.user_profiles,
+          is_viewed: isViewed,
+        };
+
+        if (!groupedStories[story.user_id]) {
+          groupedStories[story.user_id] = [];
+        }
+        groupedStories[story.user_id].push(storyWithUser);
+      });
+
+      // Convert to array and sort (unviewed first)
+      const storyUsers = Object.entries(groupedStories).map(([userId, userStories]) => {
+        const hasUnviewed = userStories.some(story => !story.is_viewed);
+        return {
+          userId,
+          stories: userStories,
+          hasUnviewed,
+          latestStory: userStories[0],
+        };
+      });
+
+      // Sort: own stories first, then unviewed, then viewed
+      storyUsers.sort((a, b) => {
+        if (a.userId === currentUserId) return -1;
+        if (b.userId === currentUserId) return 1;
+        if (a.hasUnviewed && !b.hasUnviewed) return -1;
+        if (!a.hasUnviewed && b.hasUnviewed) return 1;
+        return 0;
+      });
+
+      // Flatten back to stories array
+      const sortedStories = storyUsers.flatMap(user => user.stories);
+      setStories(sortedStories);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading stories:', error);
+      setLoading(false);
+    }
+  };
+
+  const handleStoryView = async (storyId: string) => {
+    try {
+      // Record story view
+      await supabase
+        .from('story_views')
+        .insert({
+          story_id: storyId,
+          viewer_id: currentUserId,
+        });
+
+      // Update local state
+      setStories(prev => 
+        prev.map(story => 
+          story.id === storyId ? { ...story, is_viewed: true } : story
+        )
+      );
+    } catch (error) {
+      console.error('Error recording story view:', error);
+    }
+  };
+
+  const handleStoryAdded = () => {
+    setShowAddStory(false);
+    loadStories(); // Refresh stories
+  };
+
+  if (loading) {
+    return (
+      <div className="flex gap-3 p-4 overflow-x-auto">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex-shrink-0">
+            <div className="w-16 h-16 bg-muted rounded-full animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Group stories by user for display
+  const groupedForDisplay = stories.reduce((acc, story) => {
+    if (!acc[story.user_id]) {
+      acc[story.user_id] = {
+        user: story.user,
+        stories: [],
+        hasUnviewed: false,
+      };
+    }
+    acc[story.user_id].stories.push(story);
+    if (!story.is_viewed) {
+      acc[story.user_id].hasUnviewed = true;
+    }
+    return acc;
+  }, {} as { [userId: string]: UserStoryGroup });
+
+  const userStories = Object.entries(groupedForDisplay);
+
+  return (
+    <>
+      <div className="flex gap-3 p-4 overflow-x-auto scrollbar-hide">
+        {/* Add Story Button (for current user) */}
+        <div className="flex-shrink-0 text-center">
+          <Button
+            variant="outline"
+            className="w-16 h-16 rounded-full p-0 border-2 border-dashed border-primary/30 hover:border-primary/50"
+            onClick={() => setShowAddStory(true)}
+          >
+            <Plus className="h-6 w-6 text-primary" />
+          </Button>
+          <p className="text-xs mt-1 text-muted-foreground">Your Story</p>
+        </div>
+
+        {/* Story Avatars */}
+        {userStories.map(([userId, { user, stories, hasUnviewed }]) => (
+          <div key={userId} className="flex-shrink-0 text-center">
+            <button
+              className={`relative w-16 h-16 rounded-full p-0.5 ${
+                hasUnviewed 
+                  ? 'bg-gradient-to-tr from-pink-500 via-purple-500 to-orange-500' 
+                  : 'bg-gray-300'
+              }`}
+              onClick={() => setSelectedStoryIndex(stories.findIndex(s => s.id === stories[0].id))}
+            >
+              <Avatar className="w-full h-full border-2 border-background">
+                <AvatarImage src={user.photos[0]} />
+                <AvatarFallback>{user.full_name[0]}</AvatarFallback>
+              </Avatar>
+            </button>
+            <p className="text-xs mt-1 text-muted-foreground truncate w-16">
+              {userId === currentUserId ? 'You' : user.full_name.split(' ')[0]}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Story Viewer */}
+      {selectedStoryIndex !== null && (
+        <StoryViewer
+          stories={stories}
+          initialIndex={selectedStoryIndex}
+          onClose={() => setSelectedStoryIndex(null)}
+          onStoryView={handleStoryView}
+          currentUserId={currentUserId}
+        />
+      )}
+
+      {/* Add Story Modal */}
+      <AddStoryModal
+        isOpen={showAddStory}
+        onClose={() => setShowAddStory(false)}
+        onStoryAdded={handleStoryAdded}
+        userId={currentUserId}
+      />
+    </>
+  );
+}

@@ -22,7 +22,7 @@ app.post('/api/send-otp', async (req, res) => {
 
   try {
    const result= await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>', // Replace with your verified email/domain
+      from: 'Acme <onboarding@nitconnect.icu>', // Replace with your verified email/domain
       to: email,
       subject: 'Your OTP Code for NIT Connect',
       html: `

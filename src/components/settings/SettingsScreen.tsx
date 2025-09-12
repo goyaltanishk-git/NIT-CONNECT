@@ -27,8 +27,41 @@ interface SettingsScreenProps {
   onBack: () => void;
 }
 
+interface SettingsState {
+  pushNotifications: boolean;
+  matchNotifications: boolean;
+  messageNotifications: boolean;
+  likeNotifications: boolean;
+  showAge: boolean;
+  showDistance: boolean;
+  onlineStatus: boolean;
+  readReceipts: boolean;
+  ageRange: number[];
+  maxDistance: number;
+  showMe: "men" | "women" | "everyone";
+  darkMode: boolean;
+  soundEffects: boolean;
+  hapticFeedback: boolean;
+  photoVerification: boolean;
+  hideFromContacts: boolean;
+  incognitoMode: boolean;
+}
+
+interface SettingItem {
+  key: keyof SettingsState;
+  label: string;
+  description: string;
+  type: string;
+}
+
+interface SettingsSection {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: SettingItem[];
+}
+
 export function SettingsScreen({ onBack }: SettingsScreenProps) {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<SettingsState>({
     // Notifications
     pushNotifications: true,
     matchNotifications: true,
@@ -44,7 +77,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
     // Discovery
     ageRange: [18, 25],
     maxDistance: 50,
-    showMe: "everyone" as "men" | "women" | "everyone",
+    showMe: "everyone" as const,
     
     // App Preferences
     darkMode: false,
@@ -57,13 +90,13 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
     incognitoMode: false
   });
 
-  const updateSetting = (key: string, value: any) => {
+  const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     // Save to localStorage
     localStorage.setItem('dating-app-settings', JSON.stringify({ ...settings, [key]: value }));
   };
 
-  const settingsSections = [
+  const settingsSections: SettingsSection[] = [
     {
       title: "Notifications",
       icon: Bell,
@@ -192,13 +225,13 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
     }
   ];
 
-  const renderSettingControl = (item: any) => {
+  const renderSettingControl = (item: SettingItem) => {
     switch (item.type) {
       case "switch":
         return (
           <Switch
-            checked={settings[item.key as keyof typeof settings] as boolean}
-            onCheckedChange={(checked) => updateSetting(item.key, checked)}
+            checked={settings[item.key] as boolean}
+            onCheckedChange={(checked) => updateSetting(item.key, checked as SettingsState[typeof item.key])}
           />
         );
       
@@ -232,7 +265,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
       
       case "select":
         return (
-          <Select value={settings.showMe} onValueChange={(value) => updateSetting("showMe", value)}>
+          <Select value={settings.showMe} onValueChange={(value: "men" | "women" | "everyone") => updateSetting("showMe", value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
