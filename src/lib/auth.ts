@@ -1,30 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
+// 1. Import the Database type from your generated types file
+import type { Database } from "@/integrations/supabase/types";
 
-export interface Profile {
-  id?: string;
-  user_id?: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  date_of_birth?: string;
-  gender?: string;
-  interested_in?: string;
-  bio?: string;
-  year_of_study?: string;
-  branch?: string;
-  hometown?: string;
-  height?: number | null;
-  phone_number?: string;
-  instagram_handle?: string;
-  verification_status?: string;
-  is_verified?: boolean;
-  is_active?: boolean;
-  incognito_mode?: boolean;
-  hide_year_branch?: boolean;
-  last_active_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
+// 2. Create type aliases from the official Database type for easier use
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
+export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export class AuthService {
   static async generateOtp(email: string, otp: string, expiresAt: string) {
@@ -65,6 +46,7 @@ export class AuthService {
       .select("*")
       .eq("email", email)
       .eq("is_active", true)
+      .limit(1) // Added to prevent 406 error on duplicates
       .single();
 
     if (error && error.code !== "PGRST116") throw error;
@@ -77,57 +59,17 @@ export class AuthService {
     const firstName = parts[0] || "User";
     const lastName = parts[1] || "Name";
 
-    let userId = authUserId;
-
-    if (!userId) {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password:
-            Math.random().toString(36).slice(2) +
-            Math.random().toString(36).slice(2),
-        });
-
-        if (!authError) userId = authData.user?.id;
-      } catch {
-        // fallback
-      }
-    }
-
-    if (!userId) {
-      userId =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
-              const r = (Math.random() * 16) | 0,
-                v = c === "x" ? r : (r & 0x3) | 0x8;
-              return v.toString(16);
-            });
-    }
-
-    const userData: Profile = {
-      email,
-      user_id: userId,
+    // 3. Use the ProfileInsert type for creating new user data
+    // This ensures all required fields are present and correctly typed
+    const userData: ProfileInsert = {
+      user_id: authUserId,
+      email: email,
       first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
       last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
       date_of_birth: "2000-01-01",
       gender: "male",
       interested_in: "female",
-      bio: "",
-      year_of_study: "1",
-      branch: "",
-      hometown: "",
-      height: null,
-      phone_number: "",
-      instagram_handle: "",
       verification_status: "pending",
-      is_verified: false,
-      is_active: true,
-      incognito_mode: false,
-      hide_year_branch: false,
-      last_active_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     };
 
     const { data: newUserProfile, error: createError } = await supabase
@@ -139,38 +81,36 @@ export class AuthService {
     if (createError) throw createError;
 
     localStorage.setItem("current-user", JSON.stringify(newUserProfile));
-    localStorage.setItem("profile-backup", JSON.stringify(newUserProfile));
     return newUserProfile;
   }
 
-  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
+  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile>{
     const existingUser = await this.checkUserExists(email);
 
     if (existingUser) {
-      const { data: updatedUser, error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          last_active_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          user_id: authUserId || existingUser.user_id,
-        })
-        .eq("email", email)
-        .select()
-        .single();
+        // Just update last active time and ensure user_id is synced
+        const { data: updatedUser, error } = await supabase
+            .from("profiles")
+            .update({ 
+                last_active_at: new Date().toISOString(),
+                user_id: authUserId 
+            })
+            .eq("email", email)
+            .select()
+            .single();
+        
+        if (error) throw error;
 
-      if (!updateError && updatedUser) {
         localStorage.setItem("current-user", JSON.stringify(updatedUser));
-        localStorage.setItem("profile-backup", JSON.stringify(updatedUser));
         return updatedUser;
-      }
-      return existingUser;
     } else {
       return await this.createNewUser(email, authUserId);
     }
   }
 
-  static async updateProfile(email: string, updates: Partial<Profile>): Promise<Profile> {
-    const updateData = { ...updates, updated_at: new Date().toISOString() };
+  static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
+    // 4. Use the ProfileUpdate type for the 'updates' parameter
+    const updateData: ProfileUpdate = { ...updates, updated_at: new Date().toISOString() };
     const { data, error } = await supabase
       .from("profiles")
       .update(updateData)
@@ -179,32 +119,16 @@ export class AuthService {
       .single();
 
     if (error) throw error;
-
+    
     localStorage.setItem("current-user", JSON.stringify(data));
-    localStorage.setItem("profile-backup", JSON.stringify(data));
     return data;
   }
-
+  
   static async updateLastActive(identifier: string): Promise<void> {
-    const updateData = {
-      last_active_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    let { error } = await supabase
-      .from("profiles")
-      .update(updateData)
-      .eq("email", identifier);
-
-    if (error) {
-      await supabase.from("profiles").update(updateData).eq("user_id", identifier);
-    }
-
-    const currentUser = this.getCurrentUser();
-    if (currentUser && (currentUser.email === identifier || currentUser.user_id === identifier)) {
-      const updatedUser = { ...currentUser, ...updateData };
-      localStorage.setItem("current-user", JSON.stringify(updatedUser));
-    }
+    await supabase
+        .from("profiles")
+        .update({ last_active_at: new Date().toISOString() })
+        .eq("user_id", identifier);
   }
 
   static getCurrentUser(): Profile | null {
@@ -217,26 +141,20 @@ export class AuthService {
       .from("profiles")
       .select("*")
       .eq("email", email)
-      .eq("is_active", true)
       .single();
-
+      
     if (error && error.code !== "PGRST116") throw error;
     if (data) {
       localStorage.setItem("current-user", JSON.stringify(data));
       return data;
     }
-
     return null;
   }
 
   static async logout(): Promise<void> {
     await supabase.auth.signOut();
-    localStorage.removeItem("current-user");
-    localStorage.removeItem("temp-user");
-    localStorage.removeItem("profile-backup");
-    localStorage.removeItem("user-login-time");
+    localStorage.clear();
   }
-
   static async getAllProfiles(limit = 50): Promise<Profile[]> {
     const { data, error } = await supabase
       .from("profiles")

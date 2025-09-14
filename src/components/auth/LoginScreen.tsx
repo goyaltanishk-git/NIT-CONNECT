@@ -1,3 +1,5 @@
+// src/components/screens/LoginScreen.tsx
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +23,8 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Step 1: Send OTP (keeping existing authentication)
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!email.endsWith("@nitkkr.ac.in")) {
       toast({
         title: "Invalid Email",
@@ -33,17 +33,11 @@ export function LoginScreen() {
       });
       return;
     }
-
     setLoading(true);
-
     try {
       const generatedOtp = generateOTP();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-
-      // Store OTP in Supabase
       await AuthService.generateOtp(email, generatedOtp, expiresAt);
-
-      // Send OTP via backend (email API)
       try {
         await fetch("http://localhost:3001/api/send-otp", {
           method: "POST",
@@ -52,10 +46,8 @@ export function LoginScreen() {
         });
       } catch (emailError) {
         console.warn("Email service not available:", emailError);
-        // In demo mode, show the OTP in console for testing
         console.log("Demo OTP for", email, ":", generatedOtp);
       }
-
       setStep("otp");
       toast({
         title: "OTP Sent",
@@ -72,74 +64,35 @@ export function LoginScreen() {
     }
   };
 
-  // Step 2: Verify OTP & Enhanced Profile Handling
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // Step 1: Verify OTP first
       const otpVerified = await AuthService.verifyOtp(email, otp);
-      if (!otpVerified) {
-        throw new Error("OTP verification failed.");
-      }
-
-      toast({
-        title: "OTP Verified ✓",
-        description: "Loading your profile...",
-      });
-
-      // Step 2: Handle Supabase authentication first
+      if (!otpVerified) throw new Error("OTP verification failed.");
+      toast({ title: "OTP Verified ✓", description: "Loading your profile..." });
+      
       let supabaseUser = null;
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            shouldCreateUser: true,
-          }
-        });
+      const { data: authData } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: true },
+      });
+      if (authData.user) supabaseUser = authData.user;
 
-        if (authError) {
-          console.warn("Supabase auth warning:", authError);
-        } else if (authData.user) {
-          supabaseUser = authData.user;
-        }
-      } catch (authError) {
-        console.warn("Supabase auth not available, using custom auth:", authError);
-      }
-
-      // Step 3: Get or create user profile with enhanced handling
       const userProfile = await AuthService.getOrCreateUserProfile(email, supabaseUser?.id);
-
-      // Step 4: Update profile with Supabase user ID if available
+      
       if (supabaseUser && userProfile) {
-        try {
-          await AuthService.updateProfile(email, { 
-            user_id: supabaseUser.id,
-            last_active_at: new Date().toISOString()
-          });
-        } catch (updateError) {
-          console.warn("Could not update profile with Supabase ID:", updateError);
-        }
+        await AuthService.updateProfile(email, { 
+          user_id: supabaseUser.id,
+          last_active_at: new Date().toISOString()
+        });
       }
-
-      // Step 5: Validate and enhance profile data
-      const isNewUser = !userProfile.first_name || !userProfile.last_name;
-      const isProfileComplete = userProfile.first_name && 
-                               userProfile.last_name && 
-                               userProfile.year_of_study && 
-                               userProfile.branch;
-
-      // Step 6: Show appropriate welcome message based on profile status
+      
+      const isNewUser = !userProfile.first_name || userProfile.first_name === "User";
       if (isNewUser) {
         toast({
           title: "Welcome to NIT Connect! 🎉",
           description: "Please complete your profile to get started",
-        });
-      } else if (!isProfileComplete) {
-        toast({
-          title: "Welcome back! 👋",
-          description: "Please complete your profile information",
         });
       } else {
         toast({
@@ -148,16 +101,7 @@ export function LoginScreen() {
         });
       }
 
-      // Step 7: Update last active and redirect
-      await AuthService.updateLastActive(email);
-
-      // Save complete profile information to localStorage
-      localStorage.setItem("current-user", JSON.stringify(userProfile));
-      localStorage.setItem("user-login-time", new Date().toISOString());
-
-      // Redirect user or reload the page
       window.location.reload();
-
     } catch (error) {
       console.error("Login error:", error);
       toast({
@@ -170,69 +114,50 @@ export function LoginScreen() {
     }
   };
 
-  // Step 3: Enhanced Demo Mode with Profile Creation
   const handleDemoMode = async () => {
     setLoading(true);
-
     try {
       const demoEmail = `demo.user.${Date.now()}@nitkkr.ac.in`;
 
-      // Create demo profile with more complete data
+      // This call now works because the second argument is optional in auth.ts
+      await AuthService.getOrCreateUserProfile(demoEmail);
+
+      // CORRECTED: 'gender' is now a valid type ("male" or "female")
       const demoProfile = {
-        email: demoEmail,
         first_name: "Demo",
         last_name: "User",
         year_of_study: "2",
         branch: "Computer Science",
         hometown: "Demo City",
         bio: "This is a demo account for testing purposes.",
-        gender: "other",
+        gender: "male" as const, // Use a valid gender and assert as const
+        interested_in: "female" as const,
         is_verified: false,
         is_active: true,
-        created_at: new Date().toISOString(),
       };
 
-      try {
-        // Try to create profile in database
-        const user = await AuthService.getOrCreateUserProfile(demoEmail);
-
-        // Update with demo data
-        const updatedUser = await AuthService.updateProfile(demoEmail, demoProfile);
-
-        await AuthService.updateLastActive(demoEmail);
-        localStorage.removeItem("temp-user");
-
-        toast({
-          title: "Demo Mode Active",
-          description: "Welcome to NIT Connect Demo!",
-        });
-      } catch (error) {
-        console.error("Demo mode database error:", error);
-
-        // Fallback to local storage demo
-        const fakeUser = {
-          id: "temp-user-" + Date.now(),
-          ...demoProfile,
-          role: "authenticated",
-        };
-
-        localStorage.setItem("temp-user", JSON.stringify(fakeUser));
-        localStorage.setItem("current-user", JSON.stringify(fakeUser));
-
-        toast({
-          title: "Demo Mode (Local)",
-          description: "Using local storage for demo",
-        });
-      }
+      await AuthService.updateProfile(demoEmail, demoProfile);
+      
+      toast({
+        title: "Demo Mode Active",
+        description: "Welcome to NIT Connect Demo!",
+      });
 
       window.location.reload();
     } catch (error) {
       console.error("Demo mode error:", error);
+      // Fallback to local storage if DB operations fail
+      const fakeUser = {
+        id: "temp-user-" + Date.now(),
+        email: `demo.user.${Date.now()}@nitkkr.ac.in`,
+        role: "authenticated",
+      };
+      localStorage.setItem("current-user", JSON.stringify(fakeUser));
       toast({
-        title: "Demo Error",
-        description: "Could not initialize demo mode",
-        variant: "destructive",
+        title: "Demo Mode (Offline)",
+        description: "Using local storage for demo",
       });
+      window.location.reload();
     } finally {
       setLoading(false);
     }
@@ -257,7 +182,6 @@ export function LoginScreen() {
             }
           </CardDescription>
         </CardHeader>
-
         <CardContent>
           {step === "email" ? (
             <form onSubmit={handleEmailSubmit} className="space-y-4">
@@ -265,74 +189,25 @@ export function LoginScreen() {
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="your.name@nitkkr.ac.in"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
+                  <Input id="email" type="email" placeholder="your.name@nitkkr.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" required />
                 </div>
               </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending OTP..." : "Send OTP"}
-              </Button>
-
+              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Sending OTP..." : "Send OTP"}</Button>
               <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or</span>
-                </div>
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or</span></div>
               </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleDemoMode}
-                disabled={loading}
-              >
-                <User className="w-4 h-4 mr-2" />
-                Try Demo Mode
-              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={handleDemoMode} disabled={loading}><User className="w-4 h-4 mr-2" />Try Demo Mode</Button>
             </form>
           ) : (
             <form onSubmit={handleOtpSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="otp">Enter OTP</Label>
-                <Input
-                  id="otp"
-                  type="text"
-                  placeholder="123456"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={6}
-                  className="text-center text-lg tracking-widest"
-                  required
-                />
-                <p className="text-sm text-gray-500 text-center">
-                  OTP sent to {email}
-                </p>
+                <Input id="otp" type="text" placeholder="123456" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={6} className="text-center text-lg tracking-widest" required />
+                <p className="text-sm text-gray-500 text-center">OTP sent to {email}</p>
               </div>
-
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Verify OTP"}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full"
-                onClick={() => setStep("email")}
-                disabled={loading}
-              >
-                ← Back to email
-              </Button>
+              <Button type="submit" className="w-full" disabled={loading}>{loading ? "Verifying..." : "Verify OTP"}</Button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("email")} disabled={loading}>← Back to email</Button>
             </form>
           )}
         </CardContent>

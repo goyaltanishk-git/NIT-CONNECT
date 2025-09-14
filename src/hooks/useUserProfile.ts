@@ -1,231 +1,96 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+// src/hooks/useUserProfile.ts
 
-export interface UserProfile {
-  id: string;
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  bio: string | null;
-  year_of_study: string | null;
-  branch: string | null;
-  hometown: string | null;
-  height: number | null;
-  date_of_birth: string;
-  gender: string;
-  interested_in: string;
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { AuthService, Profile, ProfileUpdate } from '@/lib/auth';
+import { supabase } from '@/integrations/supabase/client';
+
+// 1. Define a new type that includes the 'photos' array.
+// This represents the complete profile object for the UI.
+export type FullProfile = Profile & {
   photos: string[];
-  interests: string[];
-}
+};
 
 export function useUserProfile() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  // 2. Use the new 'FullProfile' type for the component's state.
+  const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const fetchProfile = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
+      if (!user?.email) {
         setLoading(false);
         return;
       }
+      
+      // Step A: Fetch the main profile data from the 'profiles' table.
+      const userProfile = await AuthService.getUserProfile(user.email);
 
-      // Fetch user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error fetching profile:', profileError);
-        return;
-      }
-
-      if (profileData) {
-        // Get photos separately
-        const { data: photos } = await supabase
+      if (userProfile) {
+        // Step B: If a profile exists, fetch the associated photos from the 'user_photos' table.
+        const { data: photosData, error: photosError } = await supabase
           .from('user_photos')
-          .select('photo_url, photo_order')
-          .eq('user_id', user.id)
-          .order('photo_order');
+          .select('photo_url')
+          .eq('user_id', userProfile.user_id)
+          .order('photo_order', { ascending: true });
 
-        // Get interests separately
-        const { data: interests } = await supabase
-          .from('user_interests')
-          .select('interest')
-          .eq('user_id', user.id);
+        if (photosError) {
+          console.error("Error fetching user photos:", photosError);
+        }
 
-        const transformedProfile = {
-          ...profileData,
-          photos: photos?.map(photo => photo.photo_url) || [],
-          interests: interests?.map(interest => interest.interest) || []
+        // Step C: Combine the profile data and photos into a single 'FullProfile' object.
+        const fullProfile: FullProfile = {
+          ...userProfile,
+          photos: photosData?.map(p => p.photo_url) || [], // Create the photos array
         };
-        setProfile(transformedProfile);
+        
+        setProfile(fullProfile);
       }
+      
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      console.error('Error fetching user profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createProfile = useCallback(async (profileData: Partial<UserProfile>) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
-
-      // Create profile
-      const profileInsert = {
-        user_id: user.id,
-        email: user.email || profileData.email || '',
-        first_name: profileData.first_name || '',
-        last_name: profileData.last_name || '',
-        date_of_birth: profileData.date_of_birth || '',
-        gender: (profileData.gender as 'male' | 'female') || 'male',
-        interested_in: ((profileData.interested_in === 'everyone' ? 'female' : profileData.interested_in) as 'male' | 'female') || 'female',
-        bio: profileData.bio,
-        year_of_study: profileData.year_of_study,
-        branch: profileData.branch,
-        hometown: profileData.hometown,
-        height: profileData.height
-      };
-      
-      const { data: newProfile, error: profileError } = await supabase
-        .from('profiles')
-        .insert(profileInsert)
-        .select()
-        .single();
-
-      if (profileError) throw profileError;
-
-      // Add photos
-      if (profileData.photos && profileData.photos.length > 0) {
-        const photoInserts = profileData.photos.map((photo, index) => ({
-          user_id: user.id,
-          photo_url: photo,
-          photo_order: index + 1,
-          is_primary: index === 0
-        }));
-
-        await supabase.from('user_photos').insert(photoInserts);
-      }
-
-      // Add interests
-      if (profileData.interests && profileData.interests.length > 0) {
-        const interestInserts = profileData.interests.map(interest => ({
-          user_id: user.id,
-          interest
-        }));
-
-        await supabase.from('user_interests').insert(interestInserts);
-      }
-
-      toast({
-        title: "Profile created!",
-        description: "Your profile has been created successfully."
-      });
-
-      await fetchProfile();
-      return true;
-    } catch (error) {
-      console.error('Error creating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create profile. Please try again.",
-        variant: "destructive"
-      });
-      return false;
+  // The updateProfile function remains the same, as it only needs to update the 'profiles' table.
+  // Photo management would require a separate function.
+  const updateProfile = useCallback(async (updates: ProfileUpdate) => {
+    if (!profile?.email) {
+      toast({ title: 'Error', description: 'Cannot update profile, user not found.', variant: 'destructive' });
+      return;
     }
-  }, [fetchProfile, toast]);
-
-  const updateProfile = useCallback(async (updates: Partial<UserProfile>) => {
+    
+    setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !profile) return false;
-
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          first_name: updates.first_name,
-          last_name: updates.last_name,
-          bio: updates.bio,
-          year_of_study: updates.year_of_study,
-          branch: updates.branch,
-          hometown: updates.hometown,
-          height: updates.height,
-          gender: (updates.gender as 'male' | 'female'),
-          interested_in: ((updates.interested_in === 'everyone' ? 'female' : updates.interested_in) as 'male' | 'female')
-        })
-        .eq('user_id', user.id);
-
-      if (profileError) throw profileError;
-
-      // Update photos if provided
-      if (updates.photos) {
-        // Delete existing photos
-        await supabase.from('user_photos').delete().eq('user_id', user.id);
-        
-        // Insert new photos
-        if (updates.photos.length > 0) {
-          const photoInserts = updates.photos.map((photo, index) => ({
-            user_id: user.id,
-            photo_url: photo,
-            photo_order: index + 1,
-            is_primary: index === 0
-          }));
-          await supabase.from('user_photos').insert(photoInserts);
-        }
-      }
-
-      // Update interests if provided
-      if (updates.interests) {
-        // Delete existing interests
-        await supabase.from('user_interests').delete().eq('user_id', user.id);
-        
-        // Insert new interests
-        if (updates.interests.length > 0) {
-          const interestInserts = updates.interests.map(interest => ({
-            user_id: user.id,
-            interest
-          }));
-          await supabase.from('user_interests').insert(interestInserts);
-        }
-      }
-
+      await AuthService.updateProfile(profile.email, updates);
+      // Refetch the full profile to get the latest data including photos
+      await fetchProfile(); 
       toast({
-        title: "Profile updated!",
-        description: "Your changes have been saved."
+        title: 'Profile Updated!',
+        description: 'Your changes have been saved successfully.',
       });
-
-      await fetchProfile();
-      return true;
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
-        variant: "destructive"
+        title: 'Update Failed',
+        description: 'Could not save your changes. Please try again.',
+        variant: 'destructive',
       });
-      return false;
+    } finally {
+      setLoading(false);
     }
-  }, [profile, fetchProfile, toast]);
+  }, [profile, toast, fetchProfile]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
-  return {
-    profile,
-    loading,
-    fetchProfile,
-    createProfile,
-    updateProfile
-  };
+  return { profile, loading, updateProfile, refetch: fetchProfile };
 }
