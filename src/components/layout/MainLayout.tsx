@@ -26,25 +26,10 @@ export function MainLayout() {
 
   const loadUserProfile = async () => {
     try {
-      const { user } = await AuthService.getCurrentUser();
+      const user = AuthService.getCurrentUser();
       
       if (user) {
-        // Get user profile from database
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading profile:", error);
-        } else if (profile) {
-          setUserProfile(profile);
-        } else {
-          // Profile doesn't exist, create one
-          const { profile: newProfile } = await AuthService.getOrCreateUserProfile(user);
-          setUserProfile(newProfile);
-        }
+        setUserProfile(user);
       }
     } catch (error) {
       console.error("Error in loadUserProfile:", error);
@@ -55,19 +40,12 @@ export function MainLayout() {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await AuthService.signOut();
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to sign out",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Signed Out",
-          description: "You have been successfully signed out"
-        });
-      }
+      await AuthService.logout();
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out"
+      });
+      window.location.reload();
     } catch (error) {
       console.error("Sign out error:", error);
       toast({
@@ -127,11 +105,11 @@ export function MainLayout() {
           </TabsContent>
           
           <TabsContent value="profile" className="h-full m-0">
-            <ProfileScreen userProfile={userProfile} onProfileUpdate={loadUserProfile} />
+            <ProfileScreen />
           </TabsContent>
           
           <TabsContent value="settings" className="h-full m-0">
-            <SettingsScreen />
+            <SettingsScreen onBack={() => setActiveTab("profile")} />
           </TabsContent>
         </div>
 

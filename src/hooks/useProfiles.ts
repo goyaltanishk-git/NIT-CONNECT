@@ -195,20 +195,20 @@ export function useProfiles() {
   is_verified: boolean;
 }
             // Try to fetch photos - this might fail if table doesn't exist yet
-            const { data: photosData, error: photosError } = await supabase
-  .from('user_photos')
-  .select('photo_url, photo_order, is_primary, is_verified')
-  .eq('user_email', profile.email)
-  .order('photo_order');
+            const photosResponse = await supabase
+              .from('user_photos')
+              .select('photo_url, photo_order, is_primary, is_verified')
+              .eq('user_email', profile.email)
+              .order('photo_order');
  
             
-            if (photosData && !photosError) {
-              photos = photosData.map((photo: any) => ({ 
+            if (photosResponse.data && !photosResponse.error) {
+              photos = photosResponse.data.map((photo: any) => ({ 
                 url: photo.photo_url, 
                 order: photo.photo_order 
               }));
-            } else if (photosError) {
-              console.warn(`⚠️ Photos table might not exist or error fetching photos for ${profile.email}:`, photosError.message);
+            } else if (photosResponse.error) {
+              console.warn(`⚠️ Photos table might not exist or error fetching photos for ${profile.email}:`, photosResponse.error.message);
             }
           } catch (photosError) {
             console.warn(`⚠️ Error fetching photos for ${profile.email}:`, photosError);

@@ -14,7 +14,7 @@ import {
   CheckCheck,
   X 
 } from "lucide-react";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useNotifications } from "@/hooks/useNotificationsDisabled";
 
 interface NotificationCenterProps {
   userId: string;
