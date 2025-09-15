@@ -1,37 +1,56 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client'; // Make sure supabase is correctly imported
+import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import { AuthService } from '@/lib/auth'; // Ensure AuthService is correctly imported
-import { useToast } from '@/hooks/use-toast'; // Ensure Toast hook is available
+import { AuthService } from '@/lib/auth';
+import { useToast } from '@/hooks/use-toast';
 
-// TypeScript version of the function, without JSX
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const { toast } = useToast(); // Toast for notifications
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    let mounted = true; // Flag to track the component's mounting state
+    let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        // Fetch the current session
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("🔐 Initializing auth...");
 
+        // First check for Supabase session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (error) {
-          console.error("Error getting session:", error);
+          console.error("❌ Error getting session:", error);
           toast({
             title: 'Authentication error',
             description: 'There was an error fetching the session.',
             variant: 'destructive',
           });
-          return;
         }
 
         // If session is available, set user state
         if (session?.user && mounted) {
+          console.log("✅ Found Supabase session for user:", session.user.email);
           setUser(session.user);
-          await AuthService.updateLastActive(session.user.id); // Update last active time
+          await AuthService.updateLastActive(session.user.id);
+          setLoading(false);
+          return;
+        }
+
+        // Check AuthService current user (from localStorage)
+        const currentUser = AuthService.getCurrentUser();
+        if (currentUser && mounted) {
+          console.log("✅ Found AuthService current user:", currentUser.email);
+          const localUser: User = {
+            id: currentUser.id || currentUser.user_id || "local-" + Date.now(),
+            email: currentUser.email,
+            created_at: currentUser.created_at || new Date().toISOString(),
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            role: 'authenticated'
+          };
+          setUser(localUser);
           setLoading(false);
           return;
         }
@@ -39,6 +58,7 @@ export const useAuth = () => {
         // Fallback: Check for temp user in localStorage
         const tempUser = localStorage.getItem('temp-user');
         if (tempUser && mounted) {
+          console.log("✅ Found temp user in localStorage");
           const parsedUser = JSON.parse(tempUser);
           setUser({
             id: parsedUser.id,
@@ -48,16 +68,20 @@ export const useAuth = () => {
             user_metadata: {},
             aud: 'authenticated',
             role: parsedUser.role || 'authenticated',
-          } as User); // Set temp user from localStorage
+          } as User);
+          setLoading(false);
+          return;
         }
 
+        console.log("❌ No user found in any authentication method");
         if (mounted) {
-          setLoading(false); // Stop loading if no session or temp user found
+          setLoading(false);
         }
+
       } catch (error) {
-        console.error("Auth initialization error:", error);
+        console.error("💥 Auth initialization error:", error);
         if (mounted) {
-          setLoading(false); // Stop loading if error occurs
+          setLoading(false);
         }
       }
     };
@@ -66,35 +90,46 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-
+        
+        console.log("🔄 Auth state changed:", event, session?.user?.email);
+        
         if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user); // Set user state on sign-in
-          await AuthService.updateLastActive(session.user.id); // Update last active
-          localStorage.removeItem('temp-user'); // Remove temp user from localStorage
+          setUser(session.user);
+          await AuthService.updateLastActive(session.user.id);
+          localStorage.removeItem('temp-user');
         } else if (event === 'SIGNED_OUT') {
-          setUser(null); // Clear user state on sign-out
-          localStorage.removeItem('temp-user'); // Remove temp user from localStorage
+          setUser(null);
+          localStorage.removeItem('temp-user');
+          localStorage.removeItem('current-user');
         } else if (session?.user) {
-          setUser(session.user); // Set user state if session exists
+          setUser(session.user);
         } else {
-          setUser(null); // Clear user state if no session
+          setUser(null);
         }
 
-        setLoading(false); // Stop loading once state is updated
+        setLoading(false);
       }
     );
 
     // Initialize authentication
     initializeAuth();
 
-    // Cleanup function to unsubscribe from auth state changes on component unmount
+    // Cleanup function
     return () => {
       mounted = false;
-      subscription.unsubscribe(); // Unsubscribe from auth state changes on cleanup
+      subscription.unsubscribe();
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [toast]);
 
-  // Return the user and loading state
+  // Debug output
+  useEffect(() => {
+    console.log("👤 useAuth state:", { 
+      user: user?.email || 'null', 
+      userId: user?.id || 'null',
+      loading 
+    });
+  }, [user, loading]);
+
   return { user, loading };
 };
 
