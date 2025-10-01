@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/lib/auth";
 import { Heart, Mail, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 
 function generateOTP(length = 6) {
   return Math.floor(100000 + Math.random() * 900000)
@@ -36,6 +36,7 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const generatedOtp = generateOTP();
+      console.log(generatedOtp);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       await AuthService.generateOtp(email, generatedOtp, expiresAt);
       try {
@@ -69,6 +70,7 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const otpVerified = await AuthService.verifyOtp(email, otp);
+<<<<<<< HEAD
       if (!otpVerified) throw new Error("OTP verification failed.");
       toast({ title: "OTP Verified ✓", description: "Loading your profile..." });
       
@@ -101,10 +103,39 @@ export function LoginScreen() {
         });
       }
 
+=======
+      if (!otpVerified) {
+        throw new Error("OTP verification failed.");
+      }
+
+      toast({
+        title: "OTP Verified ✓",
+        description: "Loading your profile...",
+      });
+
+      
+     
+
+      // Step 3: Get or create user profile with enhanced handling
+      const userProfile = await AuthService.getOrCreateUserProfile(email);
+
+      // Step 4: Update profile with Supabase user ID if available
+    
+      // Step 6: Show appropriate welcome message based on profile status
+      
+      // Step 7: Update last active and redirect
+      await AuthService.updateLastActive(email);
+
+      // Save complete profile information to localStorage
+      localStorage.setItem("current-user", JSON.stringify(userProfile));
+      localStorage.setItem("user-login-time", new Date().toISOString());
+
+      // Redirect user or reload the page
+>>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
       window.location.reload();
     } catch (error) {
       console.error("Login error:", error);
-      toast({
+      toast({ 
         title: "Error",
         description: error instanceof Error ? error.message : "Login failed",
         variant: "destructive",
