@@ -1,18 +1,14 @@
-// src/hooks/useUserProfile.ts
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthService, Profile, ProfileUpdate } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 
-// 1. Define a new type that includes the 'photos' array.
-// This represents the complete profile object for the UI.
+// Define a complete profile type that includes photos
 export type FullProfile = Profile & {
   photos: string[];
 };
 
 export function useUserProfile() {
-  // 2. Use the new 'FullProfile' type for the component's state.
   const [profile, setProfile] = useState<FullProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -20,64 +16,123 @@ export function useUserProfile() {
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
+      console.log('🔄 Fetching user profile...');
+
+      // First try to get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user?.email) {
+      let userEmail = user?.email;
+
+      // If no authenticated user, check localStorage
+      if (!userEmail) {
+        console.log('⚠️ No authenticated user, checking localStorage...');
+        const storedUser = localStorage.getItem('current-user');
+        const tempUser = localStorage.getItem('temp-user');
+        
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            userEmail = parsedUser.email;
+            console.log('✅ Found user in current-user:', userEmail);
+          } catch (e) {
+            console.warn('Error parsing stored user:', e);
+          }
+        } else if (tempUser) {
+          try {
+            const parsedTempUser = JSON.parse(tempUser);
+            userEmail = parsedTempUser.email;
+            console.log('✅ Found user in temp-user:', userEmail);
+          } catch (e) {
+            console.warn('Error parsing temp user:', e);
+          }
+        }
+      }
+
+      if (!userEmail) {
+        console.log('❌ No user email found');
         setLoading(false);
         return;
       }
+
+      console.log('🔍 Fetching profile for:', userEmail);
+
+      // Fetch the main profile data from Supabase
+      const userProfile = await AuthService.getUserProfile(userEmail);
       
-      // Step A: Fetch the main profile data from the 'profiles' table.
-      const userProfile = await AuthService.getUserProfile(user.email);
-
       if (userProfile) {
-        // Step B: If a profile exists, fetch the associated photos from the 'user_photos' table.
-        const { data: photosData, error: photosError } = await supabase
-          .from('user_photos')
-          .select('photo_url')
-          .eq('user_id', userProfile.user_id)
-          .order('photo_order', { ascending: true });
+        console.log('✅ Profile fetched successfully:', userProfile);
 
-        if (photosError) {
-          console.error("Error fetching user photos:", photosError);
+        // Fetch associated photos from user_photos table
+        let photos: string[] = [];
+        try {
+          const { data: photosData, error: photosError } = await supabase
+            .from('user_photos')
+            .select('photo_url')
+            .eq('user_email', userProfile.email)
+            .order('photo_order', { ascending: true });
+
+          if (photosError) {
+            console.warn("⚠️ Error fetching user photos:", photosError);
+          } else if (photosData) {
+            photos = photosData.map(p => p.photo_url);
+            console.log('📸 Photos fetched:', photos.length, 'photos');
+          }
+        } catch (photosError) {
+          console.warn("⚠️ Exception fetching photos:", photosError);
         }
 
-        // Step C: Combine the profile data and photos into a single 'FullProfile' object.
+        // Combine profile data and photos
         const fullProfile: FullProfile = {
           ...userProfile,
-          photos: photosData?.map(p => p.photo_url) || [], // Create the photos array
+          photos: photos,
         };
-        
+
         setProfile(fullProfile);
+        console.log('✅ Full profile set with photos');
+      } else {
+        console.log('❌ No profile found for:', userEmail);
+        setProfile(null);
       }
-      
+
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('❌ Error fetching user profile:', error);
       setProfile(null);
+      toast({
+        title: 'Error',
+        description: 'Failed to load profile. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
-  // The updateProfile function remains the same, as it only needs to update the 'profiles' table.
-  // Photo management would require a separate function.
   const updateProfile = useCallback(async (updates: ProfileUpdate) => {
     if (!profile?.email) {
-      toast({ title: 'Error', description: 'Cannot update profile, user not found.', variant: 'destructive' });
+      toast({ 
+        title: 'Error', 
+        description: 'Cannot update profile, user not found.', 
+        variant: 'destructive' 
+      });
       return;
     }
-    
+
     setLoading(true);
     try {
+      console.log('📝 Updating profile with:', updates);
+      
       await AuthService.updateProfile(profile.email, updates);
-      // Refetch the full profile to get the latest data including photos
-      await fetchProfile(); 
+      
+      // Refetch the full profile to get the latest data
+      await fetchProfile();
+      
       toast({
         title: 'Profile Updated!',
         description: 'Your changes have been saved successfully.',
       });
+      
+      console.log('✅ Profile updated successfully');
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('❌ Error updating profile:', error);
       toast({
         title: 'Update Failed',
         description: 'Could not save your changes. Please try again.',
@@ -92,5 +147,10 @@ export function useUserProfile() {
     fetchProfile();
   }, [fetchProfile]);
 
-  return { profile, loading, updateProfile, refetch: fetchProfile };
+  return { 
+    profile, 
+    loading, 
+    updateProfile, 
+    refetch: fetchProfile 
+  };
 }

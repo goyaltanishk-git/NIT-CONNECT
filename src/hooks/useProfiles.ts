@@ -26,327 +26,193 @@ export interface DatabaseProfile {
   latitude: number | null; // numeric
   longitude: number | null; // numeric
   last_active_at: string | null; // timestamp with time zone
-  created_at: string | null; // timestamp with time zone
-  updated_at: string | null; // timestamp with time zone
-
-  // Additional fields for UI
-  photos?: Array<{ url: string; order: number }>;
-  interests?: Array<string>; // Fixed: Added proper type parameter
+  created_at: string; // timestamp with time zone
+  updated_at: string; // timestamp with time zone
+  user_id: string; // Add this if missing from your interface
 }
 
-export function useProfiles() {
-  const [profiles, setProfiles] = useState<DatabaseProfile[]>([]);
+// Extended profile for UI with photos and interests
+export interface ExtendedProfile extends DatabaseProfile {
+  photos: Array<{ url: string; order: number }>;
+  interests: Array<string>;
+  age?: number;
+  name?: string;
+}
+
+interface UseProfilesReturn {
+  profiles: ExtendedProfile[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  fetchNextBatch: () => Promise<void>;
+  hasMore: boolean;
+}
+
+const PROFILES_PER_BATCH = 10;
+
+export function useProfiles(): UseProfilesReturn {
+  const [profiles, setProfiles] = useState<ExtendedProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const { toast } = useToast();
 
-  const fetchProfiles = useCallback(async () => {
+  // Calculate age helper
+  const calculateAge = (dateOfBirth: string): number => {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
-      setLoading(true);
-      console.log("🔍 Starting to fetch profiles...");
-
-      // Get current user first
-      const { data: authData } = await supabase.auth.getUser();
-      const currentUser = authData?.user;
-      console.log("👤 Current user from Supabase:", currentUser?.email);
-
-      // Also check for local user
-      const tempUser = localStorage.getItem('temp-user');
-      const storedUser = localStorage.getItem('current-user');
-      console.log("📱 Local storage - temp-user:", !!tempUser, "current-user:", !!storedUser);
-
-      // Get current user email for exclusion
-      let currentUserEmail = currentUser?.email;
-
-      // If no Supabase user, check localStorage
-      if (!currentUserEmail) {
-        if (tempUser) {
-          try {
-            const parsedTempUser = JSON.parse(tempUser);
-            currentUserEmail = parsedTempUser.email;
-          } catch (e) {
-            console.warn("Error parsing temp user:", e);
-          }
-        } else if (storedUser) {
-          try {
-            const parsedCurrentUser = JSON.parse(storedUser);
-            currentUserEmail = parsedCurrentUser.email;
-          } catch (e) {
-            console.warn("Error parsing current user:", e);
-          }
-        }
-      }
-
-      console.log("📧 Current user email for exclusion:", currentUserEmail);
-
-      // First, let's see ALL profiles in the database
-      const { data: allProfiles, error: allProfilesError } = await supabase
+      console.log(`🔄 Fetching profiles with offset: ${startOffset}`);
+      
+      // Step 1: Fetch base profiles from the main profiles table
+      const { data: baseProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          email,
-          first_name,
-          last_name,
-          gender,
-          interested_in,
-          date_of_birth,
-          bio,
-          hometown,
-          year_of_study,
-          branch,
-          height,
-          instagram_handle,
-          phone_number,
-          verification_status,
-          verification_document_url,
-          is_verified,
-          is_active,
-          incognito_mode,
-          hide_year_branch,
-          latitude,
-          longitude,
-          last_active_at,
-          created_at,
-          updated_at
-        `);
-
-      console.log("📊 All profiles in database:", allProfiles?.length || 0);
-      if (allProfiles && allProfiles.length > 0) {
-        console.log("📋 Sample profiles:", allProfiles.slice(0, 3).map((profile: any) => ({
-          name: `${profile.first_name} ${profile.last_name}`,
-          email: profile.email,
-          verified: profile.is_verified,
-          active: profile.is_active,
-          gender: profile.gender,
-          interested_in: profile.interested_in
-        })));
-      }
-
-      if (allProfilesError) {
-        console.error("❌ Error fetching all profiles:", allProfilesError);
-        return;
-      }
-
-      // Now fetch profiles with exclusion filter
-      let query = supabase
-        .from('profiles')
-        .select(`
-          email,
-          first_name,
-          last_name,
-          gender,
-          interested_in,
-          date_of_birth,
-          bio,
-          hometown,
-          year_of_study,
-          branch,
-          height,
-          instagram_handle,
-          phone_number,
-          verification_status,
-          verification_document_url,
-          is_verified,
-          is_active,
-          incognito_mode,
-          hide_year_branch,
-          latitude,
-          longitude,
-          last_active_at,
-          created_at,
-          updated_at
-        `);
-
-      // Only exclude current user email if we have one
-      if (currentUserEmail) {
-        query = query.neq('email', currentUserEmail);
-        console.log("🚫 Excluding current user email:", currentUserEmail);
-      } else {
-        console.log("⚠️ No current user email to exclude");
-      }
-
-      const { data: profilesData, error: profilesError } = await query
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('is_active', true)
+        .order('last_active_at', { ascending: false })
+        .range(startOffset, startOffset + PROFILES_PER_BATCH - 1);
 
       if (profilesError) {
         console.error('❌ Error fetching profiles:', profilesError);
-        toast({
-          title: "Error loading profiles",
-          description: profilesError.message,
-          variant: "destructive"
-        });
+        throw profilesError;
+      }
+
+      if (!baseProfiles || baseProfiles.length === 0) {
+        console.log('📭 No more profiles found');
+        setHasMore(false);
         return;
       }
 
-      console.log("✅ Fetched profiles after filtering:", profilesData?.length || 0);
+      console.log(`✅ Fetched ${baseProfiles.length} base profiles`);
 
-      if (profilesData && profilesData.length > 0) {
-        // Process each profile and get additional data
-        const processedProfiles: DatabaseProfile[] = [];
-
-        for (const profile of profilesData) {
-          console.log(`🔄 Processing profile: ${profile.first_name} ${profile.last_name} (${profile.email})`);
+      // Step 2: Enhance each profile with photos and interests
+      const extendedProfiles: ExtendedProfile[] = await Promise.all(
+        baseProfiles.map(async (profile: DatabaseProfile) => {
+          console.log(`🔍 Processing profile for: ${profile.email}`);
 
           // Get photos if user_photos table exists
           let photos: Array<{ url: string; order: number }> = [];
           try {
-            // Get user_id for this profile first (since photos table likely uses user_id, not user_email)
-            const { data: profileWithId } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('email', profile.email)
-              .single();
+            const photosResponse = await supabase
+              .from('user_photos')
+              .select('photo_url, photo_order, is_primary, is_verified')
+              .eq('user_email', profile.email) // ✅ Fixed: Use email directly
+              .order('photo_order');
 
-            if (profileWithId) {
-              // Try to fetch photos using user_id
-              const photosResponse = await supabase
-                .from('user_photos')
-                .select('photo_url, photo_order, is_primary, is_verified')
-                .eq('user_id', profileWithId.id) // Changed from user_email to user_id
-                .order('photo_order');
-
-              if (photosResponse.data && !photosResponse.error) {
-                photos = photosResponse.data.map((photo: any) => ({ 
-                  url: photo.photo_url, 
-                  order: photo.photo_order 
-                }));
-              } else if (photosResponse.error) {
-                console.warn(`⚠️ Photos table might not exist or error fetching photos for ${profile.email}:`, photosResponse.error.message);
-              }
+            if (photosResponse.data && !photosResponse.error) {
+              photos = photosResponse.data.map((photo: any) => ({
+                url: photo.photo_url,
+                order: photo.photo_order
+              }));
+              console.log(`📸 Found ${photos.length} photos for ${profile.email}`);
+            } else if (photosResponse.error) {
+              console.warn(`⚠️ Error fetching photos for ${profile.email}:`, photosResponse.error.message);
             }
           } catch (photosError) {
-            console.warn(`⚠️ Error fetching photos for ${profile.email}:`, photosError);
+            console.warn(`⚠️ Exception fetching photos for ${profile.email}:`, photosError);
           }
 
           // Get interests if user_interests table exists
           let interests: Array<string> = [];
           try {
-            // Get user_id for this profile first (since interests table likely uses user_id, not user_email)
-            const { data: profileWithId } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('email', profile.email)
-              .single();
+            const { data: interestsData, error: interestsError } = await supabase
+              .from('user_interests')
+              .select('interest')
+              .eq('user_email', profile.email); // ✅ Fixed: Use email directly
 
-            if (profileWithId) {
-              // Try to fetch interests using user_id
-              const { data: interestsData, error: interestsError } = await supabase
-                .from('user_interests')
-                .select('interest')
-                .eq('user_id', profileWithId.id); // Changed from user_email to user_id
-              
-              if (interestsData && !interestsError) {
-                interests = interestsData.map((interest: any) => interest.interest);
-              } else if (interestsError) {
-                console.warn(`⚠️ Interests table might not exist or error fetching interests for ${profile.email}:`, interestsError.message);
-              }
+            if (interestsData && !interestsError) {
+              interests = interestsData.map((interest: any) => interest.interest);
+              console.log(`🎯 Found ${interests.length} interests for ${profile.email}`);
+            } else if (interestsError) {
+              console.warn(`⚠️ Error fetching interests for ${profile.email}:`, interestsError.message);
             }
           } catch (interestsError) {
-            console.warn(`⚠️ Error fetching interests for ${profile.email}:`, interestsError);
+            console.warn(`⚠️ Exception fetching interests for ${profile.email}:`, interestsError);
           }
 
-          // Create the profile object matching your schema
-          const processedProfile: DatabaseProfile = {
-            email: profile.email,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            gender: profile.gender,
-            interested_in: profile.interested_in,
-            date_of_birth: profile.date_of_birth,
-            bio: profile.bio,
-            hometown: profile.hometown,
-            year_of_study: profile.year_of_study,
-            branch: profile.branch,
-            height: profile.height,
-            instagram_handle: profile.instagram_handle,
-            phone_number: profile.phone_number,
-            verification_status: profile.verification_status,
-            verification_document_url: profile.verification_document_url,
-            is_verified: profile.is_verified,
-            is_active: profile.is_active,
-            incognito_mode: profile.incognito_mode,
-            hide_year_branch: profile.hide_year_branch,
-            latitude: profile.latitude,
-            longitude: profile.longitude,
-            last_active_at: profile.last_active_at,
-            created_at: profile.created_at,
-            updated_at: profile.updated_at,
+          // Create extended profile
+          const extendedProfile: ExtendedProfile = {
+            ...profile,
             photos,
-            interests
+            interests,
+            age: calculateAge(profile.date_of_birth),
+            name: `${profile.first_name} ${profile.last_name}`.trim()
           };
 
-          processedProfiles.push(processedProfile);
-        }
+          console.log(`✅ Extended profile created for: ${profile.email}`);
+          return extendedProfile;
+        })
+      );
 
-        console.log("🎯 Final transformed profiles:", processedProfiles.length);
-        console.log("📝 Profile names:", processedProfiles.map(p => `${p.first_name} ${p.last_name} (${p.email})`));
-        setProfiles(processedProfiles);
+      console.log(`✅ Successfully processed ${extendedProfiles.length} extended profiles`);
+
+      // Step 3: Update state
+      if (append) {
+        setProfiles(prev => [...prev, ...extendedProfiles]);
       } else {
-        console.log("📭 No profiles found after filtering");
-        setProfiles([]);
+        setProfiles(extendedProfiles);
       }
 
-    } catch (error) {
-      console.error('💥 Error in fetchProfiles:', error);
+      // Update pagination
+      if (extendedProfiles.length < PROFILES_PER_BATCH) {
+        setHasMore(false);
+      }
+
+    } catch (err) {
+      console.error('❌ Exception in fetchProfilesWithExtendedData:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
+      setError(errorMessage);
+      
       toast({
-        title: "Error loading profiles",
-        description: "Failed to load profiles from database",
-        variant: "destructive",
+        title: 'Error Loading Profiles',
+        description: errorMessage,
+        variant: 'destructive',
       });
+    }
+  };
+
+  const fetchProfiles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setOffset(0);
+    
+    try {
+      await fetchProfilesWithExtendedData(0, false);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
-  const handleInteraction = useCallback(async (
-    targetUserEmail: string,
-    interactionType: 'like' | 'pass' | 'superlike'
-  ): Promise<boolean> => {
+  const fetchNextBatch = useCallback(async () => {
+    if (!hasMore || loading) return;
+
+    setLoading(true);
+    
     try {
-      // Get current user email
-      const { data: authData } = await supabase.auth.getUser();
-      let currentUserEmail = authData?.user?.email;
-
-      // If no Supabase user, check localStorage
-      if (!currentUserEmail) {
-        const tempUser = localStorage.getItem('temp-user');
-        const storedUser = localStorage.getItem('current-user');
-
-        if (tempUser) {
-          try {
-            const parsedTempUser = JSON.parse(tempUser);
-            currentUserEmail = parsedTempUser.email;
-          } catch (e) {
-            console.warn("Error parsing temp user:", e);
-          }
-        } else if (storedUser) {
-          try {
-            const parsedCurrentUser = JSON.parse(storedUser);
-            currentUserEmail = parsedCurrentUser.email;
-          } catch (e) {
-            console.warn("Error parsing current user:", e);
-          }
-        }
-      }
-
-      if (!currentUserEmail) {
-        console.log("❌ No current user email found for interaction");
-        return false;
-      }
-
-      console.log(`💫 Recording ${interactionType} interaction between ${currentUserEmail} and ${targetUserEmail}`);
-
-      // For now, just return true to test profile display
-      // We can implement interactions later once profiles are showing
-      toast({
-        title: `${interactionType} recorded!`,
-        description: `Action on profile: ${targetUserEmail}`,
-      });
-
-      return true;
-    } catch (error) {
-      console.error('💥 Error handling interaction:', error);
-      return false;
+      const nextOffset = offset + PROFILES_PER_BATCH;
+      await fetchProfilesWithExtendedData(nextOffset, true);
+      setOffset(nextOffset);
+    } finally {
+      setLoading(false);
     }
-  }, [toast]);
+  }, [offset, hasMore, loading]);
+
+  const refetch = useCallback(async () => {
+    console.log('🔄 Refetching all profiles...');
+    setOffset(0);
+    setHasMore(true);
+    await fetchProfiles();
+  }, [fetchProfiles]);
 
   useEffect(() => {
     fetchProfiles();
@@ -355,7 +221,9 @@ export function useProfiles() {
   return {
     profiles,
     loading,
-    fetchProfiles,
-    handleInteraction,
+    error,
+    refetch,
+    fetchNextBatch,
+    hasMore
   };
 }

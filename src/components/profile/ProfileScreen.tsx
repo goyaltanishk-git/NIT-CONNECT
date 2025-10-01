@@ -1,5 +1,3 @@
-// src/components/profile/ProfileScreen.tsx
-
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,13 +6,14 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shield } from "lucide-react";
 import { useEloRating } from "@/hooks/useEloRating";
-import { EditProfileModal } from "./EditProfileModal";
+import { EditProfileModal, ProfileType } from "./EditProfileModal";
 import { SettingsScreen } from "../settings/SettingsScreen";
 import { useState, useEffect } from "react";
+import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
+import { AuthService } from "@/lib/auth";
 
-// Updated interface to match the database schema and be compatible with EditProfileModal
-interface UserProfile {
-  // Basic info that matches UI needs
+// Interface for local UI state
+interface UIProfile {
   name: string;
   age: number;
   bio: string;
@@ -24,47 +23,10 @@ interface UserProfile {
   height: string;
   interests: string[];
   photos: string[];
-  
-  // Additional fields that match database schema for compatibility
-  email?: string;
-  first_name?: string;
-  last_name?: string;
-  gender?: "male" | "female";
-  interested_in?: "male" | "female";
-  date_of_birth?: string;
-  year_of_study?: string;
-  phone_number?: string;
-  instagram_handle?: string;
-  verification_status?: string;
-  is_verified?: boolean;
-  is_active?: boolean;
-  incognito_mode?: boolean;
-  hide_year_branch?: boolean;
-  latitude?: number;
-  longitude?: number;
-  last_active_at?: string;
-  created_at?: string;
-  updated_at?: string;
-  verification_document_url?: string;
 }
 
 export function ProfileScreen() {
-  const [user, setUser] = useState<UserProfile>({
-    name: "Your Name",
-    age: 21,
-    bio: "Computer Science student at NIT Kurukshetra. Love coding, music, and making new connections! Always up for deep conversations and exploring new places.",
-    year: 3,
-    branch: "Computer Science",
-    hometown: "Delhi",
-    height: "5'8\"",
-    interests: ["coding", "music", "travel", "photography", "books", "coffee", "gaming", "startup"],
-    photos: [
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=600&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=600&fit=crop&crop=face",
-      "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=600&fit=crop&crop=face"
-    ]
-  });
-
+  const { profile, loading, updateProfile, refetch } = useUserProfile();
   const [showSettings, setShowSettings] = useState(false);
   const [eloRating, setEloRating] = useState(1245);
   const [dailyStats, setDailyStats] = useState({
@@ -77,6 +39,49 @@ export function ProfileScreen() {
   const { getRatingTier } = useEloRating();
   const ratingTier = getRatingTier(eloRating);
 
+  // Transform database profile to UI profile
+  const getUIProfile = (dbProfile: FullProfile | null): UIProfile => {
+    if (!dbProfile) {
+      return {
+        name: "Loading...",
+        age: 0,
+        bio: "",
+        year: 0,
+        branch: "",
+        hometown: "",
+        height: "",
+        interests: [],
+        photos: []
+      };
+    }
+
+    // Calculate age from date_of_birth
+    const calculateAge = (dateOfBirth: string) => {
+      const today = new Date();
+      const birthDate = new Date(dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    };
+
+    return {
+      name: `${dbProfile.first_name} ${dbProfile.last_name}`.trim(),
+      age: calculateAge(dbProfile.date_of_birth || '2000-01-01'),
+      bio: dbProfile.bio || "Tell others about yourself...",
+      year: parseInt(dbProfile.year_of_study?.replace(/\D/g, '') || '1'),
+      branch: dbProfile.branch || "Computer Science",
+      hometown: dbProfile.hometown || "Your Hometown",
+      height: dbProfile.height?.toString() || "5'8\"",
+      interests: [], // Will be populated separately if you have interests table
+      photos: dbProfile.photos || []
+    };
+  };
+
+  const user = getUIProfile(profile);
+
   const stats = [
     { label: "Likes Given", value: dailyStats.likesGiven.toString(), icon: Heart, color: "text-like" },
     { label: "Super Likes", value: dailyStats.superLikes.toString(), icon: Star, color: "text-superlike" },
@@ -85,17 +90,7 @@ export function ProfileScreen() {
   ];
 
   useEffect(() => {
-    // Load user data from localStorage
-    const savedUser = localStorage.getItem('user-profile');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error loading user data:', error);
-      }
-    }
-
+    // Load ELO rating from localStorage or database
     const tempUser = localStorage.getItem('temp-user');
     if (tempUser) {
       try {
@@ -107,148 +102,165 @@ export function ProfileScreen() {
     }
   }, []);
 
-  const handleSaveProfile = (updatedUser: Partial<UserProfile>) => {
-    const newUser = { ...user, ...updatedUser };
-    
-    // Handle field mappings for compatibility
-    if (updatedUser.first_name && updatedUser.last_name) {
-      newUser.name = `${updatedUser.first_name} ${updatedUser.last_name}`;
+  const handleSaveProfile = async (updatedUser: Partial<ProfileType>) => {
+    if (!profile) return;
+
+    try {
+      console.log('📝 Saving profile updates:', updatedUser);
+      
+      // Map the updates to database fields
+      const dbUpdates: any = {};
+      
+      if (updatedUser.bio !== undefined) dbUpdates.bio = updatedUser.bio;
+      if (updatedUser.branch !== undefined) dbUpdates.branch = updatedUser.branch;
+      if (updatedUser.first_name !== undefined) dbUpdates.first_name = updatedUser.first_name;
+      if (updatedUser.last_name !== undefined) dbUpdates.last_name = updatedUser.last_name;
+      if (updatedUser.hometown !== undefined) dbUpdates.hometown = updatedUser.hometown;
+      if (updatedUser.year_of_study !== undefined) dbUpdates.year_of_study = updatedUser.year_of_study;
+      if (updatedUser.height !== undefined) dbUpdates.height = updatedUser.height;
+      if (updatedUser.date_of_birth !== undefined) dbUpdates.date_of_birth = updatedUser.date_of_birth;
+      if (updatedUser.gender !== undefined) dbUpdates.gender = updatedUser.gender;
+      if (updatedUser.interested_in !== undefined) dbUpdates.interested_in = updatedUser.interested_in;
+      if (updatedUser.phone_number !== undefined) dbUpdates.phone_number = updatedUser.phone_number;
+      if (updatedUser.instagram_handle !== undefined) dbUpdates.instagram_handle = updatedUser.instagram_handle;
+      if (updatedUser.incognito_mode !== undefined) dbUpdates.incognito_mode = updatedUser.incognito_mode;
+      if (updatedUser.hide_year_branch !== undefined) dbUpdates.hide_year_branch = updatedUser.hide_year_branch;
+
+      await updateProfile(dbUpdates);
+      console.log('✅ Profile updated successfully');
+    } catch (error) {
+      console.error('❌ Error saving profile:', error);
+      throw error; // Re-throw so EditProfileModal can handle the error
     }
-    if (updatedUser.year_of_study) {
-      newUser.year = parseInt(updatedUser.year_of_study.replace(/\D/g, '')) || newUser.year;
-    }
-    // Convert height to string if it comes as number
-    if (typeof updatedUser.height === 'number') {
-      newUser.height = `${Math.floor(updatedUser.height / 12)}'${updatedUser.height % 12}"`;
-    }
-    
-    setUser(newUser);
-    // Save to localStorage
-    localStorage.setItem('user-profile', JSON.stringify(newUser));
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('temp-user');
-    localStorage.removeItem('user-profile');
-    localStorage.removeItem('dating-app-settings');
+    AuthService.clearCurrentUser();
     window.location.reload();
   };
-
-  // Show a loading state while fetching data
-  const [loading, setLoading] = useState(false);
 
   if (showSettings) {
     return <SettingsScreen onBack={() => setShowSettings(false)} />;
   }
 
-  // Convert UserProfile to format expected by EditProfileModal
-  const profileForModal = {
-    bio: user.bio,
-    branch: user.branch,
-    first_name: user.first_name || user.name.split(' ')[0] || user.name,
-    last_name: user.last_name || user.name.split(' ').slice(1).join(' ') || '',
-    hometown: user.hometown,
-    year_of_study: `${user.year}${user.year === 1 ? 'st' : user.year === 2 ? 'nd' : user.year === 3 ? 'rd' : 'th'} Year`,
-    height: user.height,
-    date_of_birth: user.date_of_birth || '',
-    email: user.email || '',
-    gender: user.gender || 'male' as const,
-    interested_in: user.interested_in || 'female' as const,
-    phone_number: user.phone_number || '',
-    instagram_handle: user.instagram_handle || '',
-    verification_status: user.verification_status || 'pending' as const,
-    is_verified: user.is_verified || false,
-    is_active: user.is_active || true,
-    incognito_mode: user.incognito_mode || false,
-    hide_year_branch: user.hide_year_branch || false,
-    latitude: user.latitude || null,
-    longitude: user.longitude || null,
-    last_active_at: user.last_active_at || null,
-    created_at: user.created_at || new Date().toISOString(),
-    updated_at: user.updated_at || new Date().toISOString(),
-    verification_document_url: user.verification_document_url || null,
-    photos: user.photos,
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p>Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p>No profile found. Please try logging in again.</p>
+          <Button onClick={handleLogout} className="mt-4">
+            Return to Login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Convert profile for EditProfileModal - ensuring all required fields
+  const profileForModal: ProfileType = {
+    bio: profile.bio || "",
+    branch: profile.branch || "",
+    first_name: profile.first_name || "",
+    last_name: profile.last_name || "",
+    hometown: profile.hometown || "",
+    year_of_study: profile.year_of_study || "1st Year",
+    height: profile.height || null,
+    date_of_birth: profile.date_of_birth || "2000-01-01",
+    email: profile.email || "",
+    gender: (profile.gender as "male" | "female") || "male",
+    interested_in: (profile.interested_in as "male" | "female") || "female",
+    phone_number: profile.phone_number || "",
+    instagram_handle: profile.instagram_handle || "",
+    verification_status: profile.verification_status || "pending",
+    is_verified: profile.is_verified || false,
+    is_active: profile.is_active || true,
+    incognito_mode: profile.incognito_mode || false,
+    hide_year_branch: profile.hide_year_branch || false,
+    latitude: profile.latitude || null,
+    longitude: profile.longitude || null,
+    last_active_at: profile.last_active_at || null,
+    created_at: profile.created_at || new Date().toISOString(),
+    updated_at: profile.updated_at || new Date().toISOString(),
+    verification_document_url: profile.verification_document_url || null,
+    photos: profile.photos || [],
     interests: user.interests
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+    <div className="max-w-lg mx-auto bg-background min-h-screen">
       {/* Enhanced Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-            Profile
-          </h1>
-          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)}>
+      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl">
+        {/* ELO Rating Display */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+              <Award className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-sm opacity-90">Your Rating</p>
+              <p className="text-lg font-bold">
+                {ratingTier.tier}
+                <span className="text-sm font-normal opacity-75"> ({eloRating})</span>
+              </p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-white/20"
+            onClick={() => setShowSettings(true)}
+          >
             <Settings className="h-5 w-5" />
           </Button>
         </div>
-      </header>
-
-      <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 space-y-6">
-        {/* ELO Rating Display */}
-        <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold opacity-90">Your Rating</h3>
-                <div className="flex items-center gap-3 mt-1">
-
-                  <div>
-                    <div className="text-2xl font-bold">{ratingTier.tier}</div>
-                    <div className="text-sm opacity-75">({eloRating})</div>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <Shield className="h-12 w-12 opacity-50 ml-auto" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Profile Card */}
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
-                <AvatarImage src={user.photos[0]} />
-                <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-pink-500 to-purple-500 text-white">
-                  {user.name[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{user.name}, {user.age}</h2>
-                    <p className="text-gray-600 mt-1">Year {user.year} • {user.branch} • {user.hometown}</p>
-                  </div>
-                  <EditProfileModal
-                    user={profileForModal}
-                    onSave={handleSaveProfile}
-                  />
-                </div>
-                <p className="mt-4 text-gray-700 leading-relaxed">{user.bio}</p>
-              </div>
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16 border-2 border-white/50">
+              <AvatarImage src={user.photos[0]} />
+              <AvatarFallback className="bg-white/20 text-white text-xl">
+                {user.name[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold">{user.name}, {user.age}</h1>
+              <p className="text-sm opacity-90 mb-2">
+                Year {user.year} • {user.branch} • {user.hometown}
+              </p>
+              <p className="text-sm opacity-80 leading-relaxed">{user.bio}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+      </div>
 
+      <div className="p-6 space-y-6">
         {/* Enhanced Stats */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
+        <Card>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+              <TrendingUp className="h-5 w-5 text-primary" />
               Your Activity
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {stats.map((stat, index) => (
-                <div key={index} className="text-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div key={index} className="text-center p-3 rounded-lg bg-muted/50">
                   <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
-                  <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -256,73 +268,97 @@ export function ProfileScreen() {
         </Card>
 
         {/* Interests */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
+        <Card>
+          <CardHeader className="pb-3">
             <CardTitle>Interests</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
-              {user.interests.map((interest) => (
-                <Badge key={interest} variant="secondary" className="px-3 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200">
-                  {interest}
-                </Badge>
-              ))}
+              {user.interests.length > 0 ? (
+                user.interests.map((interest) => (
+                  <Badge key={interest} variant="secondary">
+                    {interest}
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-muted-foreground">Add your interests to help others connect with you!</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Enhanced Photos */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
+        <Card>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <span>Photos ({user.photos.length}/6)</span>
-              <Camera className="h-5 w-5 text-gray-400" />
+              <Camera className="h-5 w-5 text-muted-foreground" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 mb-3">
               {user.photos.map((photo, index) => (
-                <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
-                  <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
-                </div>
+                <div
+                  key={index}
+                  className="aspect-square rounded-lg bg-cover bg-center border-2 border-muted"
+                  style={{ backgroundImage: `url(${photo})` }}
+                />
               ))}
               {Array.from({ length: 6 - user.photos.length }).map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors cursor-pointer">
+                <div
+                  key={index}
+                  className="aspect-square rounded-lg border-2 border-dashed border-muted flex items-center justify-center text-muted-foreground"
+                >
                   <div className="text-center">
                     <Camera className="h-6 w-6 mx-auto mb-1" />
-                    <div className="text-xs">Add Photo</div>
+                    <p className="text-xs">Add Photo</p>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-sm text-gray-600 mt-4 text-center">
+            <p className="text-xs text-muted-foreground text-center">
               Add more photos to increase your match rate by up to 40%!
             </p>
           </CardContent>
         </Card>
 
         {/* Account Options */}
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6 space-y-3">
-            <Button variant="ghost" className="w-full justify-start" onClick={() => setShowSettings(true)}>
-              <Settings className="h-4 w-4 mr-3" />
-              Account Settings
-            </Button>
-            <Button variant="ghost" className="w-full justify-start">
-              <Shield className="h-4 w-4 mr-3" />
-              Privacy & Safety
-            </Button>
-            <Button variant="ghost" className="w-full justify-start">
-              <Award className="h-4 w-4 mr-3" />
-              Help & Support
-            </Button>
-            <Separator />
-            <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-3" />
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-3">
+          <EditProfileModal 
+            profile={profileForModal} 
+            onSave={handleSaveProfile}
+          />
+          
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => setShowSettings(true)}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Account Settings
+          </Button>
+          
+          <Button variant="outline" className="w-full justify-start">
+            <Shield className="h-4 w-4 mr-2" />
+            Privacy & Safety
+          </Button>
+          
+          <Button variant="outline" className="w-full justify-start">
+            <Zap className="h-4 w-4 mr-2" />
+            Help & Support
+          </Button>
+          
+          <Separator />
+          
+          <Button
+            variant="destructive"
+            className="w-full justify-start"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
     </div>
   );

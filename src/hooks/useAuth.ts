@@ -1,136 +1,200 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { AuthService, Profile } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
-import { AuthService } from '@/lib/auth';
 import { useToast } from '@/hooks/use-toast';
 
-export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
+interface UseAuthReturn {
+  user: Profile | null;
+  loading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+  login: (email: string, otp: string) => Promise<void>;
+  logout: () => void;
+  updateProfile: (updates: any) => Promise<void>;
+  refetch: () => Promise<void>;
+}
+
+export function useAuth(): UseAuthReturn {
+  const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    let mounted = true;
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      console.log('🔄 Fetching current user...');
+      setLoading(true);
+      setError(null);
 
-    const initializeAuth = async () => {
-      try {
-        console.log("🔐 Initializing auth...");
+      // Try to get from Supabase auth first
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (authUser?.email) {
+        console.log('✅ Found auth user:', authUser.email);
+        const profile = await AuthService.getUserProfile(authUser.email);
+        setUser(profile);
+        return;
+      }
 
-        // First check for Supabase session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("❌ Error getting session:", error);
-          toast({
-            title: 'Authentication error',
-            description: 'There was an error fetching the session.',
-            variant: 'destructive',
-          });
-        }
+      // Fallback to localStorage
+      const currentUser = AuthService.getCurrentUser();
+      if (currentUser) {
+        console.log('✅ Found user in localStorage:', currentUser.email);
+        setUser(currentUser);
+        return;
+      }
 
-        // If session is available, set user state
-        if (session?.user && mounted) {
-          console.log("✅ Found Supabase session for user:", session.user.email);
-          setUser(session.user);
-          await AuthService.updateLastActive(session.user.id);
-          setLoading(false);
+      // Check temp user
+      const tempUser = localStorage.getItem('temp-user');
+      if (tempUser) {
+        try {
+          const parsedTempUser = JSON.parse(tempUser);
+          console.log('✅ Found temp user:', parsedTempUser.email);
+          const profile = await AuthService.getOrCreateUserProfile(parsedTempUser.email);
+          setUser(profile);
           return;
-        }
-
-        // Check AuthService current user (from localStorage)
-        const currentUser = AuthService.getCurrentUser();
-        if (currentUser && mounted) {
-          console.log("✅ Found AuthService current user:", currentUser.email);
-          const localUser: User = {
-            id: currentUser.id || currentUser.user_id || "local-" + Date.now(),
-            email: currentUser.email,
-            created_at: currentUser.created_at || new Date().toISOString(),
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            role: 'authenticated'
-          };
-          setUser(localUser);
-          setLoading(false);
-          return;
-        }
-
-        // Fallback: Check for temp user in localStorage
-        const tempUser = localStorage.getItem('temp-user');
-        if (tempUser && mounted) {
-          console.log("✅ Found temp user in localStorage");
-          const parsedUser = JSON.parse(tempUser);
-          setUser({
-            id: parsedUser.id,
-            email: parsedUser.email,
-            created_at: parsedUser.created_at,
-            app_metadata: {},
-            user_metadata: {},
-            aud: 'authenticated',
-            role: parsedUser.role || 'authenticated',
-          } as User);
-          setLoading(false);
-          return;
-        }
-
-        console.log("❌ No user found in any authentication method");
-        if (mounted) {
-          setLoading(false);
-        }
-
-      } catch (error) {
-        console.error("💥 Auth initialization error:", error);
-        if (mounted) {
-          setLoading(false);
+        } catch (e) {
+          console.warn('Error parsing temp user:', e);
+          localStorage.removeItem('temp-user');
         }
       }
-    };
 
-    // Subscribe to auth state changes
+      console.log('❌ No user found');
+      setUser(null);
+    } catch (err) {
+      console.error('❌ Error fetching user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch user');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const login = useCallback(async (email: string, otp: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔐 Attempting login for:', email);
+      
+      // Verify OTP
+      await AuthService.verifyOtp(email, otp);
+      
+      // Get or create user profile
+      const profile = await AuthService.getOrCreateUserProfile(email);
+      
+      setUser(profile);
+      
+      console.log('✅ Login successful');
+      toast({
+        title: 'Welcome!',
+        description: 'Successfully logged in.',
+      });
+      
+    } catch (err) {
+      console.error('❌ Login error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setError(errorMessage);
+      
+      toast({
+        title: 'Login Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  const logout = useCallback(() => {
+    console.log('🔓 Logging out...');
+    AuthService.clearCurrentUser();
+    setUser(null);
+    setError(null);
+    
+    // Also clear Supabase auth session if exists
+    supabase.auth.signOut().catch(console.warn);
+    
+    toast({
+      title: 'Logged Out',
+      description: 'You have been successfully logged out.',
+    });
+  }, [toast]);
+
+  const updateProfile = useCallback(async (updates: any) => {
+    if (!user?.email) {
+      throw new Error('No user logged in');
+    }
+
+    try {
+      setLoading(true);
+      
+      console.log('📝 Updating profile:', updates);
+      
+      const updatedProfile = await AuthService.updateProfile(user.email, updates);
+      setUser(updatedProfile);
+      
+      console.log('✅ Profile updated');
+      toast({
+        title: 'Profile Updated',
+        description: 'Your profile has been saved successfully.',
+      });
+      
+    } catch (err) {
+      console.error('❌ Update profile error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+      setError(errorMessage);
+      
+      toast({
+        title: 'Update Failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+      
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, toast]);
+
+  const refetch = useCallback(async () => {
+    await fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, [fetchCurrentUser]);
+
+  // Listen for auth state changes
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        console.log('🔄 Auth state changed:', event);
         
-        console.log("🔄 Auth state changed:", event, session?.user?.email);
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user);
-          await AuthService.updateLastActive(session.user.id);
-          localStorage.removeItem('temp-user');
+        if (event === 'SIGNED_IN' && session?.user?.email) {
+          const profile = await AuthService.getUserProfile(session.user.email);
+          setUser(profile);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
-          localStorage.removeItem('temp-user');
-          localStorage.removeItem('current-user');
-        } else if (session?.user) {
-          setUser(session.user);
-        } else {
-          setUser(null);
         }
-
-        setLoading(false);
       }
     );
 
-    // Initialize authentication
-    initializeAuth();
-
-    // Cleanup function
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, []);
 
-  // Debug output
-  useEffect(() => {
-    console.log("👤 useAuth state:", { 
-      user: user?.email || 'null', 
-      userId: user?.id || 'null',
-      loading 
-    });
-  }, [user, loading]);
-
-  return { user, loading };
-};
-
-export default useAuth;
+  return {
+    user,
+    loading,
+    error,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    updateProfile,
+    refetch,
+  };
+}
