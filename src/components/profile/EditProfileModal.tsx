@@ -7,33 +7,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-<<<<<<< HEAD
 import { Edit } from "lucide-react";
-import { Profile } from "@/lib/auth"; // Import the correct Profile type
-=======
-import { Camera, X, Plus, Edit } from "lucide-react";
 
-interface UserProfile {
+// Define the profile type that matches your database schema
+interface ProfileType {
+  bio: string;
+  branch: string;
+  first_name: string;
+  last_name: string;
+  hometown: string;
+  year_of_study: string;
+  height: string | number;
+  date_of_birth: string;
   email: string;
-  first_name?: string;
-  last_name?: string;
-  date_of_birth?: string;
-  gender?: string;
-  interested_in?: string;
-  bio?: string;
-  year_of_study?: string;
-  branch?: string;
-  hometown?: string;
-  height?: number | null;
-  interests?: string[];
-  photos?: string[];
+  gender: "male" | "female";
+  interested_in: "male" | "female";
+  phone_number: string;
+  instagram_handle: string;
+  verification_status: string;
+  is_verified: boolean;
+  is_active: boolean;
+  incognito_mode: boolean;
+  hide_year_branch: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  last_active_at: string | null;
+  created_at: string;
+  updated_at: string;
+  verification_document_url: string | null;
+  photos: string[];
+  interests: string[];
 }
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
 
 interface EditProfileModalProps {
-  // Use the actual Profile type for consistency
-  user: Profile;
-  onSave: (updatedUser: Partial<Profile>) => void;
+  user: ProfileType;
+  onSave: (updatedUser: Partial<ProfileType>) => void;
 }
 
 const BRANCHES = [
@@ -44,235 +52,92 @@ const BRANCHES = [
 
 export function EditProfileModal({ user, onSave }: EditProfileModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-<<<<<<< HEAD
+  
   // Initialize form data directly from the user prop
-  const [formData, setFormData] = useState<Partial<Profile>>(user);
-=======
-  const [formData, setFormData] = useState<UserProfile>({
-    ...user,
-    interests: user.interests || [],
-    photos: user.photos || [],
-  });
-  const [newInterest, setNewInterest] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
+  const [formData, setFormData] = useState<Partial<ProfileType>>(user);
 
   const handleSave = () => {
     onSave(formData);
     setIsOpen(false);
   };
 
-<<<<<<< HEAD
-=======
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && (formData.photos?.length ?? 0) < 6) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newPhoto = e.target?.result as string;
-        setFormData((prev) => ({
-          ...prev,
-          photos: [...(prev.photos || []), newPhoto],
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      photos: prev.photos?.filter((_, i) => i !== index),
-    }));
-  };
-
-  const addInterest = (interest: string) => {
-    if (
-      interest &&
-      !(formData.interests || []).includes(interest) &&
-      (formData.interests?.length ?? 0) < 10
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        interests: [...(prev.interests || []), interest],
-      }));
-      setNewInterest("");
-    }
-  };
-
-  const removeInterest = (interest: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      interests: prev.interests?.filter((i) => i !== interest),
-    }));
-  };
-
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="mb-4">
+        <Button variant="outline" size="sm">
           <Edit className="h-4 w-4 mr-2" />
           Edit Profile
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
-<<<<<<< HEAD
         
-        <div className="space-y-6 p-1">
+        <div className="space-y-6 py-4">
           {/* Basic Info */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  value={formData.first_name || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  value={formData.last_name || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                />
-              </div>
-=======
-
-        <div className="space-y-6">
-          {/* Profile Photo */}
-          <div className="text-center">
-            <div className="relative inline-block">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={formData.photos?.[0]} />
-                <AvatarFallback className="text-2xl">
-                  {formData.first_name?.[0] || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <Button
-                size="sm"
-                className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                value={formData.first_name || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+              />
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoUpload}
-              className="hidden"
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                value={formData.last_name || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea
+              id="bio"
+              value={formData.bio || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+              placeholder="Tell others about yourself..."
+              className="min-h-[100px]"
             />
           </div>
 
-          {/* Basic Info */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="first_name">First Name</Label>
-              <Input
-                id="first_name"
-                value={formData.first_name || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, first_name: e.target.value }))
-                }
-              />
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
-            </div>
-            <div>
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea
-                id="bio"
-<<<<<<< HEAD
-                value={formData.bio || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-=======
-                value={formData.bio || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, bio: e.target.value }))
-                }
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
-                placeholder="Tell others about yourself..."
-                className="min-h-[100px]"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+            <Input
+              id="dateOfBirth"
+              type="date"
+              value={formData.date_of_birth || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, date_of_birth: e.target.value }))}
+            />
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-               <div>
-                <Label htmlFor="date_of_birth">Date of Birth</Label>
-                <Input
-                  id="date_of_birth"
-                  type="date"
-                  value={formData.date_of_birth?.split('T')[0] || ''} // Format for date input
-                  onChange={(e) => setFormData(prev => ({ ...prev, date_of_birth: e.target.value }))}
-                />
-              </div>
-              <div>
-<<<<<<< HEAD
-                <Label htmlFor="year">Year</Label>
-                <Select value={formData.year_of_study || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, year_of_study: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-=======
-                <Label htmlFor="year_of_study">Year</Label>
-                <Select
-                  value={formData.year_of_study || ""}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, year_of_study: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
-                  <SelectContent>
-                    <SelectItem value="1">1st Year</SelectItem>
-                    <SelectItem value="2">2nd Year</SelectItem>
-                    <SelectItem value="3">3rd Year</SelectItem>
-                    <SelectItem value="4">4th Year</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-<<<<<<< HEAD
-=======
-              <div>
-                <Label htmlFor="height">Height</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  value={formData.height ?? ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      height: Number(e.target.value),
-                    }))
-                  }
-                  placeholder="170"
-                />
-              </div>
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Year</Label>
+              <Select value={formData.year_of_study || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, year_of_study: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1st Year">1st Year</SelectItem>
+                  <SelectItem value="2nd Year">2nd Year</SelectItem>
+                  <SelectItem value="3rd Year">3rd Year</SelectItem>
+                  <SelectItem value="4th Year">4th Year</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            <div>
-              <Label htmlFor="branch">Branch</Label>
-<<<<<<< HEAD
+            
+            <div className="space-y-2">
+              <Label>Branch</Label>
               <Select value={formData.branch || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, branch: value }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-=======
-              <Select
-                value={formData.branch || ""}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, branch: value }))
-                }
-              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
                 <SelectContent>
                   {BRANCHES.map((branch) => (
                     <SelectItem key={branch} value={branch}>
@@ -282,105 +147,87 @@ export function EditProfileModal({ user, onSave }: EditProfileModalProps) {
                 </SelectContent>
               </Select>
             </div>
-
-            <div>
-              <Label htmlFor="hometown">Hometown</Label>
-              <Input
-                id="hometown"
-<<<<<<< HEAD
-                value={formData.hometown || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, hometown: e.target.value }))}
-              />
-            </div>
-          </div>
-          
-          {/* Photos and Interests can be added here later */}
-=======
-                value={formData.hometown || ""}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, hometown: e.target.value }))
-                }
-              />
-            </div>
           </div>
 
-          {/* Photos */}
-          <div>
-            <Label>Photos ({formData.photos?.length ?? 0}/6)</Label>
-            <div className="grid grid-cols-3 gap-3 mt-2">
-              {formData.photos?.map((photo, index) => (
-                <div key={index} className="relative aspect-square">
-                  <img
-                    src={photo}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                    onClick={() => removePhoto(index)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-              {(formData.photos?.length ?? 0) < 6 && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed border-border rounded-lg flex items-center justify-center hover:border-primary/50 hover:bg-primary/5 transition-colors"
-                >
-                  <Plus className="h-6 w-6 text-muted-foreground" />
-                </button>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="hometown">Hometown</Label>
+            <Input
+              id="hometown"
+              value={formData.hometown || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, hometown: e.target.value }))}
+            />
           </div>
 
-          {/* Interests */}
-          <div>
-            <Label>Interests ({formData.interests?.length ?? 0}/10)</Label>
-            <div className="flex flex-wrap gap-2 mt-2 mb-3">
-              {formData.interests?.map((interest) => (
-                <Badge
-                  key={interest}
-                  variant="secondary"
-                  className="capitalize cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
-                  onClick={() => removeInterest(interest)}
-                >
-                  {interest} <X className="h-3 w-3 ml-1" />
-                </Badge>
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <Select value={newInterest} onValueChange={setNewInterest}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Add an interest..." />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Gender</Label>
+              <Select value={formData.gender || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value as "male" | "female" }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AVAILABLE_INTERESTS.filter(
-                    (interest) => !(formData.interests || []).includes(interest)
-                  ).map((interest) => (
-                    <SelectItem key={interest} value={interest} className="capitalize">
-                      {interest}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                onClick={() => addInterest(newInterest)}
-                disabled={
-                  !newInterest ||
-                  (formData.interests || []).includes(newInterest) ||
-                  (formData.interests?.length ?? 0) >= 10
-                }
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Interested In</Label>
+              <Select value={formData.interested_in || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, interested_in: value as "male" | "female" }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select preference" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
 
+          <div className="space-y-2">
+            <Label htmlFor="height">Height</Label>
+            <Input
+              id="height"
+              value={formData.height || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, height: e.target.value }))}
+              placeholder="e.g., 5'8\" 
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              value={formData.phone_number || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
+              placeholder="Your phone number"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="instagram">Instagram Handle</Label>
+            <Input
+              id="instagram"
+              value={formData.instagram_handle || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, instagram_handle: e.target.value }))}
+              placeholder="@your_handle"
+            />
+          </div>
+
+          {/* Photos and Interests can be added here later */}
+          
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1">

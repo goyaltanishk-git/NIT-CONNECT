@@ -4,40 +4,34 @@ import { useToast } from "@/hooks/use-toast";
 
 // Interface matching your exact database schema
 export interface DatabaseProfile {
-<<<<<<< HEAD
-  email: string;                        // PRIMARY KEY
+  email: string; // PRIMARY KEY
   first_name: string;
   last_name: string;
-  gender: string;                       // USER-DEFINED enum
-  interested_in: string;                // USER-DEFINED enum
-  date_of_birth: string;                // date
-=======
-  first_name: string;
-  last_name: string;
-  email: string; // ✅ primary key
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
+  gender: string; // USER-DEFINED enum
+  interested_in: string; // USER-DEFINED enum
+  date_of_birth: string; // date
   bio: string | null;
   hometown: string | null;
   year_of_study: string | null;
   branch: string | null;
-  height: number | null;                // integer
+  height: number | null; // integer
   instagram_handle: string | null;
   phone_number: string | null;
-  verification_status: string | null;   // USER-DEFINED enum
+  verification_status: string | null; // USER-DEFINED enum
   verification_document_url: string | null;
   is_verified: boolean | null;
   is_active: boolean | null;
   incognito_mode: boolean | null;
   hide_year_branch: boolean | null;
-  latitude: number | null;              // numeric
-  longitude: number | null;             // numeric
-  last_active_at: string | null;        // timestamp with time zone
-  created_at: string | null;            // timestamp with time zone
-  updated_at: string | null;            // timestamp with time zone
+  latitude: number | null; // numeric
+  longitude: number | null; // numeric
+  last_active_at: string | null; // timestamp with time zone
+  created_at: string | null; // timestamp with time zone
+  updated_at: string | null; // timestamp with time zone
+
   // Additional fields for UI
   photos?: Array<{ url: string; order: number }>;
-  interests?: Array<string>;
-  
+  interests?: Array<string>; // Fixed: Added proper type parameter
 }
 
 export function useProfiles() {
@@ -48,7 +42,6 @@ export function useProfiles() {
   const fetchProfiles = useCallback(async () => {
     try {
       setLoading(true);
-<<<<<<< HEAD
       console.log("🔍 Starting to fetch profiles...");
 
       // Get current user first
@@ -63,7 +56,7 @@ export function useProfiles() {
 
       // Get current user email for exclusion
       let currentUserEmail = currentUser?.email;
-      
+
       // If no Supabase user, check localStorage
       if (!currentUserEmail) {
         if (tempUser) {
@@ -168,56 +161,6 @@ export function useProfiles() {
         console.log("🚫 Excluding current user email:", currentUserEmail);
       } else {
         console.log("⚠️ No current user email to exclude");
-=======
-
-      // ✅ Get current logged-in user from localStorage
-      const currentUser = JSON.parse(localStorage.getItem("current-user") || "null");
-
-      // ✅ Fetch profiles by email PK
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("is_verified", true)
-        .eq("is_active", true)
-        .neq("email", currentUser?.email || "none") // ✅ exclude self
-        .order("created_at", { ascending: false });
-
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        return;
-      }
-
-      if (profilesData) {
-        // Fetch photos and interests separately for each profile
-        const transformedProfiles = await Promise.all(
-          profilesData.map(async (profile) => {
-            // ✅ Get photos by email
-            const { data: photos } = await supabase
-              .from("user_photos")
-              .select("photo_url, photo_order")
-              .eq("email", profile.email)
-              .order("photo_order");
-
-            // ✅ Get interests by email
-            const { data: interests } = await supabase
-              .from("user_interests")
-              .select("interest")
-              .eq("email", profile.email);
-
-            return {
-              ...profile,
-              photos:
-                photos?.map((photo) => ({
-                  url: photo.photo_url,
-                  order: photo.photo_order,
-                })) || [],
-              interests: interests?.map((interest) => interest.interest) || [],
-            };
-          })
-        );
-
-        setProfiles(transformedProfiles);
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
       }
 
       const { data: profilesData, error: profilesError } = await query
@@ -238,34 +181,36 @@ export function useProfiles() {
       if (profilesData && profilesData.length > 0) {
         // Process each profile and get additional data
         const processedProfiles: DatabaseProfile[] = [];
-        
+
         for (const profile of profilesData) {
           console.log(`🔄 Processing profile: ${profile.first_name} ${profile.last_name} (${profile.email})`);
 
           // Get photos if user_photos table exists
           let photos: Array<{ url: string; order: number }> = [];
           try {
-            interface PhotoRecord {
-  photo_url: string;
-  photo_order: number;
-  is_primary: boolean;
-  is_verified: boolean;
-}
-            // Try to fetch photos - this might fail if table doesn't exist yet
-            const photosResponse = await supabase
-              .from('user_photos')
-              .select('photo_url, photo_order, is_primary, is_verified')
-              .eq('user_email', profile.email)
-              .order('photo_order');
- 
-            
-            if (photosResponse.data && !photosResponse.error) {
-              photos = photosResponse.data.map((photo: any) => ({ 
-                url: photo.photo_url, 
-                order: photo.photo_order 
-              }));
-            } else if (photosResponse.error) {
-              console.warn(`⚠️ Photos table might not exist or error fetching photos for ${profile.email}:`, photosResponse.error.message);
+            // Get user_id for this profile first (since photos table likely uses user_id, not user_email)
+            const { data: profileWithId } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', profile.email)
+              .single();
+
+            if (profileWithId) {
+              // Try to fetch photos using user_id
+              const photosResponse = await supabase
+                .from('user_photos')
+                .select('photo_url, photo_order, is_primary, is_verified')
+                .eq('user_id', profileWithId.id) // Changed from user_email to user_id
+                .order('photo_order');
+
+              if (photosResponse.data && !photosResponse.error) {
+                photos = photosResponse.data.map((photo: any) => ({ 
+                  url: photo.photo_url, 
+                  order: photo.photo_order 
+                }));
+              } else if (photosResponse.error) {
+                console.warn(`⚠️ Photos table might not exist or error fetching photos for ${profile.email}:`, photosResponse.error.message);
+              }
             }
           } catch (photosError) {
             console.warn(`⚠️ Error fetching photos for ${profile.email}:`, photosError);
@@ -274,16 +219,25 @@ export function useProfiles() {
           // Get interests if user_interests table exists
           let interests: Array<string> = [];
           try {
-            // Try to fetch interests - this might fail if table doesn't exist yet
-            const { data: interestsData, error: interestsError } = await supabase
-              .from('user_interests')
-              .select('interest')
-              .eq('user_email', profile.email);  // Assuming you updated this to user_email
-            
-            if (interestsData && !interestsError) {
-              interests = interestsData.map((interest: any) => interest.interest);
-            } else if (interestsError) {
-              console.warn(`⚠️ Interests table might not exist or error fetching interests for ${profile.email}:`, interestsError.message);
+            // Get user_id for this profile first (since interests table likely uses user_id, not user_email)
+            const { data: profileWithId } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('email', profile.email)
+              .single();
+
+            if (profileWithId) {
+              // Try to fetch interests using user_id
+              const { data: interestsData, error: interestsError } = await supabase
+                .from('user_interests')
+                .select('interest')
+                .eq('user_id', profileWithId.id); // Changed from user_email to user_id
+              
+              if (interestsData && !interestsError) {
+                interests = interestsData.map((interest: any) => interest.interest);
+              } else if (interestsError) {
+                console.warn(`⚠️ Interests table might not exist or error fetching interests for ${profile.email}:`, interestsError.message);
+              }
             }
           } catch (interestsError) {
             console.warn(`⚠️ Error fetching interests for ${profile.email}:`, interestsError);
@@ -324,7 +278,6 @@ export function useProfiles() {
 
         console.log("🎯 Final transformed profiles:", processedProfiles.length);
         console.log("📝 Profile names:", processedProfiles.map(p => `${p.first_name} ${p.last_name} (${p.email})`));
-        
         setProfiles(processedProfiles);
       } else {
         console.log("📭 No profiles found after filtering");
@@ -332,11 +285,7 @@ export function useProfiles() {
       }
 
     } catch (error) {
-<<<<<<< HEAD
       console.error('💥 Error in fetchProfiles:', error);
-=======
-      console.error("Error in fetchProfiles:", error);
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
       toast({
         title: "Error loading profiles",
         description: "Failed to load profiles from database",
@@ -347,7 +296,6 @@ export function useProfiles() {
     }
   }, [toast]);
 
-<<<<<<< HEAD
   const handleInteraction = useCallback(async (
     targetUserEmail: string,
     interactionType: 'like' | 'pass' | 'superlike'
@@ -361,7 +309,7 @@ export function useProfiles() {
       if (!currentUserEmail) {
         const tempUser = localStorage.getItem('temp-user');
         const storedUser = localStorage.getItem('current-user');
-        
+
         if (tempUser) {
           try {
             const parsedTempUser = JSON.parse(tempUser);
@@ -375,57 +323,10 @@ export function useProfiles() {
             currentUserEmail = parsedCurrentUser.email;
           } catch (e) {
             console.warn("Error parsing current user:", e);
-=======
-  const handleInteraction = useCallback(
-    async (
-      targetEmail: string,
-      interactionType: "like" | "pass" | "superlike"
-    ) => {
-      try {
-        const currentUser = JSON.parse(localStorage.getItem("current-user") || "null");
-        if (!currentUser?.email) return;
-
-        // ✅ Record interaction
-        const { error: interactionError } = await supabase
-          .from("user_interactions")
-          .insert({
-            user_email: currentUser.email,
-            target_email: targetEmail,
-            interaction_type: interactionType,
-          });
-
-        if (interactionError) {
-          console.error("Error recording interaction:", interactionError);
-          return;
-        }
-
-        // ✅ Check for mutual like
-        if (interactionType === "like" || interactionType === "superlike") {
-          const { data: mutualLike } = await supabase
-            .from("user_interactions")
-            .select("*")
-            .eq("user_email", targetEmail)
-            .eq("target_email", currentUser.email)
-            .in("interaction_type", ["like", "superlike"])
-            .single();
-
-          if (mutualLike) {
-            const { error: matchError } = await supabase.from("matches").insert({
-              user1_email: currentUser.email,
-              user2_email: targetEmail,
-            });
-
-            if (!matchError) {
-              toast({
-                title: "It's a Match! 🎉",
-                description: "You both liked each other!",
-              });
-            }
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
           }
         }
+      }
 
-<<<<<<< HEAD
       if (!currentUserEmail) {
         console.log("❌ No current user email found for interaction");
         return false;
@@ -446,48 +347,6 @@ export function useProfiles() {
       return false;
     }
   }, [toast]);
-=======
-        // ✅ Update daily limits by email
-        const today = new Date().toISOString().split("T")[0];
-        const { data: limits } = await supabase
-          .from("daily_limits")
-          .select("*")
-          .eq("email", currentUser.email)
-          .eq("date", today)
-          .single();
-
-        if (limits) {
-          await supabase
-            .from("daily_limits")
-            .update({
-              likes_used:
-                interactionType === "like"
-                  ? limits.likes_used + 1
-                  : limits.likes_used,
-              superlikes_used:
-                interactionType === "superlike"
-                  ? limits.superlikes_used + 1
-                  : limits.superlikes_used,
-            })
-            .eq("id", limits.id);
-        } else {
-          await supabase.from("daily_limits").insert({
-            email: currentUser.email,
-            date: today,
-            likes_used: interactionType === "like" ? 1 : 0,
-            superlikes_used: interactionType === "superlike" ? 1 : 0,
-          });
-        }
-
-        return true;
-      } catch (error) {
-        console.error("Error handling interaction:", error);
-        return false;
-      }
-    },
-    [toast]
-  );
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
 
   useEffect(() => {
     fetchProfiles();

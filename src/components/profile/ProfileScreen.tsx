@@ -1,6 +1,5 @@
 // src/components/profile/ProfileScreen.tsx
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +10,11 @@ import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shi
 import { useEloRating } from "@/hooks/useEloRating";
 import { EditProfileModal } from "./EditProfileModal";
 import { SettingsScreen } from "../settings/SettingsScreen";
+import { useState, useEffect } from "react";
 
+// Updated interface to match the database schema and be compatible with EditProfileModal
 interface UserProfile {
+  // Basic info that matches UI needs
   name: string;
   age: number;
   bio: string;
@@ -22,6 +24,28 @@ interface UserProfile {
   height: string;
   interests: string[];
   photos: string[];
+  
+  // Additional fields that match database schema for compatibility
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  gender?: "male" | "female";
+  interested_in?: "male" | "female";
+  date_of_birth?: string;
+  year_of_study?: string;
+  phone_number?: string;
+  instagram_handle?: string;
+  verification_status?: string;
+  is_verified?: boolean;
+  is_active?: boolean;
+  incognito_mode?: boolean;
+  hide_year_branch?: boolean;
+  latitude?: number;
+  longitude?: number;
+  last_active_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  verification_document_url?: string;
 }
 
 export function ProfileScreen() {
@@ -83,10 +107,24 @@ export function ProfileScreen() {
     }
   }, []);
 
-  const handleSaveProfile = (updatedUser: UserProfile) => {
-    setUser(updatedUser);
+  const handleSaveProfile = (updatedUser: Partial<UserProfile>) => {
+    const newUser = { ...user, ...updatedUser };
+    
+    // Handle field mappings for compatibility
+    if (updatedUser.first_name && updatedUser.last_name) {
+      newUser.name = `${updatedUser.first_name} ${updatedUser.last_name}`;
+    }
+    if (updatedUser.year_of_study) {
+      newUser.year = parseInt(updatedUser.year_of_study.replace(/\D/g, '')) || newUser.year;
+    }
+    // Convert height to string if it comes as number
+    if (typeof updatedUser.height === 'number') {
+      newUser.height = `${Math.floor(updatedUser.height / 12)}'${updatedUser.height % 12}"`;
+    }
+    
+    setUser(newUser);
     // Save to localStorage
-    localStorage.setItem('user-profile', JSON.stringify(updatedUser));
+    localStorage.setItem('user-profile', JSON.stringify(newUser));
   };
 
   const handleLogout = () => {
@@ -97,112 +135,135 @@ export function ProfileScreen() {
   };
 
   // Show a loading state while fetching data
-  if (loading) {
-    return <div className="h-full flex items-center justify-center">Loading Profile...</div>;
-  }
-  
-  // Show an error state if the profile couldn't be loaded
-  if (!profile) {
-    return <div className="h-full flex items-center justify-center text-red-500">Could not load profile.</div>;
-  }
+  const [loading, setLoading] = useState(false);
 
   if (showSettings) {
     return <SettingsScreen onBack={() => setShowSettings(false)} />;
   }
 
-  return (
-    <div className="h-full overflow-y-auto">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h1 className="text-2xl font-bold gradient-text">Profile</h1>
-            <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
-              <Settings className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {/* ELO Rating Display */}
-          <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${ratingTier.bgColor}`}>
-              <Award className={`h-4 w-4 ${ratingTier.color}`} />
-              <span className={`font-semibold ${ratingTier.color}`}>{ratingTier.tier}</span>
-              <span className="text-xs text-muted-foreground">({eloRating})</span>
-            </div>
-            <div className="flex-1">
-              <Progress value={((eloRating - 500) / 1500) * 100} className="h-2" />
-            </div>
-          </div>
-        </div>
-      </div>
+  // Convert UserProfile to format expected by EditProfileModal
+  const profileForModal = {
+    bio: user.bio,
+    branch: user.branch,
+    first_name: user.first_name || user.name.split(' ')[0] || user.name,
+    last_name: user.last_name || user.name.split(' ').slice(1).join(' ') || '',
+    hometown: user.hometown,
+    year_of_study: `${user.year}${user.year === 1 ? 'st' : user.year === 2 ? 'nd' : user.year === 3 ? 'rd' : 'th'} Year`,
+    height: user.height,
+    date_of_birth: user.date_of_birth || '',
+    email: user.email || '',
+    gender: user.gender || 'male' as const,
+    interested_in: user.interested_in || 'female' as const,
+    phone_number: user.phone_number || '',
+    instagram_handle: user.instagram_handle || '',
+    verification_status: user.verification_status || 'pending' as const,
+    is_verified: user.is_verified || false,
+    is_active: user.is_active || true,
+    incognito_mode: user.incognito_mode || false,
+    hide_year_branch: user.hide_year_branch || false,
+    latitude: user.latitude || null,
+    longitude: user.longitude || null,
+    last_active_at: user.last_active_at || null,
+    created_at: user.created_at || new Date().toISOString(),
+    updated_at: user.updated_at || new Date().toISOString(),
+    verification_document_url: user.verification_document_url || null,
+    photos: user.photos,
+    interests: user.interests
+  };
 
-      <div className="p-4 space-y-6">
-        {/* Profile Card */}
-        <Card>
+  return (
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
+      {/* Enhanced Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+            Profile
+          </h1>
+          <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)}>
+            <Settings className="h-5 w-5" />
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex-1 max-w-4xl mx-auto w-full px-4 py-6 space-y-6">
+        {/* ELO Rating Display */}
+        <Card className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0">
           <CardContent className="p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="relative mb-4">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={user.photos[0]} />
-                  <AvatarFallback className="text-2xl">{user.name[0]}</AvatarFallback>
-                </Avatar>
-                <Button 
-                  size="sm" 
-                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold opacity-90">Your Rating</h3>
+                <div className="flex items-center gap-3 mt-1">
+
+                  <div>
+                    <div className="text-2xl font-bold">{ratingTier.tier}</div>
+                    <div className="text-sm opacity-75">({eloRating})</div>
+                  </div>
+                </div>
               </div>
-              
-              <h2 className="text-2xl font-bold mb-1">{user.name}, {user.age}</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Year {user.year} • {user.branch} • {user.hometown}
-              </p>
-              
-              <EditProfileModal user={user} onSave={handleSaveProfile} />
-              
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {user.bio}
-              </p>
+              <div className="text-right">
+                <Shield className="h-12 w-12 opacity-50 ml-auto" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Profile Card */}
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <Avatar className="h-20 w-20 border-4 border-white shadow-lg">
+                <AvatarImage src={user.photos[0]} />
+                <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-pink-500 to-purple-500 text-white">
+                  {user.name[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{user.name}, {user.age}</h2>
+                    <p className="text-gray-600 mt-1">Year {user.year} • {user.branch} • {user.hometown}</p>
+                  </div>
+                  <EditProfileModal
+                    user={profileForModal}
+                    onSave={handleSaveProfile}
+                  />
+                </div>
+                <p className="mt-4 text-gray-700 leading-relaxed">{user.bio}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Enhanced Stats */}
-        <Card className="bg-gradient-to-br from-card to-primary/5">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
               Your Activity
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {stats.map((stat, index) => (
-                <div key={index} className="text-center p-3 rounded-lg bg-background/50">
-                  <div className="flex justify-center mb-2">
-                    <div className="h-12 w-12 bg-gradient-to-br from-primary/10 to-primary/5 rounded-full flex items-center justify-center">
-                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <div key={index} className="text-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
+                  <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+                  <div className="text-sm text-gray-600">{stat.label}</div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
 
-
         {/* Interests */}
-        <Card>
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg">Interests</CardTitle>
+            <CardTitle>Interests</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {user.interests.map((interest) => (
-                <Badge key={interest} variant="secondary" className="capitalize">
+                <Badge key={interest} variant="secondary" className="px-3 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200">
                   {interest}
                 </Badge>
               ))}
@@ -211,61 +272,55 @@ export function ProfileScreen() {
         </Card>
 
         {/* Enhanced Photos */}
-        <Card>
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Camera className="h-5 w-5 text-primary" />
-              Photos ({user.photos.length}/6)
+            <CardTitle className="flex items-center justify-between">
+              <span>Photos ({user.photos.length}/6)</span>
+              <Camera className="h-5 w-5 text-gray-400" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-4">
               {user.photos.map((photo, index) => (
-                <div key={index} className="aspect-square bg-cover bg-center rounded-xl shadow-md hover:shadow-lg transition-shadow cursor-pointer group" style={{ backgroundImage: `url(${photo})` }}>
-                  <div className="w-full h-full bg-black/0 group-hover:bg-black/20 rounded-xl transition-colors flex items-center justify-center">
-                    <Camera className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                  <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
                 </div>
               ))}
               {Array.from({ length: 6 - user.photos.length }).map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-square border-2 border-dashed border-border rounded-xl flex items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors group">
+                <div key={`empty-${index}`} className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-purple-300 hover:text-purple-500 transition-colors cursor-pointer">
                   <div className="text-center">
-                    <Camera className="h-6 w-6 text-muted-foreground group-hover:text-primary mx-auto mb-1" />
-                    <span className="text-xs text-muted-foreground">Add Photo</span>
+                    <Camera className="h-6 w-6 mx-auto mb-1" />
+                    <div className="text-xs">Add Photo</div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
+            <p className="text-sm text-gray-600 mt-4 text-center">
               Add more photos to increase your match rate by up to 40%!
             </p>
           </CardContent>
         </Card>
 
         {/* Account Options */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-2">
-              <Button variant="ghost" className="w-full justify-start" onClick={() => setShowSettings(true)}>
-                <Settings className="h-4 w-4 mr-2" />
-                Account Settings
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                Privacy & Safety
-              </Button>
-              <Button variant="ghost" className="w-full justify-start">
-                Help & Support
-              </Button>
-              <Separator className="my-2" />
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
+        <Card className="border-0 shadow-lg">
+          <CardContent className="p-6 space-y-3">
+            <Button variant="ghost" className="w-full justify-start" onClick={() => setShowSettings(true)}>
+              <Settings className="h-4 w-4 mr-3" />
+              Account Settings
+            </Button>
+            <Button variant="ghost" className="w-full justify-start">
+              <Shield className="h-4 w-4 mr-3" />
+              Privacy & Safety
+            </Button>
+            <Button variant="ghost" className="w-full justify-start">
+              <Award className="h-4 w-4 mr-3" />
+              Help & Support
+            </Button>
+            <Separator />
+            <Button variant="ghost" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-3" />
+              Logout
+            </Button>
           </CardContent>
         </Card>
       </div>

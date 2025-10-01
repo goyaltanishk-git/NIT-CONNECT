@@ -2,37 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 // 1. Import the Database type from your generated types file
 import type { Database } from "@/integrations/supabase/types";
 
-<<<<<<< HEAD
 // 2. Create type aliases from the official Database type for easier use
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
-=======
-export interface Profile {
-  email: string; // primary key
-
-  first_name?: string;
-  last_name?: string;
-  date_of_birth?: string;
-  gender?: string;
-  interested_in?: string;
-  bio?: string;
-  year_of_study?: string;
-  branch?: string;
-  hometown?: string;
-  height?: number | null;
-  phone_number?: string;
-  instagram_handle?: string;
-  verification_status?: string;
-  is_verified?: boolean;
-  is_active?: boolean;
-  incognito_mode?: boolean;
-  hide_year_branch?: boolean;
-  last_active_at?: string;
-  created_at?: string;
-  updated_at?: string;
-}
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
 
 export class AuthService {
   static async generateOtp(email: string, otp: string, expiresAt: string) {
@@ -87,32 +60,17 @@ export class AuthService {
     const firstName = parts[0] || "User";
     const lastName = parts[1] || "Name";
 
-<<<<<<< HEAD
     // 3. Use the ProfileInsert type for creating new user data
     // This ensures all required fields are present and correctly typed
     const userData: ProfileInsert = {
       user_id: authUserId,
       email: email,
-=======
-    const userData: Profile = {
-      email,
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
       first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
       last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
       date_of_birth: "2000-01-01",
       gender: "male",
       interested_in: "female",
       verification_status: "pending",
-<<<<<<< HEAD
-=======
-      is_verified: false,
-      is_active: true,
-      incognito_mode: false,
-      hide_year_branch: false,
-      last_active_at: now,
-      created_at: now,
-      updated_at: now,
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
     };
 
     const { data: newUserProfile, error: createError } = await supabase
@@ -127,7 +85,6 @@ export class AuthService {
     return newUserProfile;
   }
 
-<<<<<<< HEAD
   static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile>{
     const existingUser = await this.checkUserExists(email);
 
@@ -155,62 +112,6 @@ export class AuthService {
   static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
     // 4. Use the ProfileUpdate type for the 'updates' parameter
     const updateData: ProfileUpdate = { ...updates, updated_at: new Date().toISOString() };
-=======
-  static async getOrCreateUserProfile(email: string): Promise<Profile> {
-  const now = new Date().toISOString();
-
-  // 1. Check if profile exists
-  const { data: existingUser, error: fetchError } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("email", email)
-    .single();
-
-  if (existingUser) {
-    // 2. Update last_active_at + updated_at
-    const { data: updatedUser, error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        last_active_at: now,
-        updated_at: now,
-      })
-      .eq("email", email)
-      .select()
-      .single();
-
-    if (updateError) throw updateError;
-
-    localStorage.setItem("current-user", JSON.stringify(updatedUser));
-    localStorage.setItem("profile-backup", JSON.stringify(updatedUser));
-    return updatedUser;
-  }
-
-  // 3. Insert new profile
-  const { data: newUser, error: insertError } = await supabase
-    .from("profiles")
-    .insert({
-      email,
-      created_at: now,
-      updated_at: now,
-      last_active_at: now,
-      is_active: true,
-    })
-    .select()
-    .single();
-
-  if (insertError || !newUser) {
-    throw new Error(`Failed to create profile: ${insertError?.message}`);
-  }
-
-  localStorage.setItem("current-user", JSON.stringify(newUser));
-  localStorage.setItem("profile-backup", JSON.stringify(newUser));
-  return newUser;
-}
-
-
-  static async updateProfile(email: string, updates: Partial<Profile>): Promise<Profile> {
-    const updateData = { ...updates, updated_at: new Date().toISOString() };
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
     const { data, error } = await supabase
       .from("profiles")
       .update(updateData)
@@ -225,29 +126,10 @@ export class AuthService {
   }
   
   static async updateLastActive(identifier: string): Promise<void> {
-<<<<<<< HEAD
     await supabase
         .from("profiles")
         .update({ last_active_at: new Date().toISOString() })
         .eq("user_id", identifier);
-=======
-    const updateData = {
-      last_active_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    let { error } = await supabase.from("profiles").update(updateData).eq("email", identifier);
-
-    if (error) {
-      await supabase.from("profiles").update(updateData).eq("email", identifier);
-    }
-
-    const currentUser = this.getCurrentUser();
-    if (currentUser && (currentUser.email === identifier)) {
-      const updatedUser = { ...currentUser, ...updateData };
-      localStorage.setItem("current-user", JSON.stringify(updatedUser));
-    }
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
   }
 
   static getCurrentUser(): Profile | null {
@@ -271,16 +153,8 @@ export class AuthService {
   }
 
   static async logout(): Promise<void> {
-<<<<<<< HEAD
     await supabase.auth.signOut();
     localStorage.clear();
-=======
-    
-    localStorage.removeItem("current-user");
-    localStorage.removeItem("temp-user");
-    localStorage.removeItem("profile-backup");
-    localStorage.removeItem("user-login-time");
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
   }
   static async getAllProfiles(limit = 50): Promise<Profile[]> {
     const { data, error } = await supabase

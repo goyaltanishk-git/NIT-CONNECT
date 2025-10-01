@@ -70,40 +70,6 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const otpVerified = await AuthService.verifyOtp(email, otp);
-<<<<<<< HEAD
-      if (!otpVerified) throw new Error("OTP verification failed.");
-      toast({ title: "OTP Verified ✓", description: "Loading your profile..." });
-      
-      let supabaseUser = null;
-      const { data: authData } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: { shouldCreateUser: true },
-      });
-      if (authData.user) supabaseUser = authData.user;
-
-      const userProfile = await AuthService.getOrCreateUserProfile(email, supabaseUser?.id);
-      
-      if (supabaseUser && userProfile) {
-        await AuthService.updateProfile(email, { 
-          user_id: supabaseUser.id,
-          last_active_at: new Date().toISOString()
-        });
-      }
-      
-      const isNewUser = !userProfile.first_name || userProfile.first_name === "User";
-      if (isNewUser) {
-        toast({
-          title: "Welcome to NIT Connect! 🎉",
-          description: "Please complete your profile to get started",
-        });
-      } else {
-        toast({
-          title: "Welcome back! 👋",
-          description: `Logged in as ${userProfile.first_name} ${userProfile.last_name}`,
-        });
-      }
-
-=======
       if (!otpVerified) {
         throw new Error("OTP verification failed.");
       }
@@ -131,7 +97,6 @@ export function LoginScreen() {
       localStorage.setItem("user-login-time", new Date().toISOString());
 
       // Redirect user or reload the page
->>>>>>> ab04f7fc4ac5d326b58fdc96b9ccd4064e1bea95
       window.location.reload();
     } catch (error) {
       console.error("Login error:", error);
