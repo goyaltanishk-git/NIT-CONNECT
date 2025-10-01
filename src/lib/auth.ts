@@ -1,9 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Profile {
-  id?: string;
-  user_id?: string;
-  email: string;
+  email: string; // primary key
+
   first_name?: string;
   last_name?: string;
   date_of_birth?: string;
@@ -71,43 +70,15 @@ export class AuthService {
     return data || null;
   }
 
-  static async createNewUser(email: string, authUserId?: string): Promise<Profile> {
+  static async createNewUser(email: string, userId?: string): Promise<Profile> {
+    const now = new Date().toISOString();
     const emailPrefix = email.split("@")[0];
     const parts = emailPrefix.split(".");
     const firstName = parts[0] || "User";
     const lastName = parts[1] || "Name";
 
-    let userId = authUserId;
-
-    if (!userId) {
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password:
-            Math.random().toString(36).slice(2) +
-            Math.random().toString(36).slice(2),
-        });
-
-        if (!authError) userId = authData.user?.id;
-      } catch {
-        // fallback
-      }
-    }
-
-    if (!userId) {
-      userId =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
-              const r = (Math.random() * 16) | 0,
-                v = c === "x" ? r : (r & 0x3) | 0x8;
-              return v.toString(16);
-            });
-    }
-
     const userData: Profile = {
       email,
-      user_id: userId,
       first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
       last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
       date_of_birth: "2000-01-01",
@@ -125,9 +96,9 @@ export class AuthService {
       is_active: true,
       incognito_mode: false,
       hide_year_branch: false,
-      last_active_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      last_active_at: now,
+      created_at: now,
+      updated_at: now,
     };
 
     const { data: newUserProfile, error: createError } = await supabase
@@ -143,31 +114,57 @@ export class AuthService {
     return newUserProfile;
   }
 
-  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
-    const existingUser = await this.checkUserExists(email);
+  static async getOrCreateUserProfile(email: string): Promise<Profile> {
+  const now = new Date().toISOString();
 
-    if (existingUser) {
-      const { data: updatedUser, error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          last_active_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          user_id: authUserId || existingUser.user_id,
-        })
-        .eq("email", email)
-        .select()
-        .single();
+  // 1. Check if profile exists
+  const { data: existingUser, error: fetchError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("email", email)
+    .single();
 
-      if (!updateError && updatedUser) {
-        localStorage.setItem("current-user", JSON.stringify(updatedUser));
-        localStorage.setItem("profile-backup", JSON.stringify(updatedUser));
-        return updatedUser;
-      }
-      return existingUser;
-    } else {
-      return await this.createNewUser(email, authUserId);
-    }
+  if (existingUser) {
+    // 2. Update last_active_at + updated_at
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("profiles")
+      .update({
+        last_active_at: now,
+        updated_at: now,
+      })
+      .eq("email", email)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    localStorage.setItem("current-user", JSON.stringify(updatedUser));
+    localStorage.setItem("profile-backup", JSON.stringify(updatedUser));
+    return updatedUser;
   }
+
+  // 3. Insert new profile
+  const { data: newUser, error: insertError } = await supabase
+    .from("profiles")
+    .insert({
+      email,
+      created_at: now,
+      updated_at: now,
+      last_active_at: now,
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (insertError || !newUser) {
+    throw new Error(`Failed to create profile: ${insertError?.message}`);
+  }
+
+  localStorage.setItem("current-user", JSON.stringify(newUser));
+  localStorage.setItem("profile-backup", JSON.stringify(newUser));
+  return newUser;
+}
+
 
   static async updateProfile(email: string, updates: Partial<Profile>): Promise<Profile> {
     const updateData = { ...updates, updated_at: new Date().toISOString() };
@@ -191,17 +188,14 @@ export class AuthService {
       updated_at: new Date().toISOString(),
     };
 
-    let { error } = await supabase
-      .from("profiles")
-      .update(updateData)
-      .eq("email", identifier);
+    let { error } = await supabase.from("profiles").update(updateData).eq("email", identifier);
 
     if (error) {
-      await supabase.from("profiles").update(updateData).eq("user_id", identifier);
+      await supabase.from("profiles").update(updateData).eq("email", identifier);
     }
 
     const currentUser = this.getCurrentUser();
-    if (currentUser && (currentUser.email === identifier || currentUser.user_id === identifier)) {
+    if (currentUser && (currentUser.email === identifier)) {
       const updatedUser = { ...currentUser, ...updateData };
       localStorage.setItem("current-user", JSON.stringify(updatedUser));
     }
@@ -230,7 +224,7 @@ export class AuthService {
   }
 
   static async logout(): Promise<void> {
-    await supabase.auth.signOut();
+    
     localStorage.removeItem("current-user");
     localStorage.removeItem("temp-user");
     localStorage.removeItem("profile-backup");

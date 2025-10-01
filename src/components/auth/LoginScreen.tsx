@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/lib/auth";
 import { Heart, Mail, User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 
 function generateOTP(length = 6) {
   return Math.floor(100000 + Math.random() * 900000)
@@ -38,6 +38,7 @@ export function LoginScreen() {
 
     try {
       const generatedOtp = generateOTP();
+      console.log(generatedOtp);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
       // Store OTP in Supabase
@@ -89,65 +90,16 @@ export function LoginScreen() {
         description: "Loading your profile...",
       });
 
-      // Step 2: Handle Supabase authentication first
-      let supabaseUser = null;
-      try {
-        const { data: authData, error: authError } = await supabase.auth.signInWithOtp({
-          email: email,
-          options: {
-            shouldCreateUser: true,
-          }
-        });
-
-        if (authError) {
-          console.warn("Supabase auth warning:", authError);
-        } else if (authData.user) {
-          supabaseUser = authData.user;
-        }
-      } catch (authError) {
-        console.warn("Supabase auth not available, using custom auth:", authError);
-      }
+      
+     
 
       // Step 3: Get or create user profile with enhanced handling
-      const userProfile = await AuthService.getOrCreateUserProfile(email, supabaseUser?.id);
+      const userProfile = await AuthService.getOrCreateUserProfile(email);
 
       // Step 4: Update profile with Supabase user ID if available
-      if (supabaseUser && userProfile) {
-        try {
-          await AuthService.updateProfile(email, { 
-            user_id: supabaseUser.id,
-            last_active_at: new Date().toISOString()
-          });
-        } catch (updateError) {
-          console.warn("Could not update profile with Supabase ID:", updateError);
-        }
-      }
-
-      // Step 5: Validate and enhance profile data
-      const isNewUser = !userProfile.first_name || !userProfile.last_name;
-      const isProfileComplete = userProfile.first_name && 
-                               userProfile.last_name && 
-                               userProfile.year_of_study && 
-                               userProfile.branch;
-
+    
       // Step 6: Show appropriate welcome message based on profile status
-      if (isNewUser) {
-        toast({
-          title: "Welcome to NIT Connect! 🎉",
-          description: "Please complete your profile to get started",
-        });
-      } else if (!isProfileComplete) {
-        toast({
-          title: "Welcome back! 👋",
-          description: "Please complete your profile information",
-        });
-      } else {
-        toast({
-          title: "Welcome back! 👋",
-          description: `Logged in as ${userProfile.first_name} ${userProfile.last_name}`,
-        });
-      }
-
+      
       // Step 7: Update last active and redirect
       await AuthService.updateLastActive(email);
 
@@ -160,7 +112,7 @@ export function LoginScreen() {
 
     } catch (error) {
       console.error("Login error:", error);
-      toast({
+      toast({ 
         title: "Error",
         description: error instanceof Error ? error.message : "Login failed",
         variant: "destructive",
