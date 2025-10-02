@@ -35,9 +35,9 @@ export function DiscoveryScreenIntegrated() {
 
     try {
       // Pass email instead of user_id
-      const success = await handleInteraction(profile.email, action);
+     
       
-      if (success) {
+      
         // Move to next profile after animation
         setTimeout(() => {
           setCurrentIndex(prev => prev + 1);
@@ -56,7 +56,7 @@ export function DiscoveryScreenIntegrated() {
             description: `${profile.first_name} will see you super liked them!`,
           });
         }
-      }
+      
     } catch (error) {
       console.error("Error handling swipe:", error);
       setSwipeAnimation(null);
@@ -193,8 +193,8 @@ export function DiscoveryScreenIntegrated() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10">
-      {/* Enhanced Header with Stats */}
-      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-40">
+      {/*Enhanced Header with Stats*/}
+     <div className=" bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-40">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -219,49 +219,17 @@ export function DiscoveryScreenIntegrated() {
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="flex gap-2">
-            <Card className="flex-1 p-2">
-              <CardContent className="p-0 flex items-center gap-2">
-                <div className="p-1 rounded bg-green-100 dark:bg-green-900">
-                  <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium">Active</p>
-                  <p className="text-xs text-muted-foreground">{profiles.length}</p>
-                </div>
-              </CardContent>
-            </Card>
+          
+          <div className="flex ">
+        
+             
             
-            <Card className="flex-1 p-2">
-              <CardContent className="p-0 flex items-center gap-2">
-                <div className="p-1 rounded bg-blue-100 dark:bg-blue-900">
-                  <Users className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium">Nearby</p>
-                  <p className="text-xs text-muted-foreground">5km</p>
-                </div>
-              </CardContent>
-            </Card>
             
-            <Card className="flex-1 p-2">
-              <CardContent className="p-0 flex items-center gap-2">
-                <div className="p-1 rounded bg-orange-100 dark:bg-orange-900">
-                  <Clock className="h-3 w-3 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium">Online</p>
-                  <p className="text-xs text-muted-foreground">Now</p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
 
-      {/* Stories Section - Disabled for now */}
-      <DisabledStoriesCarousel />
+      
       
       <div className="p-4">
 
@@ -270,7 +238,7 @@ export function DiscoveryScreenIntegrated() {
           {/* Profile Stack Background Cards */}
           {profiles[currentIndex + 2] && (
             <div className="absolute inset-0 -z-20 scale-90 opacity-20 rotate-1 transform">
-              <Card className="h-full aspect-[3/4] bg-gradient-to-br from-muted/50 to-muted/30 rounded-2xl" />
+              <Card  className="relative w-full h-[calc(100vh-140px)] max-w-md mx-auto" />
             </div>
           )}
           

@@ -364,7 +364,7 @@ function DiscoveryScreenDemo() {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Enhanced Header */}
+      {/* Enhanced Header
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-border/50 backdrop-blur-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
@@ -404,10 +404,10 @@ function DiscoveryScreenDemo() {
             </Button>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Profile Card with Enhanced Animation */}
-      <div className="flex-1 p-4 relative overflow-hidden">
+      <div className="flex p-4 relative overflow-hidden">
         <div className={`h-full transition-all duration-300 ${
           swipeAnimation === 'left' ? 'transform -translate-x-full rotate-12 opacity-0' :
           swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' :
