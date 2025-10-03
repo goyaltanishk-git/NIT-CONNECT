@@ -335,35 +335,33 @@ export type Database = {
         Relationships: []
       }
       user_photos: {
-        Row: {
-          created_at: string | null
-          id: string
-          is_primary: boolean | null
-          is_verified: boolean | null
-          photo_order: number
-          photo_url: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          is_primary?: boolean | null
-          is_verified?: boolean | null
-          photo_order: number
-          photo_url: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          is_primary?: boolean | null
-          is_verified?: boolean | null
-          photo_order?: number
-          photo_url?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+  Row: {
+    user_email: string
+    photo_order: number
+    photo_url: string
+    is_primary: boolean | null
+    is_verified: boolean | null
+    created_at: string | null
+  }
+  Insert: {
+    user_email: string
+    photo_order: number
+    photo_url: string
+    is_primary?: boolean | null
+    is_verified?: boolean | null
+    created_at?: string | null
+  }
+  Update: {
+    user_email?: string
+    photo_order?: number
+    photo_url?: string
+    is_primary?: boolean | null
+    is_verified?: boolean | null
+    created_at?: string | null
+  }
+  Relationships: []
+}
+
       user_prompts: {
         Row: {
           created_at: string | null
