@@ -72,20 +72,37 @@ export function useProfiles(): UseProfilesReturn {
 
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
+       const userd  = localStorage.getItem('current-user');
+               const user = JSON.parse(userd);
+      
       console.log(`🔄 Fetching profiles with offset: ${startOffset}`);
       
       // Step 1: Fetch base profiles from the main profiles table
-      const { data: baseProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('is_active', true)
-        .order('last_active_at', { ascending: false })
-        .range(startOffset, startOffset + PROFILES_PER_BATCH - 1);
+  const { data: interactions, error: interactionError } = await supabase
+  .from("user_interactions")
+  .select("target_user_id")
+  .eq("user_id", user.email);
+console.log(interactions);
+if (interactionError) {
+  console.error("Error fetching interactions:", interactionError);
+}
 
-      if (profilesError) {
-        console.error('❌ Error fetching profiles:', profilesError);
-        throw profilesError;
-      }
+const interactedIds = interactions?.map(i => i.target_user_id) || [];
+console.log(interactedIds);
+
+// 2️⃣ Fetch only unseen profiles
+const {data:baseProfiles} =await  supabase
+  .from("profiles")
+  .select("*")
+  .eq("is_active", true)
+  .order("last_active_at", { ascending: false })
+  .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
+  .filter('email', 'not.in', `(${interactedIds.join(',')})`);
+
+// 3️⃣ Only exclude interacted profiles if there are any
+
+
+
 
       if (!baseProfiles || baseProfiles.length === 0) {
         console.log('📭 No more profiles found');

@@ -39,6 +39,7 @@ export function LikesScreenIntegrated() {
         );
     }
   };
+  console.log(getFilteredLikes());
 
   const handleLikeBackClick = async (likeId: string, targetUserId: string) => {
     await handleLikeBack(likeId, targetUserId);
@@ -155,14 +156,14 @@ export function LikesScreenIntegrated() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handlePassClick(like.id)}
+                        onClick={() => handlePassClick(like.user_id)}
                         className="flex-1 border-red-500/30 text-red-600 hover:bg-red-50 hover:border-red-500 transition-all duration-300"
                       >
                         Pass
                       </Button>
                       <Button 
                         size="sm"
-                        onClick={() => handleLikeBackClick(like.id, like.user_id)}
+                        onClick={() => handleLikeBackClick(like.target_user_id, like.user_id)}
                         className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                       >
                         <Heart className="h-4 w-4 mr-1" />

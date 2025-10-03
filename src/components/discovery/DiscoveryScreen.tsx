@@ -234,14 +234,18 @@ function DiscoveryScreenDemo() {
         }
       } else {
         // Real database operations
-        const { data: { user } } = await supabase.auth.getUser();
+         const userd  = localStorage.getItem('current-user');
+         const user = JSON.parse(userd);
+
+        
         if (user) {
           // Record interaction
           await supabase.from('user_interactions').insert({
-            user_id: user.id,
+            user_id: user.email,
             target_user_id: profile.user_id,
             interaction_type: action
           });
+          console.log("liked");
           
           // Update ELO ratings
           await updateRating(user.id, profile.user_id, action, isMatch);

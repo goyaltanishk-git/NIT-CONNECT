@@ -27,14 +27,13 @@ export function useLikes() {
   const fetchPendingLikes = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+        const userd  = localStorage.getItem('current-user');
+               const user = JSON.parse(userd);
       // Get interactions where others liked current user
       const { data: interactions, error } = await supabase
         .from('user_interactions')
         .select('*')
-        .eq('target_user_id', user.id)
+        .eq('target_user_id', user.email)
         .in('interaction_type', ['like', 'superlike'])
         .order('created_at', { ascending: false });
 
@@ -43,11 +42,11 @@ export function useLikes() {
         return;
       }
 
-      // Filter out matches (mutual likes)
+     // Filter out matches (mutual likes)
       const { data: matches } = await supabase
         .from('matches')
         .select('user1_id, user2_id')
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
+        .or(`user1_id.eq.${user.email},user2_id.eq.${user.email}`);
 
       const matchedUserIds = new Set(
         matches?.flatMap(match => 
@@ -61,13 +60,14 @@ export function useLikes() {
       ) || [];
 
       // Get profile data for each interaction
+  
       const transformedLikes = await Promise.all(pendingInteractions.map(async (interaction) => {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('first_name, last_name, bio, year_of_study, branch, hometown')
-          .eq('user_id', interaction.user_id)
+          .eq('email', interaction.user_id)
           .single();
-
+       
         const { data: photos } = await supabase
           .from('user_photos')
           .select('photo_url, photo_order')
@@ -83,7 +83,7 @@ export function useLikes() {
           }
         };
       }));
-
+         console.log(transformedLikes);
       setPendingLikes(transformedLikes.filter(like => 
         like.interaction_type === 'like' || like.interaction_type === 'superlike'
       ));
@@ -101,15 +101,13 @@ export function useLikes() {
 
   const handleLikeBack = useCallback(async (interactionId: string, targetUserId: string) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+      
       // Create reciprocal like
       const { error: likeError } = await supabase
         .from('user_interactions')
         .insert({
-          user_id: user.id,
-          target_user_id: targetUserId,
+          user_id: interactionId,
+          target_user_id:targetUserId ,
           interaction_type: 'like'
         });
 
@@ -119,14 +117,14 @@ export function useLikes() {
       const { error: matchError } = await supabase
         .from('matches')
         .insert({
-          user1_id: user.id,
-          user2_id: targetUserId
+          user1_id: targetUserId,
+          user2_id: interactionId
         });
 
       if (matchError) throw matchError;
 
       // Remove from pending likes
-      setPendingLikes(prev => prev.filter(like => like.id !== interactionId));
+      setPendingLikes(prev => prev.filter(like => like.user_id !== targetUserId));
 
       toast({
         title: "It's a Match! 🎉",
@@ -145,16 +143,32 @@ export function useLikes() {
     }
   }, [toast]);
 
-  const handlePass = useCallback(async (interactionId: string) => {
-    try {
-      // Simply remove from local state - no need to store passes
-      setPendingLikes(prev => prev.filter(like => like.id !== interactionId));
-      return true;
-    } catch (error) {
-      console.error('Error passing:', error);
+  const handlePass = useCallback(async (targetUserId: string) => {
+  try {
+    const userd = localStorage.getItem("current-user");
+    const user = JSON.parse(userd);
+
+    const { error } = await supabase
+      .from("user_interactions")
+      .update({ interaction_type: "pass" }) // overwrite like/superlike
+      .eq("user_id", targetUserId)              // the one who liked me
+      .eq("target_user_id", user.email);        // me (the receiver)
+
+    if (error) {
+      console.error("Error updating pass:", error);
       return false;
     }
-  }, []);
+
+    // Update UI
+    setPendingLikes(prev => prev.filter(like => like.user_id !== targetUserId));
+
+    return true;
+  } catch (error) {
+    console.error("Error passing:", error);
+    return false;
+  }
+}, []);
+
 
   useEffect(() => {
     fetchPendingLikes();
