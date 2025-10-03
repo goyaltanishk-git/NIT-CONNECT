@@ -9,33 +9,48 @@ import { useProfiles, DatabaseProfile } from "@/hooks/useProfiles";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { DisabledStoriesCarousel } from "../stories/DisabledStories";
+import { supabase } from "@/integrations/supabase/client";
 
 export function DiscoveryScreenIntegrated() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | 'up' | null>(null);
-  const { profiles, loading, handleInteraction } = useProfiles();
+  const { profiles, loading } = useProfiles();
   const { user } = useAuth();
   const { toast } = useToast();
 
   // Add debugging
   useEffect(() => {
-    console.log("🔍 DiscoveryScreenIntegrated - Profiles:", profiles.length);
-    console.log("📊 Loading state:", loading);
-    console.log("👤 User:", user?.email);
+  
   }, [profiles, loading, user]);
 
   const handleSwipe = async (action: 'like' | 'pass' | 'superlike') => {
     if (currentIndex >= profiles.length) return;
 
     const profile = profiles[currentIndex];
-    console.log(`💫 Handling ${action} for profile:`, profile.email);
+    
+
+ 
 
     // Set animation
     setSwipeAnimation(action === 'like' ? 'right' : action === 'pass' ? 'left' : 'up');
 
     try {
-      // Pass email instead of user_id
-     
+      // 
+       const userd  = localStorage.getItem('current-user');
+               const user = JSON.parse(userd);
+      
+              
+              if (user) {
+                // Record interaction
+                console.log(profiles);
+               const {error}= await supabase.from('user_interactions').insert({
+                  user_id: user.email,
+                  target_user_id: profile.email,
+                  interaction_type: action
+                });
+              
+                console.log("liked");}
+   
       
       
         // Move to next profile after animation
@@ -56,8 +71,8 @@ export function DiscoveryScreenIntegrated() {
             description: `${profile.first_name} will see you super liked them!`,
           });
         }
-      
-    } catch (error) {
+      }
+    catch (error) {
       console.error("Error handling swipe:", error);
       setSwipeAnimation(null);
     }
@@ -193,8 +208,8 @@ export function DiscoveryScreenIntegrated() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10">
-      {/*Enhanced Header with Stats*/}
-     <div className=" bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-40">
+      {/* Enhanced Header with Stats */}
+      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-40">
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -219,17 +234,47 @@ export function DiscoveryScreenIntegrated() {
             </div>
           </div>
 
-          
-          <div className="flex ">
-        
-             
+          {/* Quick Stats */}
+          <div className="flex gap-2">
+            <Card className="flex-1 p-2">
+              <CardContent className="p-0 flex items-center gap-2">
+                <div className="p-1 rounded bg-green-100 dark:bg-green-900">
+                  <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium">Active</p>
+                  <p className="text-xs text-muted-foreground">{profiles.length}</p>
+                </div>
+              </CardContent>
+            </Card>
             
+            <Card className="flex-1 p-2">
+              <CardContent className="p-0 flex items-center gap-2">
+                <div className="p-1 rounded bg-blue-100 dark:bg-blue-900">
+                  <Users className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium">Nearby</p>
+                  <p className="text-xs text-muted-foreground">5km</p>
+                </div>
+              </CardContent>
+            </Card>
             
+            <Card className="flex-1 p-2">
+              <CardContent className="p-0 flex items-center gap-2">
+                <div className="p-1 rounded bg-orange-100 dark:bg-orange-900">
+                  <Clock className="h-3 w-3 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium">Online</p>
+                  <p className="text-xs text-muted-foreground">Now</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
 
-      
       
       <div className="p-4">
 
@@ -238,7 +283,7 @@ export function DiscoveryScreenIntegrated() {
           {/* Profile Stack Background Cards */}
           {profiles[currentIndex + 2] && (
             <div className="absolute inset-0 -z-20 scale-90 opacity-20 rotate-1 transform">
-              <Card  className="relative w-full h-[calc(100vh-140px)] max-w-md mx-auto" />
+              <Card className="h-full aspect-[3/4] bg-gradient-to-br from-muted/50 to-muted/30 rounded-2xl" />
             </div>
           )}
           
@@ -247,9 +292,9 @@ export function DiscoveryScreenIntegrated() {
             <div className="absolute inset-0 -z-10 scale-95 opacity-60 transform -rotate-1">
             <EnhancedProfileCard
               profile={transformProfileForCard(profiles[currentIndex + 1])}
-              onLike={() => {}}
-              onPass={() => {}}
-              onSuperLike={() => {}}
+              onLike={() => {handleSwipe('like')}}
+              onPass={() => {'pass'}}
+              onSuperLike={() => {'superlike'}}
             />
             </div>
           )}
