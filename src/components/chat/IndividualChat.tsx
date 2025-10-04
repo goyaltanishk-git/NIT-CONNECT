@@ -23,14 +23,8 @@ import {
 import { ArrowLeft, Send, MoreVertical, Phone, Video, Heart, UserX, Flag, Blocks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-
-interface Message {
-  id: string;
-  text: string;
-  timestamp: string;
-  isFromMe: boolean;
-  type?: 'text' | 'image' | 'emoji';
-}
+import { ChatMessage } from "@/hooks/useChat"; // ✨ Import types
+import { Profile } from "@/lib/auth"; 
 
 interface User {
   id: string;
@@ -42,55 +36,15 @@ interface User {
 
 interface IndividualChatProps {
   user: User;
+  messages: ChatMessage[]; // ✨ Receive real messages
+  currentUser: Profile; // ✨ Receive current user profile
   onBack: () => void;
+  onSendMessage: (content: string) => void; // ✨ Receive send function
+  onUnmatch: () => void;
 }
 
-interface UserMatch {
-  profile?: {
-    user_id: string;
-  };
-}
-
-interface TempUserData {
-  matches?: UserMatch[];
-}
-
-export function IndividualChat({ user, onBack }: IndividualChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      text: "Hey! Thanks for the match! 😊",
-      timestamp: "2024-01-15T10:30:00Z",
-      isFromMe: false
-    },
-    {
-      id: "2", 
-      text: "Hey there! Great to connect with you too! 🎉",
-      timestamp: "2024-01-15T10:32:00Z",
-      isFromMe: true
-    },
-    {
-      id: "3",
-      text: "I noticed you're into photography. That's amazing! I love taking photos around campus.",
-      timestamp: "2024-01-15T10:35:00Z",
-      isFromMe: false
-    },
-    {
-      id: "4",
-      text: "Really? That's so cool! I'd love to see some of your work. Maybe we could do a photo walk together sometime? 📸",
-      timestamp: "2024-01-15T10:38:00Z",
-      isFromMe: true
-    },
-    {
-      id: "5",
-      text: "That sounds amazing! I know some great spots around Kurukshetra that are perfect for golden hour shots.",
-      timestamp: "2024-01-15T11:15:00Z",
-      isFromMe: false
-    }
-  ]);
-  
+export function IndividualChat({ user, messages, currentUser, onBack, onSendMessage, onUnmatch }: IndividualChatProps) {
   const [newMessage, setNewMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [showUnmatchDialog, setShowUnmatchDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -103,62 +57,15 @@ export function IndividualChat({ user, onBack }: IndividualChatProps) {
     scrollToBottom();
   }, [messages]);
 
+
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-
-    const message: Message = {
-      id: Date.now().toString(),
-      text: newMessage,
-      timestamp: new Date().toISOString(),
-      isFromMe: true
-    };
-
-    setMessages(prev => [...prev, message]);
+    onSendMessage(newMessage); // ✨ Use the passed-in function
     setNewMessage("");
-
-    // Simulate typing indicator and response
-    setTimeout(() => setIsTyping(true), 500);
-    setTimeout(() => {
-      setIsTyping(false);
-      const responses = [
-        "That sounds great! 😊",
-        "I'm looking forward to it!",
-        "Absolutely! When works for you?",
-        "That would be amazing! 🎉",
-        "Count me in! 💫"
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      const response: Message = {
-        id: (Date.now() + 1).toString(),
-        text: randomResponse,
-        timestamp: new Date().toISOString(),
-        isFromMe: false
-      };
-      setMessages(prev => [...prev, response]);
-    }, 2000);
   };
 
   const handleUnmatch = () => {
-    // Remove match from local storage
-    const tempUser = localStorage.getItem('temp-user');
-    if (tempUser) {
-      const userData: TempUserData = JSON.parse(tempUser);
-      const matches = userData.matches || [];
-      userData.matches = matches.filter((match: UserMatch) => match.profile?.user_id !== user.id);
-      localStorage.setItem('temp-user', JSON.stringify(userData));
-    }
-
-    toast({
-      title: "Match removed",
-      description: `You've unmatched with ${user.name}. This conversation has been deleted.`,
-      variant: "destructive"
-    });
-
-    // Navigate back to chat list
-    setTimeout(() => {
-      onBack();
-    }, 1000);
+    onUnmatch(); // ✨ Use the passed-in function
   };
 
   const handleReport = () => {
@@ -279,48 +186,25 @@ export function IndividualChat({ user, onBack }: IndividualChatProps) {
           </Card>
         </div>
 
-        {messages.map((message, index) => {
-          const showTime = index === 0 || 
-            new Date(message.timestamp).getTime() - new Date(messages[index - 1].timestamp).getTime() > 300000; // 5 minutes
+        {messages.map((message) => {
+          // ✨ Determine if the message is from the current user
+          const isFromMe = message.sender_id === currentUser.user_id; // 5 minutes
 
           return (
-            <div key={message.id} className="space-y-1">
-              {showTime && (
-                <div className="flex justify-center">
-                  <span className="text-xs text-muted-foreground px-3 py-1 bg-muted/50 rounded-full">
-                    {formatMessageTime(message.timestamp)}
-                  </span>
-                </div>
-              )}
-              
-              <div className={cn(
-                "flex",
-                message.isFromMe ? "justify-end" : "justify-start"
-              )}>
+            <div key={message.id}>
+              <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
                 <div className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-2 shadow-sm transition-all duration-200 hover:shadow-md",
-                  message.isFromMe 
-                    ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground ml-auto" 
-                    : "bg-card border border-border hover:bg-muted/20"
+                  "max-w-[80%] rounded-2xl px-4 py-2",
+                  isFromMe 
+                    ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground" 
+                    : "bg-card border"
                 )}>
-                  <p className="text-sm leading-relaxed">{message.text}</p>
+                  <p className="text-sm">{message.content}</p>
                 </div>
               </div>
             </div>
           );
         })}
-
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-card border border-border rounded-2xl px-4 py-2 shadow-sm">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-            </div>
-          </div>
-        )}
         
         <div ref={messagesEndRef} />
       </div>

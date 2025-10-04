@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
+import { Profile } from '@/lib/auth'; 
 // Create proper realtime subscription interface
 export interface RealtimeSubscription {
   unsubscribe: () => void;
@@ -93,7 +93,7 @@ function subscribeToMatches(userId: string, onMatch: () => void): RealtimeSubscr
   };
 }
 
-export function useChat() {
+export function useChat(user: Profile | null) {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,66 +103,77 @@ export function useChat() {
   const { toast } = useToast();
 
   // Real-time subscriptions
-  const [messageSubscription, setMessageSubscription] = useState<RealtimeSubscription | null>(null);
-  const [matchSubscription, setMatchSubscription] = useState<RealtimeSubscription | null>(null);
+  const [messageSubscription, setMessageSubscription] = useState<any | null>(null);
+  const [matchSubscription, setMatchSubscription] = useState<any | null>(null);
 
   const fetchConversations = useCallback(async () => {
+        console.log("🐛 DEBUG: 1. --- Starting fetchConversations ---");
     try {
       setLoading(true);
-      setError(null);
+     
       
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log("🐛 DEBUG: 2. Checking for provided user object:", user);
       if (!user) {
+        console.error("🐛 DEBUG: EXIT - No user provided to useChat hook. Aborting.");
         setConversations([]);
+        setLoading(false);
         return;
       }
+console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
 
       // Get matches for current user
       const { data: matches, error: matchesError } = await supabase
         .from('matches')
-        .select(`
-          id,
-          user1_id,
-          user2_id,
-          created_at,
-          is_active
-        `)
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+        .select('user1_id, user2_id, created_at, is_active')
+        .or(`user1_id.eq.${user.email},user2_id.eq.${user.email}`)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (matchesError) {
-        console.error('Error fetching matches:', matchesError);
-        setError('Failed to load conversations');
-        return;
-      }
+      if (matchesError) 
+        {console.error("🐛 DEBUG: ERROR - Supabase error fetching matches:", matchesError);
+          throw matchesError;
+        }
+              console.log("🐛 DEBUG: 4. Received matches from Supabase:", matches);
 
       if (!matches || matches.length === 0) {
+                console.log("🐛 DEBUG: EXIT - No matches found in the database. The function will now stop.");
+
         setConversations([]);
+        setLoading(false); // Make sure loading is set to false here
         return;
       }
+            console.log(`🐛 DEBUG: 5. Found ${matches.length} matches. Now fetching profile data for each...`);
+
+
+      // if (!matches || matches.length === 0) {
+      //   setConversations([]);
+      //   return;
+      // }
 
       // Get conversation data for each match
       const conversationPromises = matches.map(async (match) => {
         const otherUserId = match.user1_id === user.id ? match.user2_id : match.user1_id;
+
+        const sortedUserIds = [match.user1_id, match.user2_id].sort();
+        const generatedMatchId = sortedUserIds.join('_');
 
         // Fetch other user's profile and photos in parallel
         const [profileResult, photosResult, lastMessageResult] = await Promise.all([
           supabase
             .from('profiles')
             .select('user_id, first_name, last_name, last_active_at')
-            .eq('user_id', otherUserId)
+            .eq('email', otherUserId)
             .single(),
           supabase
             .from('user_photos')
             .select('photo_url, photo_order, is_primary')
-            .eq('user_id', otherUserId)
+            .eq('user_email', otherUserId)
             .order('photo_order')
             .limit(3),
           supabase
             .from('messages')
             .select('content, created_at, sender_id')
-            .eq('match_id', match.id)
+            .eq('match_id', generatedMatchId)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
@@ -172,13 +183,13 @@ export function useChat() {
         const { count: unreadCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
-          .eq('match_id', match.id)
+          .eq('match_id', generatedMatchId)
           .eq('is_read', false)
           .neq('sender_id', user.id);
 
         return {
-          id: match.id,
-          match_id: match.id,
+          id: generatedMatchId,
+          match_id: generatedMatchId,
           user: {
             id: otherUserId,
             first_name: profileResult.data?.first_name || 'Unknown',
@@ -214,7 +225,7 @@ export function useChat() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [user,toast]);
 
   const fetchMessages = useCallback(async (matchId: string, limit: number = 50, offset: number = 0) => {
     try {
@@ -267,7 +278,7 @@ export function useChat() {
     }
   }, []);
 
-  const markMessagesAsRead = async (matchId: string, userId: string) => {
+  const markMessagesAsRead = useCallback(async (matchId: string, userId: string) => {
     try {
       const { error } = await supabase
         .from('messages')
@@ -282,7 +293,6 @@ export function useChat() {
       if (error) {
         console.error('Error marking messages as read:', error);
       } else {
-        // Update local conversations state to reflect read status
         setConversations(prev => 
           prev.map(conv => 
             conv.match_id === matchId 
@@ -294,7 +304,7 @@ export function useChat() {
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
-  };
+  }, []);
 
   const sendMessage = useCallback(async (matchId: string, content: string) => {
     if (!content.trim()) {
@@ -392,7 +402,34 @@ export function useChat() {
     }
   }, [fetchMessages]);
 
-  // Set up real-time subscriptions
+  const unmatch = useCallback(async (matchId: string) => {
+    try {
+      // ✨ The matchId is the generated 'user1_user2' string
+      const userIds = matchId.split('_');
+      if (userIds.length !== 2) throw new Error('Invalid match ID format for unmatching.');
+      const [u1, u2] = userIds;
+
+      // ✨ Update using the composite primary key
+      const { error } = await supabase
+        .from('matches')
+        .update({ is_active: false })
+        .or(`and(user1_id.eq.${u1},user2_id.eq.${u2}),and(user1_id.eq.${u2},user2_id.eq.${u1})`);
+
+      if (error) throw error;
+
+      setConversations(prev => prev.filter(conv => conv.match_id !== matchId));
+      toast({
+        title: 'Unmatched',
+        description: 'You have successfully unmatched.',
+        variant: 'destructive',
+      });
+      return { success: true };
+    } catch (err) {
+      console.error('Error unmatching:', err);
+      toast({ title: 'Error', description: 'Failed to unmatch.', variant: 'destructive' });
+      return { success: false, error: 'Failed to unmatch' };
+    }
+  }, [toast]);
   useEffect(() => {
     let isMounted = true;
 
@@ -468,9 +505,16 @@ export function useChat() {
     };
   }, [currentMatchId, fetchConversations]);
 
-  useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+   useEffect(() => {
+    // Only try to fetch conversations if a valid user object exists
+    if (user) {
+      fetchConversations();
+    } else {
+      // If user logs out, clear the conversations
+      setConversations([]);
+      setLoading(false);
+    }
+  }, [user, fetchConversations]);
 
   // Cleanup subscriptions on unmount
   useEffect(() => {
@@ -484,18 +528,18 @@ export function useChat() {
     };
   }, [messageSubscription, matchSubscription]);
 
-  const clearCurrentChat = () => {
+  const clearCurrentChat = useCallback(() => {
     setCurrentMatchId(null);
     setMessages([]);
     if (messageSubscription) {
       messageSubscription.unsubscribe();
       setMessageSubscription(null);
     }
-  };
+  }, [messageSubscription]); 
 
-  const getUnreadCount = () => {
+  const getUnreadCount = useCallback(() => {
     return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
-  };
+  }, [conversations]); 
 
   return {
     conversations,
@@ -503,6 +547,7 @@ export function useChat() {
     loading,
     sendingMessage,
     error,
+    unmatch,
     currentMatchId,
     fetchConversations,
     fetchMessages,
