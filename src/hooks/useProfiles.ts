@@ -98,6 +98,7 @@ export function useProfiles(): UseProfilesReturn {
         .from("profiles")
         .select("*")
         .eq("is_active", true)
+        .neq("gender",user.gender)
         .order("last_active_at", { ascending: false })
         .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
         .filter('email', 'not.in', `(${interactedIds.join(',')})`);
