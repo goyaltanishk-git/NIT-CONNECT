@@ -315,25 +315,23 @@ export type Database = {
       }
       user_interests: {
         Row: {
-          created_at: string | null
-          id: string
-          interest: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          interest: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          interest?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+            user_email: string
+        interest: string
+    created_at: string | null   // timestamptz → string in TS
+  }
+  Insert: {
+    user_email: string
+    interest: string
+    created_at?: string | null
+  }
+  Update: {
+    user_email?: string
+    interest?: string
+    created_at?: string | null
+  }
+  Relationships: []
+}
+
       user_photos: {
   Row: {
     user_email: string

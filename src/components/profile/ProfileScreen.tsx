@@ -268,24 +268,27 @@ export function ProfileScreen() {
         </Card>
 
         {/* Interests */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Interests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {user.interests.length > 0 ? (
-                user.interests.map((interest) => (
-                  <Badge key={interest} variant="secondary">
-                    {interest}
-                  </Badge>
-                ))
-              ) : (
-                <p className="text-muted-foreground">Add your interests to help others connect with you!</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+<Card>
+              <CardHeader className="pb-3">
+                <CardTitle>Interests</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {user.interests && user.interests.length > 0 ? (
+                    user.interests.map((interest, index) => (
+                      <Badge key={index} variant="secondary">
+                        {interest}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Add your interests to help others connect with you!
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
 
         {/* Enhanced Photos */}
         <Card>

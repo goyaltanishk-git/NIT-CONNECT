@@ -50,7 +50,7 @@ export function useLikes() {
 
       const matchedUserIds = new Set(
         matches?.flatMap(match => 
-          match.user1_id === user.id ? [match.user2_id] : [match.user1_id]
+          match.user1_id === user.email ? [match.user2_id] : [match.user1_id]
         ) || []
       );
 

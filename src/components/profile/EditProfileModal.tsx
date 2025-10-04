@@ -5,9 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Camera } from "lucide-react";
-import { PhotoUpload } from "@/components/discovery/PhotoUpload"; // Import your PhotoUpload component
-import { PhotoService, UserPhoto } from "@/lib/photoservice"; // Import PhotoService
+import { Badge } from "@/components/ui/badge";
+import { Edit, Camera, Plus, X, Tag } from "lucide-react";
+import { PhotoUpload } from "@/components/discovery/PhotoUpload";
+import { PhotoService, UserPhoto } from "@/lib/photoservice";
+import { InterestsService } from "@/lib/interests-service";
 import { useToast } from "@/hooks/use-toast";
 
 // Define the profile type that matches your database schema
@@ -41,7 +43,7 @@ export interface ProfileType {
 }
 
 interface EditProfileModalProps {
-  profile: ProfileType; // Changed from 'user' to 'profile'
+  profile: ProfileType;
   onSave: (updatedUser: Partial<ProfileType>) => Promise<void>;
 }
 
@@ -51,10 +53,20 @@ const BRANCHES = [
   "Information Technology", "Biotechnology", "Mathematics", "Physics", "Chemistry"
 ];
 
+const POPULAR_INTERESTS = [
+  "Music", "Sports", "Travel", "Photography", "Reading", "Movies", "Gaming", "Cooking",
+  "Art", "Dancing", "Hiking", "Fitness", "Technology", "Fashion", "Food", "Nature",
+  "Writing", "Swimming", "Cycling", "Yoga", "Meditation", "Painting", "Singing",
+  "Guitar", "Piano", "Football", "Basketball", "Cricket", "Tennis", "Badminton"
+];
+
 export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [photos, setPhotos] = useState<UserPhoto[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [interestsLoading, setInterestsLoading] = useState(false);
+  const [newInterest, setNewInterest] = useState("");
   const { toast } = useToast();
 
   // Initialize form data from profile with safe defaults
@@ -76,7 +88,6 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
     setPhotosLoading(true);
     try {
       console.log("[EditProfileModal] Loading photos for:", profile.email);
-      debugger;
       const userPhotos = await PhotoService.getUserPhotos(profile.email);
       console.log("[EditProfileModal] Photos loaded:", userPhotos);
       setPhotos(userPhotos);
@@ -92,30 +103,87 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
     }
   };
 
+  // Load user interests when modal opens
+  const loadInterests = async () => {
+    if (!profile.email) return;
+    
+    setInterestsLoading(true);
+    try {
+      console.log("[EditProfileModal] Loading interests for:", profile.email);
+      const userInterests = await InterestsService.getUserInterests(profile.email);
+      console.log("[EditProfileModal] Interests loaded:", userInterests);
+      setInterests(userInterests);
+    } catch (error) {
+      console.error('Error loading interests:', error);
+      toast({
+        title: "Error loading interests",
+        description: "Could not load your interests. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setInterestsLoading(false);
+    }
+  };
+
   // Handle modal open/close
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open) {
-      console.log("[EditProfileModal] Modal opened, fetching photos...");
-      loadPhotos(); // Load photos when modal opens
+      console.log("[EditProfileModal] Modal opened, loading data...");
+      loadPhotos();
+      loadInterests();
     }
   };
 
   const handlePhotosUpdate = (updatedPhotos: UserPhoto[]) => {
-     console.log("[EditProfileModal] Photos updated:", updatedPhotos);
-    debugger;
+    console.log("[EditProfileModal] Photos updated:", updatedPhotos);
     setPhotos(updatedPhotos);
+  };
+
+  // Add interest
+  const addInterest = (interest: string) => {
+    const trimmedInterest = interest.trim();
+    if (trimmedInterest && !interests.includes(trimmedInterest) && interests.length < 10) {
+      setInterests([...interests, trimmedInterest]);
+      setNewInterest("");
+    }
+  };
+
+  // Remove interest
+  const removeInterest = (interestToRemove: string) => {
+    setInterests(interests.filter(interest => interest !== interestToRemove));
+  };
+
+  // Handle adding new interest from input
+  const handleAddNewInterest = () => {
+    if (newInterest.trim()) {
+      addInterest(newInterest);
+    }
+  };
+
+  // Handle key press in interest input
+  const handleInterestKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddNewInterest();
+    }
   };
 
   const handleSave = async () => {
     try {
       console.log("[EditProfileModal] Saving profile:", formData);
-      debugger;
+      console.log("[EditProfileModal] Saving interests:", interests);
+      
+      // Save profile data
       await onSave(formData);
+      
+      // Save interests separately
+      await InterestsService.updateUserInterests(profile.email, interests);
+      
       setIsOpen(false);
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        description: "Your profile and interests have been updated successfully.",
       });
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -162,6 +230,87 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
                 onPhotosUpdate={handlePhotosUpdate}
                 maxPhotos={6}
               />
+            )}
+          </div>
+
+          {/* Interests Section */}
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <Tag className="w-5 h-5" />
+              <Label className="text-base font-semibold">Interests</Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Add up to 10 interests to help others connect with you.
+            </p>
+
+            {interestsLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900"></div>
+              </div>
+            ) : (
+              <>
+                {/* Current Interests */}
+                <div className="flex flex-wrap gap-2">
+                  {interests.map((interest, index) => (
+                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                      {interest}
+                      <X 
+                        className="w-3 h-3 cursor-pointer hover:text-red-500" 
+                        onClick={() => removeInterest(interest)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Add New Interest */}
+                {interests.length < 10 && (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        value={newInterest}
+                        onChange={(e) => setNewInterest(e.target.value)}
+                        onKeyPress={handleInterestKeyPress}
+                        placeholder="Add an interest..."
+                        className="flex-1"
+                      />
+                      <Button 
+                        onClick={handleAddNewInterest}
+                        disabled={!newInterest.trim()}
+                        size="sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    {/* Popular Interests */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Popular interests:</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {POPULAR_INTERESTS
+                          .filter(interest => !interests.includes(interest))
+                          .slice(0, 15)
+                          .map((interest) => (
+                          <Button
+                            key={interest}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addInterest(interest)}
+                            className="text-xs h-7"
+                          >
+                            + {interest}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {interests.length >= 10 && (
+                  <p className="text-sm text-muted-foreground">
+                    You've reached the maximum of 10 interests.
+                  </p>
+                )}
+              </>
             )}
           </div>
 
@@ -306,7 +455,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               type="email"
               value={formData.email || ""}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              disabled // Usually email shouldn't be editable
+              disabled
             />
           </div>
 

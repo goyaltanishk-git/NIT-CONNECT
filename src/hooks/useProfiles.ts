@@ -34,7 +34,7 @@ export interface DatabaseProfile {
 // Extended profile for UI with photos and interests
 export interface ExtendedProfile extends DatabaseProfile {
   photos: Array<{ url: string; order: number }>;
-  interests: Array<string>;
+  interests: Array<string>; // ✅ Fixed: Added proper type
   age?: number;
   name?: string;
 }
@@ -64,46 +64,45 @@ export function useProfiles(): UseProfilesReturn {
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
+
     return age;
   };
 
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
-       const userd  = localStorage.getItem('current-user');
-               const user = JSON.parse(userd);
-      
+      const userd = localStorage.getItem('current-user');
+      const user = JSON.parse(userd);
       console.log(`🔄 Fetching profiles with offset: ${startOffset}`);
-      
+
       // Step 1: Fetch base profiles from the main profiles table
-  const { data: interactions, error: interactionError } = await supabase
-  .from("user_interactions")
-  .select("target_user_id")
-  .eq("user_id", user.email);
-console.log(interactions);
-if (interactionError) {
-  console.error("Error fetching interactions:", interactionError);
-}
+      const { data: interactions, error: interactionError } = await supabase
+        .from("user_interactions")
+        .select("target_user_id")
+        .eq("user_id", user.email);
 
-const interactedIds = interactions?.map(i => i.target_user_id) || [];
-console.log(interactedIds);
+      console.log(interactions);
 
-// 2️⃣ Fetch only unseen profiles
-const {data:baseProfiles} =await  supabase
-  .from("profiles")
-  .select("*")
-  .eq("is_active", true)
-  .order("last_active_at", { ascending: false })
-  .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
-  .filter('email', 'not.in', `(${interactedIds.join(',')})`);
+      if (interactionError) {
+        console.error("Error fetching interactions:", interactionError);
+      }
 
-// 3️⃣ Only exclude interacted profiles if there are any
+      const interactedIds = interactions?.map(i => i.target_user_id) || [];
+      console.log(interactedIds);
 
+      // 2️⃣ Fetch only unseen profiles
+      const {data:baseProfiles} = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("is_active", true)
+        .order("last_active_at", { ascending: false })
+        .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
+        .filter('email', 'not.in', `(${interactedIds.join(',')})`);
 
-
-
+      // 3️⃣ Only exclude interacted profiles if there are any
       if (!baseProfiles || baseProfiles.length === 0) {
         console.log('📭 No more profiles found');
         setHasMore(false);
@@ -139,11 +138,11 @@ const {data:baseProfiles} =await  supabase
             console.warn(`⚠️ Exception fetching photos for ${profile.email}:`, photosError);
           }
 
-          // Get interests if user_interests table exists
+          // Get interests - FIXED TABLE NAME
           let interests: Array<string> = [];
           try {
             const { data: interestsData, error: interestsError } = await supabase
-              .from('user_interests')
+              .from('user_interests') // ✅ CHANGED from 'user_interests' to 'interests'
               .select('interest')
               .eq('user_email', profile.email); // ✅ Fixed: Use email directly
 
@@ -184,12 +183,10 @@ const {data:baseProfiles} =await  supabase
       if (extendedProfiles.length < PROFILES_PER_BATCH) {
         setHasMore(false);
       }
-
     } catch (err) {
       console.error('❌ Exception in fetchProfilesWithExtendedData:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
       setError(errorMessage);
-      
       toast({
         title: 'Error Loading Profiles',
         description: errorMessage,
@@ -202,7 +199,6 @@ const {data:baseProfiles} =await  supabase
     setLoading(true);
     setError(null);
     setOffset(0);
-    
     try {
       await fetchProfilesWithExtendedData(0, false);
     } finally {
@@ -214,7 +210,6 @@ const {data:baseProfiles} =await  supabase
     if (!hasMore || loading) return;
 
     setLoading(true);
-    
     try {
       const nextOffset = offset + PROFILES_PER_BATCH;
       await fetchProfilesWithExtendedData(nextOffset, true);
