@@ -23,29 +23,36 @@ import {
 import { ArrowLeft, Send, MoreVertical, Phone, Video, Heart, UserX, Flag, Blocks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { ChatMessage } from "@/hooks/useChat"; // ✨ Import types
-import { Profile } from "@/lib/auth"; 
+import { ChatMessage } from "@/hooks/useChat";
+import { Profile } from "@/lib/auth";
+import { ProfileDialog } from "@/components/profile/profileDialog"; // ✨ Import the new component
 
+// ✨ Updated interface to include all the details for the profile dialog
 interface User {
   id: string;
   name: string;
   photos: string[];
   isOnline?: boolean;
   lastSeen?: string;
+  bio?: string | null;
+  year_of_study?: string | null;
+  branch?: string | null;
+  hometown?: string | null;
 }
 
 interface IndividualChatProps {
   user: User;
-  messages: ChatMessage[]; // ✨ Receive real messages
-  currentUser: Profile; // ✨ Receive current user profile
+  messages: ChatMessage[];
+  currentUser: Profile;
   onBack: () => void;
-  onSendMessage: (content: string) => void; // ✨ Receive send function
+  onSendMessage: (content: string) => void;
   onUnmatch: () => void;
 }
 
 export function IndividualChat({ user, messages, currentUser, onBack, onSendMessage, onUnmatch }: IndividualChatProps) {
   const [newMessage, setNewMessage] = useState("");
   const [showUnmatchDialog, setShowUnmatchDialog] = useState(false);
+  const [isProfileDialogOpen, setProfileDialogOpen] = useState(false); // ✨ Add state for the dialog
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -57,15 +64,14 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
     scrollToBottom();
   }, [messages]);
 
-
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
-    onSendMessage(newMessage); // ✨ Use the passed-in function
+    onSendMessage(newMessage);
     setNewMessage("");
   };
 
   const handleUnmatch = () => {
-    onUnmatch(); // ✨ Use the passed-in function
+    onUnmatch();
   };
 
   const handleReport = () => {
@@ -132,7 +138,6 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
               <Video className="h-4 w-4" />
             </Button>
             
-            {/* Enhanced More Options Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="hover:bg-primary/10">
@@ -140,7 +145,11 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="hover:bg-primary/10">
+                {/* ✨ Add onSelect handler to open the dialog */}
+                <DropdownMenuItem 
+                  onSelect={() => setProfileDialogOpen(true)}
+                  className="hover:bg-primary/10"
+                >
                   <Heart className="h-4 w-4 mr-2" />
                   View Profile
                 </DropdownMenuItem>
@@ -175,7 +184,6 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Match notification */}
         <div className="flex justify-center">
           <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 px-4 py-2 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-primary">
@@ -187,8 +195,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
         </div>
 
         {messages.map((message) => {
-          // ✨ Determine if the message is from the current user
-          const isFromMe = message.sender === currentUser.email; // 5 minutes
+          const isFromMe = message.sender === currentUser.email;
 
           return (
              <div key={`${message.sender}-${message.created_at}`}>
@@ -209,7 +216,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Enhanced Message Input */}
+      {/* Message Input */}
       <div className="border-t border-border p-4 bg-card backdrop-blur-sm">
         <div className="flex gap-3">
           <Input
@@ -255,6 +262,20 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ✨ Add the Profile Dialog component here */}
+      <ProfileDialog
+        isOpen={isProfileDialogOpen}
+        onClose={() => setProfileDialogOpen(false)}
+        user={{
+          name: user.name,
+          photos: user.photos,
+          bio: user.bio,
+          year_of_study: user.year_of_study,
+          branch: user.branch,
+          hometown: user.hometown,
+        }}
+      />
     </div>
   );
 }

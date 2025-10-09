@@ -31,6 +31,10 @@ export interface ChatUser {
   }>;
   isOnline?: boolean;
   last_active_at?: string;
+  bio?: string | null;
+  year_of_study?: string | null;
+  branch?: string | null;
+  hometown?: string | null;
 }
 
 export interface ChatConversation {
@@ -157,7 +161,7 @@ export function useChat(user: Profile | null) {
         const [profileResult, photosResult, lastMessageResult] = await Promise.all([
           supabase
             .from('profiles')
-            .select('first_name, last_name, last_active_at')
+            .select('first_name, last_name, last_active_at, bio, year_of_study, branch, hometown,gender,height')
             .eq('email', otherUserId)
             .single(),
           supabase
@@ -192,7 +196,13 @@ export function useChat(user: Profile | null) {
             first_name: profileResult.data?.first_name || 'Unknown',
             last_name: profileResult.data?.last_name || 'User',
             photos: photosResult.data || [],
-            last_active_at: profileResult.data?.last_active_at
+            last_active_at: profileResult.data?.last_active_at,
+            bio: profileResult.data?.bio,
+    year_of_study: profileResult.data?.year_of_study,
+    branch: profileResult.data?.branch,
+    hometown: profileResult.data?.hometown,
+    gender:profileResult.data?.gender,
+    height:profileResult.data?.height
           },
           lastMessage: lastMessageResult.data,
           unreadCount: unreadCount || 0,

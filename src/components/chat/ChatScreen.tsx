@@ -67,12 +67,18 @@ export function ChatScreen() {
 
    if (selectedConversation && currentUser) {
     // Adapt data structure for the component
-    const chatUser = {
-      id: selectedConversation.user.id,
-      name: `${selectedConversation.user.first_name} ${selectedConversation.user.last_name}`,
-      photos: selectedConversation.user.photos.sort((a, b) => a.photo_order - b.photo_order).map(p => p.photo_url),
-      lastSeen: selectedConversation.user.last_active_at,
-    };
+   const chatUser = {
+    id: selectedConversation.user.id,
+    name: `${selectedConversation.user.first_name} ${selectedConversation.user.last_name}`,
+    photos: selectedConversation.user.photos.sort((a, b) => a.photo_order - b.photo_order).map(p => p.photo_url),
+    lastSeen: selectedConversation.user.last_active_at,
+    // ✨ Pass the new data through
+    bio: selectedConversation.user.bio,
+    year_of_study: selectedConversation.user.year_of_study,
+    branch: selectedConversation.user.branch,
+    hometown: selectedConversation.user.hometown,
+  };
+
     
     return (
       <IndividualChat 
