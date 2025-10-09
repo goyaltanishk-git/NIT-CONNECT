@@ -157,7 +157,7 @@ export function useChat(user: Profile | null) {
         const [profileResult, photosResult, lastMessageResult] = await Promise.all([
           supabase
             .from('profiles')
-            .select('user_id, first_name, last_name, last_active_at')
+            .select('first_name, last_name, last_active_at')
             .eq('email', otherUserId)
             .single(),
           supabase
