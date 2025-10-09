@@ -157,7 +157,7 @@ export function ChatScreen() {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    {conversation.lastMessage?.sender_id === currentUser?.user_id && (
+                    {conversation.lastMessage?.sender === currentUser?.email && (
                       <Send className="h-3 w-3 text-primary" />
                     )}
                     <p className={`text-sm truncate flex-1 ${conversation.unreadCount > 0 ? 'font-medium' : 'text-muted-foreground'}`}>

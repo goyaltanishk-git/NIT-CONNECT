@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Profile } from '@/lib/auth'; 
+import { Profile } from '@/lib/auth';
+
 // Create proper realtime subscription interface
 export interface RealtimeSubscription {
   unsubscribe: () => void;
 }
 
 export interface ChatMessage {
-  id: string;
+ // id?: string;
   content: string;
-  sender_id: string;
-  match_id: string;
+  sender: string;        // Changed to match your DB schema
+  reciever: string;      // Changed to match your DB schema
   created_at: string;
   is_read: boolean;
   read_at?: string | null;
-  message_type: 'text' | 'image' | 'gif';
+  type: string;          // Changed from message_type to type
   attachment_url?: string | null;
 }
 
@@ -39,7 +40,7 @@ export interface ChatConversation {
   lastMessage: {
     content: string;
     created_at: string;
-    sender_id: string;
+    sender: string;
   } | null;
   unreadCount: number;
   created_at: string;
@@ -47,23 +48,23 @@ export interface ChatConversation {
 }
 
 // Simple realtime functions
-function subscribeToMessages(matchId: string, onMessage: (message: ChatMessage) => void): RealtimeSubscription {
+function subscribeToMessages(userId: string, onMessage: (message: ChatMessage) => void): RealtimeSubscription {
   const subscription = supabase
-    .channel(`messages:${matchId}`)
+    .channel(`messages:${userId}`)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `match_id=eq.${matchId}`
+        filter: `or(sender.eq.${userId},reciever.eq.${userId})`
       },
       (payload) => {
         onMessage(payload.new as ChatMessage);
       }
     )
     .subscribe();
-
+  
   return {
     unsubscribe: () => supabase.removeChannel(subscription)
   };
@@ -87,7 +88,7 @@ function subscribeToMatches(userId: string, onMatch: () => void): RealtimeSubscr
       }
     )
     .subscribe();
-
+  
   return {
     unsubscribe: () => supabase.removeChannel(subscription)
   };
@@ -103,24 +104,24 @@ export function useChat(user: Profile | null) {
   const { toast } = useToast();
 
   // Real-time subscriptions
-  const [messageSubscription, setMessageSubscription] = useState<any | null>(null);
-  const [matchSubscription, setMatchSubscription] = useState<any | null>(null);
+  const [messageSubscription, setMessageSubscription] = useState<RealtimeSubscription | null>(null);
+  const [matchSubscription, setMatchSubscription] = useState<RealtimeSubscription | null>(null);
 
   const fetchConversations = useCallback(async () => {
-        console.log("🐛 DEBUG: 1. --- Starting fetchConversations ---");
+    console.log("🐛 DEBUG: 1. --- Starting fetchConversations ---");
     try {
       setLoading(true);
-     
-      
       console.log("🐛 DEBUG: 2. Checking for provided user object:", user);
+      
       if (!user) {
         console.error("🐛 DEBUG: EXIT - No user provided to useChat hook. Aborting.");
         setConversations([]);
         setLoading(false);
         return;
       }
-console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
 
+      console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
+      
       // Get matches for current user
       const { data: matches, error: matchesError } = await supabase
         .from('matches')
@@ -129,33 +130,28 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (matchesError) 
-        {console.error("🐛 DEBUG: ERROR - Supabase error fetching matches:", matchesError);
-          throw matchesError;
-        }
-              console.log("🐛 DEBUG: 4. Received matches from Supabase:", matches);
+      if (matchesError) {
+        console.error("🐛 DEBUG: ERROR - Supabase error fetching matches:", matchesError);
+        throw matchesError;
+      }
 
+      console.log("🐛 DEBUG: 4. Received matches from Supabase:", matches);
+      
       if (!matches || matches.length === 0) {
-                console.log("🐛 DEBUG: EXIT - No matches found in the database. The function will now stop.");
-
+        console.log("🐛 DEBUG: EXIT - No matches found in the database. The function will now stop.");
         setConversations([]);
-        setLoading(false); // Make sure loading is set to false here
+        setLoading(false);
         return;
       }
-            console.log(`🐛 DEBUG: 5. Found ${matches.length} matches. Now fetching profile data for each...`);
 
-
-      // if (!matches || matches.length === 0) {
-      //   setConversations([]);
-      //   return;
-      // }
+      console.log(`🐛 DEBUG: 5. Found ${matches.length} matches. Now fetching profile data for each...`);
 
       // Get conversation data for each match
       const conversationPromises = matches.map(async (match) => {
-        const otherUserId = match.user1_id === user.id ? match.user2_id : match.user1_id;
-
+        const otherUserId = match.user1_id === user.email ? match.user2_id : match.user1_id;
         const sortedUserIds = [match.user1_id, match.user2_id].sort();
         const generatedMatchId = sortedUserIds.join('_');
+  console.log(`[DEBUG] Fetching profile for email: '${otherUserId}'`);
 
         // Fetch other user's profile and photos in parallel
         const [profileResult, photosResult, lastMessageResult] = await Promise.all([
@@ -170,22 +166,23 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
             .eq('user_email', otherUserId)
             .order('photo_order')
             .limit(3),
+          // Fixed: Query messages using sender and receiver
           supabase
             .from('messages')
-            .select('content, created_at, sender_id')
-            .eq('match_id', generatedMatchId)
+            .select('content, created_at, sender')
+            .or(`and(sender.eq.${user.email},reciever.eq.${otherUserId}),and(sender.eq.${otherUserId},reciever.eq.${user.email})`)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle()
         ]);
 
-        // Get unread count
+        // Get unread count - Fixed: Using sender and receiver
         const { count: unreadCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
-          .eq('match_id', generatedMatchId)
-          .eq('is_read', false)
-          .neq('sender_id', user.id);
+          .eq('reciever', user.email)
+          .eq('sender', otherUserId)
+          .eq('is_read', false);
 
         return {
           id: generatedMatchId,
@@ -205,7 +202,7 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       });
 
       const conversationData = await Promise.all(conversationPromises);
-      
+
       // Sort by last message time, then by match creation time
       const sortedConversations = conversationData.sort((a, b) => {
         const aTime = a.lastMessage?.created_at || a.created_at;
@@ -214,6 +211,7 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       });
 
       setConversations(sortedConversations);
+      
     } catch (error) {
       console.error('Error fetching conversations:', error);
       setError('Failed to load conversations');
@@ -225,16 +223,31 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
     } finally {
       setLoading(false);
     }
-  }, [user,toast]);
+  }, [user, toast]);
 
   const fetchMessages = useCallback(async (matchId: string, limit: number = 50, offset: number = 0) => {
     try {
       setError(null);
-
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Extract the other user ID from matchId
+      const userIds = matchId.split('_');
+      if (userIds.length !== 2) {
+        throw new Error('Invalid match ID format');
+      }
+      
+      const otherUserId = userIds.find( id => id !== user.email) || userIds[0];
+      
+      console.log('Fetching messages between:', user.email, 'and', otherUserId);
+      
+      // Fixed: Query using sender and receiver instead of user1_id and user2_id
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('match_id', matchId)
+        .or(`and(sender.eq.${user.email},reciever.eq.${otherUserId}),and(sender.eq.${otherUserId},reciever.eq.${user.email})`)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -246,14 +259,14 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
 
       // Transform the data to match our ChatMessage interface
       const transformedMessages: ChatMessage[] = (messagesData || []).map(msg => ({
-        id: msg.id,
+     // id: msg.id,
         content: msg.content,
-        sender_id: msg.sender_id,
-        match_id: msg.match_id,
+        sender: msg.sender,
+        reciever: msg.reciever,
         created_at: msg.created_at || '',
         is_read: msg.is_read || false,
         read_at: msg.read_at,
-        message_type: (msg.message_type as 'text' | 'image' | 'gif') || 'text',
+        type: msg.type || 'text',
         attachment_url: msg.attachment_url
       }));
 
@@ -264,41 +277,44 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       } else {
         setMessages(prev => [...reversedMessages, ...prev]);
       }
-      
-      setCurrentMatchId(matchId);
 
+      setCurrentMatchId(matchId);
+      
       // Mark messages as read
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await markMessagesAsRead(matchId, user.id);
+        await markMessagesAsRead(otherUserId, user.email);
       }
+      
     } catch (error) {
       console.error('Error fetching messages:', error);
       setError('Failed to load messages');
     }
-  }, []);
+  }, [user]);
 
-  const markMessagesAsRead = useCallback(async (matchId: string, userId: string) => {
+  const markMessagesAsRead = useCallback(async (otherUserId: string, currentUserId: string) => {
     try {
+      // Fixed: Update using sender and receiver
       const { error } = await supabase
         .from('messages')
-        .update({ 
-          is_read: true, 
-          read_at: new Date().toISOString() 
+        .update({
+          is_read: true,
+          read_at: new Date().toISOString()
         })
-        .eq('match_id', matchId)
-        .neq('sender_id', userId)
+        .eq('sender', otherUserId)
+        .eq('reciever', currentUserId)
         .eq('is_read', false);
 
       if (error) {
         console.error('Error marking messages as read:', error);
       } else {
-        setConversations(prev => 
-          prev.map(conv => 
-            conv.match_id === matchId 
-              ? { ...conv, unreadCount: 0 }
-              : conv
-          )
+        // Update conversations to reflect read messages
+        setConversations(prev =>
+          prev.map(conv => {
+            if (conv.user.id === otherUserId) {
+              return { ...conv, unreadCount: 0 };
+            }
+            return conv;
+          })
         );
       }
     } catch (error) {
@@ -314,19 +330,32 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
     try {
       setSendingMessage(true);
       setError(null);
-      
-      const { data: { user } } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error('User not authenticated');
       }
 
+      // Extract the other user ID from matchId
+      const userIds = matchId.split('_');
+      if (userIds.length !== 2) {
+        throw new Error('Invalid match ID format');
+      }
+      
+      const otherUserId = userIds.find(id => id !== user.email);
+      if (!otherUserId) {
+        throw new Error('Could not determine reciever');
+      }
+
+      console.log('Sending message from:', user.email, 'to:', otherUserId);
+
+      // Fixed: Insert message with sender and receiver
       const { data, error } = await supabase
         .from('messages')
         .insert({
-          match_id: matchId,
-          sender_id: user.id,
+          sender: user.email,
+          reciever: otherUserId,
           content: content.trim(),
-          message_type: 'text',
+          type: 'text',
           is_read: false
         })
         .select()
@@ -339,14 +368,14 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
 
       // Transform the response to match our interface
       const newMessage: ChatMessage = {
-        id: data.id,
+        //id: data.id,
         content: data.content,
-        sender_id: data.sender_id,
-        match_id: data.match_id,
+        sender: data.sender,
+        reciever: data.reciever,
         created_at: data.created_at || '',
         is_read: data.is_read || false,
         read_at: data.read_at,
-        message_type: (data.message_type as 'text' | 'image' | 'gif') || 'text',
+        type: data.type || 'text',
         attachment_url: data.attachment_url
       };
 
@@ -356,7 +385,7 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       }
 
       // Update conversations to reflect the new last message
-      setConversations(prev => 
+      setConversations(prev =>
         prev.map(conv => {
           if (conv.match_id === matchId) {
             return {
@@ -364,7 +393,7 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
               lastMessage: {
                 content: newMessage.content,
                 created_at: newMessage.created_at,
-                sender_id: newMessage.sender_id
+                sender: newMessage.sender
               }
             };
           }
@@ -377,6 +406,7 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       );
 
       return { success: true, message: newMessage };
+
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage = 'Failed to send message';
@@ -390,11 +420,10 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
     } finally {
       setSendingMessage(false);
     }
-  }, [currentMatchId, toast]);
+  }, [currentMatchId, toast, user]);
 
   const loadMoreMessages = useCallback(async (matchId: string, currentCount: number) => {
     if (!matchId) return;
-    
     try {
       await fetchMessages(matchId, 25, currentCount);
     } catch (error) {
@@ -404,12 +433,13 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
 
   const unmatch = useCallback(async (matchId: string) => {
     try {
-      // ✨ The matchId is the generated 'user1_user2' string
+      // The matchId is the generated 'user1_user2' string
       const userIds = matchId.split('_');
       if (userIds.length !== 2) throw new Error('Invalid match ID format for unmatching.');
+      
       const [u1, u2] = userIds;
 
-      // ✨ Update using the composite primary key
+      // Update using the composite primary key
       const { error } = await supabase
         .from('matches')
         .update({ is_active: false })
@@ -423,6 +453,7 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
         description: 'You have successfully unmatched.',
         variant: 'destructive',
       });
+
       return { success: true };
     } catch (err) {
       console.error('Error unmatching:', err);
@@ -430,11 +461,11 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       return { success: false, error: 'Failed to unmatch' };
     }
   }, [toast]);
+
   useEffect(() => {
     let isMounted = true;
-
+    
     const setupSubscriptions = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user || !isMounted) return;
 
       // Clean up existing subscriptions
@@ -445,46 +476,52 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
         matchSubscription.unsubscribe();
       }
 
-      // Subscribe to new messages for current conversation
-      if (currentMatchId) {
-        const msgSub = subscribeToMessages(currentMatchId, (newMessage: ChatMessage) => {
-          if (isMounted) {
-            setMessages(prev => {
-              // Avoid duplicates
-              if (prev.find(msg => msg.id === newMessage.id)) {
-                return prev;
-              }
-              return [...prev, newMessage];
-            });
+      // Subscribe to new messages for current user
+      const msgSub = subscribeToMessages(user.email, (newMessage: ChatMessage) => {
+        if (isMounted) {
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(msg =>
+    msg.sender === newMessage.sender &&
+    msg.created_at === newMessage.created_at &&
+    msg.content === newMessage.content
+)) {
+  return prev;
+}
+            return [...prev, newMessage];
+          });
 
-            // Update conversations
-            setConversations(prev => 
-              prev.map(conv => {
-                if (conv.match_id === currentMatchId) {
-                  return {
-                    ...conv,
-                    lastMessage: {
-                      content: newMessage.content,
-                      created_at: newMessage.created_at,
-                      sender_id: newMessage.sender_id
-                    },
-                    unreadCount: newMessage.sender_id === user.id ? conv.unreadCount : conv.unreadCount + 1
-                  };
-                }
-                return conv;
-              }).sort((a, b) => {
-                const aTime = a.lastMessage?.created_at || a.created_at;
-                const bTime = b.lastMessage?.created_at || b.created_at;
-                return new Date(bTime).getTime() - new Date(aTime).getTime();
-              })
-            );
-          }
-        });
-        setMessageSubscription(msgSub);
-      }
+          // Update conversations
+          const otherUserId = newMessage.sender === user.email ? newMessage.reciever : newMessage.sender;
+          const sortedUserIds = [user.email, otherUserId].sort();
+          const matchId = sortedUserIds.join('_');
+
+          setConversations(prev =>
+            prev.map(conv => {
+              if (conv.match_id === matchId) {
+                return {
+                  ...conv,
+                  lastMessage: {
+                    content: newMessage.content,
+                    created_at: newMessage.created_at,
+                    sender: newMessage.sender
+                  },
+                  unreadCount: newMessage.sender === user.email ? conv.unreadCount : conv.unreadCount + 1
+                };
+              }
+              return conv;
+            }).sort((a, b) => {
+              const aTime = a.lastMessage?.created_at || a.created_at;
+              const bTime = b.lastMessage?.created_at || b.created_at;
+              return new Date(bTime).getTime() - new Date(aTime).getTime();
+            })
+          );
+        }
+      });
+      setMessageSubscription(msgSub);
 
       // Subscribe to match updates
-      const matchSub = subscribeToMatches(user.id, () => {
+      const matchSub = subscribeToMatches(user.email, () => {
         if (isMounted) {
           fetchConversations();
         }
@@ -503,9 +540,9 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
         matchSubscription.unsubscribe();
       }
     };
-  }, [currentMatchId, fetchConversations]);
+  }, [fetchConversations, user]);
 
-   useEffect(() => {
+  useEffect(() => {
     // Only try to fetch conversations if a valid user object exists
     if (user) {
       fetchConversations();
@@ -531,15 +568,11 @@ console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
   const clearCurrentChat = useCallback(() => {
     setCurrentMatchId(null);
     setMessages([]);
-    if (messageSubscription) {
-      messageSubscription.unsubscribe();
-      setMessageSubscription(null);
-    }
-  }, [messageSubscription]); 
+  }, []);
 
   const getUnreadCount = useCallback(() => {
     return conversations.reduce((total, conv) => total + conv.unreadCount, 0);
-  }, [conversations]); 
+  }, [conversations]);
 
   return {
     conversations,

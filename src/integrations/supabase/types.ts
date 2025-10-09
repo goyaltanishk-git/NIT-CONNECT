@@ -92,6 +92,7 @@ export type Database = {
         }
         Relationships: []
       }
+
       matches: {
         Row: {
           created_at: string | null
@@ -113,50 +114,40 @@ export type Database = {
         }
         Relationships: []
       }
-      messages: {
-        Row: {
-          attachment_url: string | null
-          content: string
-          created_at: string | null
-          id: string
-          is_read: boolean | null
-          match_id: string
-          message_type: string | null
-          read_at: string | null
-          sender_id: string
-        }
-        Insert: {
-          attachment_url?: string | null
-          content: string
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          match_id: string
-          message_type?: string | null
-          read_at?: string | null
-          sender_id: string
-        }
-        Update: {
-          attachment_url?: string | null
-          content?: string
-          created_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          match_id?: string
-          message_type?: string | null
-          read_at?: string | null
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+   messages: {
+  Row: {
+    attachment_url: string | null
+    content: string
+    created_at: string | null
+    is_read: boolean | null
+    read_at: string | null
+    reciever: string
+    sender: string
+    type: string | null
+  }
+  Insert: {
+    attachment_url?: string | null
+    content: string
+    created_at?: string | null
+    is_read?: boolean | null
+    read_at?: string | null
+    reciever: string
+    sender: string
+    type?: string | null
+  }
+  Update: {
+    attachment_url?: string | null
+    content?: string
+    created_at?: string | null
+    is_read?: boolean | null
+    read_at?: string | null
+    reciever?: string
+    sender?: string
+    type?: string | null
+  }
+  Relationships: []
+}
+
       profiles: {
         Row: {
           bio: string | null

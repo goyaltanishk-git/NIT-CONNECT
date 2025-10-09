@@ -188,10 +188,10 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
 
         {messages.map((message) => {
           // ✨ Determine if the message is from the current user
-          const isFromMe = message.sender_id === currentUser.user_id; // 5 minutes
+          const isFromMe = message.sender === currentUser.email; // 5 minutes
 
           return (
-            <div key={message.id}>
+             <div key={`${message.sender}-${message.created_at}`}>
               <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
                 <div className={cn(
                   "max-w-[80%] rounded-2xl px-4 py-2",
