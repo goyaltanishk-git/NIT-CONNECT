@@ -10,6 +10,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,DialogDescription } from "@/components/ui/dialog"
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,8 +54,13 @@ interface IndividualChatProps {
 export function IndividualChat({ user, messages, currentUser, onBack, onSendMessage, onUnmatch }: IndividualChatProps) {
   const [newMessage, setNewMessage] = useState("");
   const [showUnmatchDialog, setShowUnmatchDialog] = useState(false);
-  const [isProfileDialogOpen, setProfileDialogOpen] = useState(false); // ✨ Add state for the dialog
+  const [isProfileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false); // ✨ Add state for the dialog
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [reason, setReason] = useState("");
+const [customReason, setCustomReason] = useState("");
+
   const { toast } = useToast();
 
   const scrollToBottom = () => {
@@ -74,24 +81,39 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
     onUnmatch();
   };
 
-  const handleReport = () => {
+ 
+ const handleReport = async (finalReason: string) => {
+  setLoading(true);
+  console.log('DONE');
+  console.log(currentUser.email);
+  console.log(user.id);
+
+  try {
+    await supabase.from("reports").insert(
+      {
+        reporter_id: currentUser.email,
+        reported_user_id: user.id,
+        reason: finalReason,
+        created_at: new Date().toISOString(),
+      },
+    );
+
     toast({
       title: "Report submitted",
-      description: `Thank you for reporting. We'll review ${user.name}'s profile and take appropriate action.`,
+      description: `You reported ${user.name} for "${finalReason}". We'll review their profile.`,
     });
-  };
+ handleUnmatch();
+    setIsReportDialogOpen(false);
+    setReason("");
+    setCustomReason("");
+  } catch (err) {
+    console.log(err);
+    toast({ title: "Failed to submit report", variant: "destructive" });
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleBlock = () => {
-    toast({
-      title: "User blocked",
-      description: `${user.name} has been blocked. They won't be able to contact you anymore.`,
-      variant: "destructive"
-    });
-    
-    setTimeout(() => {
-      onBack();
-    }, 1000);
-  };
 
   const formatMessageTime = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -154,20 +176,68 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
                   View Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleReport}
-                  className="hover:bg-orange-50 text-orange-600"
-                >
-                  <Flag className="h-4 w-4 mr-2" />
-                  Report User
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleBlock}
-                  className="hover:bg-red-50 text-red-600"
-                >
-                  <Blocks className="h-4 w-4 mr-2" />
-                  Block User
-                </DropdownMenuItem>
+             <DropdownMenuItem
+   onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation(); // <-- stop dropdown from closing
+    setIsReportDialogOpen(true);
+  }}
+  className="hover:bg-orange-50 text-orange-600"
+>
+  <Flag className="h-4 w-4 mr-2" />
+  Report User
+</DropdownMenuItem>
+
+{/* Report Dialog */}
+<Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+  <DialogContent className="sm:max-w-[400px]">
+    <DialogHeader>
+      <DialogTitle>Report {user.name}</DialogTitle>
+      <DialogDescription>
+        Please select a reason for reporting this user. Our team will review the report and take appropriate action.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="flex flex-col gap-2 mt-4">
+      <select
+        className="w-full border rounded p-2"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+      >
+        <option value="">Select reason</option>
+        {["Spam", "Fake profile", "Harassment", "Inappropriate content", "Other"].map((r) => (
+          <option key={r} value={r}>
+            {r}
+          </option>
+        ))}
+      </select>
+
+      {reason === "Other" && (
+        <Input
+          placeholder="Enter custom reason"
+          value={customReason}
+          onChange={(e) => setCustomReason(e.target.value)}
+        />
+      )}
+    </div>
+
+    <DialogFooter className="mt-4">
+      <Button
+        disabled={loading || !reason || (reason === "Other" && !customReason.trim())}
+        onClick={() => {
+          const finalReason = reason === "Other" ? customReason : reason;
+          handleReport(finalReason);
+        }}
+        className="w-full"
+      >
+        {loading ? "Submitting..." : "Submit Report"}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+
+       
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => setShowUnmatchDialog(true)}

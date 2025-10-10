@@ -245,35 +245,25 @@ export type Database = {
         Row: {
           category: Database["public"]["Enums"]["report_category"]
           created_at: string | null
-          description: string | null
-          id: string
+          
           reported_user_id: string
           reporter_id: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string | null
+          
+         
         }
         Insert: {
-          category: Database["public"]["Enums"]["report_category"]
-          created_at?: string | null
-          description?: string | null
-          id?: string
+         category: Database["public"]["Enums"]["report_category"]
+          created_at: string | null
+          
           reported_user_id: string
           reporter_id: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
         }
         Update: {
-          category?: Database["public"]["Enums"]["report_category"]
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          reported_user_id?: string
-          reporter_id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
+           category: Database["public"]["Enums"]["report_category"]
+          created_at: string | null
+          
+          reported_user_id: string
+          reporter_id: string
         }
         Relationships: []
       }
