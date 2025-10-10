@@ -3,7 +3,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shield } from "lucide-react";
 import { useEloRating } from "@/hooks/useEloRating";
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
@@ -11,6 +10,14 @@ import { SettingsScreen } from "../settings/SettingsScreen";
 import { useState, useEffect } from "react";
 import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
 import { AuthService } from "@/lib/auth";
+
+// Import new screens from their respective locations
+import { HelpScreen } from "./HelpScreen";
+import { PrivacyScreen } from "./privacyandsafety/PrivacyScreen";
+import { ReportConcernScreen } from "./privacyandsafety/ReportConcernScreen";
+import { PrivacyPolicyScreen } from "./privacyandsafety/PrivacyPolicyScreen";
+import { TermsScreen } from "./privacyandsafety/TermsScreen";
+import { SafetyCenterScreen } from "./privacyandsafety/SafetyCenterScreen"; // New import
 
 // Interface for local UI state
 interface UIProfile {
@@ -26,16 +33,20 @@ interface UIProfile {
 }
 
 export function ProfileScreen() {
-  const { profile, loading, updateProfile, refetch } = useUserProfile();
+  const { profile, loading, updateProfile } = useUserProfile();
+  
+  // State for managing which screen is visible
   const [showSettings, setShowSettings] = useState(false);
-  const [eloRating, setEloRating] = useState(1245);
-  const [dailyStats, setDailyStats] = useState({
-    likesGiven: 47,
-    superLikes: 3,
-    profileViews: 142,
-    matches: 12
-  });
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showReportConcern, setShowReportConcern] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showSafetyCenter, setShowSafetyCenter] = useState(false); // New state variable
 
+  // Local state for UI elements
+  const [eloRating, setEloRating] = useState(1245);
+  
   const { getRatingTier } = useEloRating();
   const ratingTier = getRatingTier(eloRating);
 
@@ -82,12 +93,7 @@ export function ProfileScreen() {
 
   const user = getUIProfile(profile);
 
-  const stats = [
-    { label: "Likes Given", value: dailyStats.likesGiven.toString(), icon: Heart, color: "text-like" },
-    { label: "Super Likes", value: dailyStats.superLikes.toString(), icon: Star, color: "text-superlike" },
-    { label: "Profile Views", value: dailyStats.profileViews.toString(), icon: Eye, color: "text-primary" },
-    { label: "Matches", value: dailyStats.matches.toString(), icon: TrendingUp, color: "text-green-500" }
-  ];
+  
 
   useEffect(() => {
     // Load ELO rating from localStorage or database
@@ -139,10 +145,40 @@ export function ProfileScreen() {
     window.location.reload();
   };
 
-  if (showSettings) {
-    return <SettingsScreen onBack={() => setShowSettings(false)} />;
+  // --- Screen Rendering Logic ---
+  // The order here is important. Sub-screens are checked before the main hub screens.
+  if (showSafetyCenter) {
+    return <SafetyCenterScreen onBack={() => setShowSafetyCenter(false)} />;
+  }
+  if (showReportConcern) {
+    return <ReportConcernScreen onBack={() => setShowReportConcern(false)} />;
+  }
+  if (showPrivacyPolicy) {
+    return <PrivacyPolicyScreen onBack={() => setShowPrivacyPolicy(false)} />;
+  }
+  if (showTerms) {
+    return <TermsScreen onBack={() => setShowTerms(false)} />;
+  }
+  if (showPrivacy) {
+    // The props passed to PrivacyScreen are updated
+    return <PrivacyScreen
+             onBack={() => setShowPrivacy(false)}
+             onNavigateToReport={() => setShowReportConcern(true)}
+             onNavigateToPolicy={() => setShowPrivacyPolicy(true)}
+             onNavigateToTerms={() => setShowTerms(true)}
+             onNavigateToSafetyCenter={() => setShowSafetyCenter(true)}
+           />;
+  }
+if (showSettings) {
+  return <SettingsScreen 
+           onBack={() => setShowSettings(false)} 
+         />;
+}
+  if (showHelp) {
+    return <HelpScreen onBack={() => setShowHelp(false)} />;
   }
 
+  // --- Loading and Error States ---
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -167,7 +203,7 @@ export function ProfileScreen() {
     );
   }
 
-  // Convert profile for EditProfileModal - ensuring all required fields
+  // Prepare profile data for the Edit Profile Modal
   const profileForModal: ProfileType = {
     bio: profile.bio || "",
     branch: profile.branch || "",
@@ -215,9 +251,9 @@ export function ProfileScreen() {
               </p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="text-white hover:bg-white/20"
             onClick={() => setShowSettings(true)}
           >
@@ -247,48 +283,29 @@ export function ProfileScreen() {
 
       <div className="p-6 space-y-6">
         {/* Enhanced Stats */}
+        
+
+        {/* Interests */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Your Activity
-            </CardTitle>
+            <CardTitle>Interests</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center p-3 rounded-lg bg-muted/50">
-                  <stat.icon className={`h-6 w-6 mx-auto mb-2 ${stat.color}`} />
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
-                </div>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {user.interests && user.interests.length > 0 ? (
+                user.interests.map((interest, index) => (
+                  <Badge key={index} variant="secondary">
+                    {interest}
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-muted-foreground">
+                  Add your interests to help others connect with you!
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
-
-        {/* Interests */}
-<Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Interests</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {user.interests && user.interests.length > 0 ? (
-                    user.interests.map((interest, index) => (
-                      <Badge key={index} variant="secondary">
-                        {interest}
-                      </Badge>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground">
-                      Add your interests to help others connect with you!
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
 
         {/* Enhanced Photos */}
         <Card>
@@ -327,8 +344,8 @@ export function ProfileScreen() {
 
         {/* Account Options */}
         <div className="space-y-3">
-          <EditProfileModal 
-            profile={profileForModal} 
+          <EditProfileModal
+            profile={profileForModal}
             onSave={handleSaveProfile}
           />
           
@@ -339,27 +356,6 @@ export function ProfileScreen() {
           >
             <Settings className="h-4 w-4 mr-2" />
             Account Settings
-          </Button>
-          
-          <Button variant="outline" className="w-full justify-start">
-            <Shield className="h-4 w-4 mr-2" />
-            Privacy & Safety
-          </Button>
-          
-          <Button variant="outline" className="w-full justify-start">
-            <Zap className="h-4 w-4 mr-2" />
-            Help & Support
-          </Button>
-          
-          <Separator />
-          
-          <Button
-            variant="destructive"
-            className="w-full justify-start"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
           </Button>
         </div>
       </div>

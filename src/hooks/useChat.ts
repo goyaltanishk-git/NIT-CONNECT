@@ -9,7 +9,7 @@ export interface RealtimeSubscription {
 }
 
 export interface ChatMessage {
- // id?: string;
+ 
   content: string;
   sender: string;        // Changed to match your DB schema
   reciever: string;      // Changed to match your DB schema
@@ -52,38 +52,39 @@ export interface ChatConversation {
 }
 
 // Simple realtime functions
+// ✅ FIXED VERSION
 function subscribeToMessages(userId: string, onMessage: (message: ChatMessage) => void): RealtimeSubscription {
-  const subscription = supabase
-    .channel(`messages:${userId}`)
+  const channel = supabase.channel(`messages:${userId}`);
+
+  // Supabase Realtime does not support OR in filters, so we use two .on() calls
+  channel
     .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `or(sender.eq.${userId},reciever.eq.${userId})`
-      },
-      (payload) => {
-        onMessage(payload.new as ChatMessage);
-      }
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages", filter: `sender=eq.${userId}` },
+      (payload) => onMessage(payload.new as ChatMessage)
+    )
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages", filter: `reciever=eq.${userId}` },
+      (payload) => onMessage(payload.new as ChatMessage)
     )
     .subscribe();
-  
+
   return {
-    unsubscribe: () => supabase.removeChannel(subscription)
+    unsubscribe: () => {
+      supabase.removeChannel(channel);
+    },
   };
 }
 
 function subscribeToMatches(userId: string, onMatch: () => void): RealtimeSubscription {
-  const subscription = supabase
-    .channel(`matches:${userId}`)
+  const channel = supabase.channel(`matches:${userId}`);
+
+  // This can remain mostly unchanged — but use .on() chaining for safety
+  channel
     .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'matches'
-      },
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "matches" },
       (payload) => {
         const match = payload.new as any;
         if (match.user1_id === userId || match.user2_id === userId) {
@@ -92,9 +93,11 @@ function subscribeToMatches(userId: string, onMatch: () => void): RealtimeSubscr
       }
     )
     .subscribe();
-  
+
   return {
-    unsubscribe: () => supabase.removeChannel(subscription)
+    unsubscribe: () => {
+      supabase.removeChannel(channel);
+    },
   };
 }
 
@@ -601,4 +604,4 @@ export function useChat(user: Profile | null) {
     getUnreadCount,
     markMessagesAsRead
   };
-}
+} 
