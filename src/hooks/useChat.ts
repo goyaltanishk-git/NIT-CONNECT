@@ -238,7 +238,7 @@ export function useChat(user: Profile | null) {
     }
   }, [user, toast]);
 
-  const fetchMessages = useCallback(async (matchId: string, limit: number = 50, offset: number = 0) => {
+  const fetchMessages = useCallback(async (matchId: string, limit: number = 100000, offset: number = 0) => {
     try {
       setError(null);
       

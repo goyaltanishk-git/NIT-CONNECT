@@ -17,7 +17,7 @@ import { PrivacyScreen } from "./privacyandsafety/PrivacyScreen";
 import { ReportConcernScreen } from "./privacyandsafety/ReportConcernScreen";
 import { PrivacyPolicyScreen } from "./privacyandsafety/PrivacyPolicyScreen";
 import { TermsScreen } from "./privacyandsafety/TermsScreen";
-import { SafetyCenterScreen } from "./privacyandsafety/SafetyCenterScreen"; // New import
+import { SafetyCenterScreen } from "./privacyandsafety/SafetyCenterScreen";
 
 // Interface for local UI state
 interface UIProfile {
@@ -42,7 +42,7 @@ export function ProfileScreen() {
   const [showReportConcern, setShowReportConcern] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
-  const [showSafetyCenter, setShowSafetyCenter] = useState(false); // New state variable
+  const [showSafetyCenter, setShowSafetyCenter] = useState(false);
 
   // Local state for UI elements
   const [eloRating, setEloRating] = useState(1245);
@@ -86,14 +86,13 @@ export function ProfileScreen() {
       branch: dbProfile.branch || "Computer Science",
       hometown: dbProfile.hometown || "Your Hometown",
       height: dbProfile.height?.toString() || "5'8\"",
-      interests: [], // Will be populated separately if you have interests table
+      // --- FIX: Read interests from the profile object ---
+      interests: dbProfile.interests || [],
       photos: dbProfile.photos || []
     };
   };
 
   const user = getUIProfile(profile);
-
-  
 
   useEffect(() => {
     // Load ELO rating from localStorage or database
@@ -146,7 +145,6 @@ export function ProfileScreen() {
   };
 
   // --- Screen Rendering Logic ---
-  // The order here is important. Sub-screens are checked before the main hub screens.
   if (showSafetyCenter) {
     return <SafetyCenterScreen onBack={() => setShowSafetyCenter(false)} />;
   }
@@ -160,7 +158,6 @@ export function ProfileScreen() {
     return <TermsScreen onBack={() => setShowTerms(false)} />;
   }
   if (showPrivacy) {
-    // The props passed to PrivacyScreen are updated
     return <PrivacyScreen
              onBack={() => setShowPrivacy(false)}
              onNavigateToReport={() => setShowReportConcern(true)}
@@ -169,11 +166,9 @@ export function ProfileScreen() {
              onNavigateToSafetyCenter={() => setShowSafetyCenter(true)}
            />;
   }
-if (showSettings) {
-  return <SettingsScreen 
-           onBack={() => setShowSettings(false)} 
-         />;
-}
+  if (showSettings) {
+    return <SettingsScreen onBack={() => setShowSettings(false)} />;
+  }
   if (showHelp) {
     return <HelpScreen onBack={() => setShowHelp(false)} />;
   }
@@ -282,9 +277,6 @@ if (showSettings) {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Enhanced Stats */}
-        
-
         {/* Interests */}
         <Card>
           <CardHeader className="pb-3">
