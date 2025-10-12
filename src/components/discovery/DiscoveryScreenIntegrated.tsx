@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
+import { getDisplayName, getDisplayPhotos, getDisplayBio, getDisplayDetails, shouldDisplayAnonymously } from "@/utils/incognitoUtils";
 
 export function DiscoveryScreenIntegrated() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -59,16 +60,17 @@ export function DiscoveryScreenIntegrated() {
           setSwipeAnimation(null);
         }, 300);
 
-        // Show feedback
+        // Show feedback with proper display name
+        const displayName = getDisplayName(profile);
         if (action === 'like') {
           toast({
             title: "Like sent! 💚",
-            description: `You liked ${profile.first_name}. Hope they like you back!`,
+            description: `You liked ${displayName}. Hope they like you back!`,
           });
         } else if (action === 'superlike') {
           toast({
             title: "Super Like sent! ⭐",
-            description: `${profile.first_name} will see you super liked them!`,
+            description: `${displayName} will see you super liked them!`,
           });
         }
       }
@@ -81,25 +83,39 @@ export function DiscoveryScreenIntegrated() {
   const transformProfileForCard = (profile: DatabaseProfile) => {
     console.log("🔄 Transforming profile:", profile.first_name, profile.email);
     
+    // Use incognito utilities to get proper display information
+    const displayDetails = getDisplayDetails(profile);
+    const displayName = getDisplayName(profile);
+    const displayBio = getDisplayBio(profile);
+    const displayPhotos = getDisplayPhotos(profile, profile.photos?.map(p => p.url) || []);
+    const isAnonymous = shouldDisplayAnonymously(profile);
+    console.log(displayPhotos);
+    
+    
+    
     return {
       id: profile.email, // Use email as ID since it's now primary key
       user_id: profile.email, // For compatibility with ProfileCard
-      full_name: `${profile.first_name} ${profile.last_name}`,
-      age: calculateAge(profile.date_of_birth),
-      bio: profile.bio || 'No bio available',
-      year: parseInt(profile.year_of_study || '1'),
-      branch: profile.branch || 'Not specified',
-      hometown: profile.hometown || 'Not specified',
-      interests: profile.interests || [],
-      photos: profile.photos?.map(p => ({ url: p.url, order: p.order })) || [
-        // Fallback photo if none available
-        { url: '/placeholder-profile.jpg', order: 1 }
-      ],
-      height: profile.height ? `${Math.floor(profile.height / 12)}'${profile.height % 12}"` : 'Not specified',
+      email: profile.email, // Add email for incognito utils
+      first_name: isAnonymous ? "Anonymous" : profile.first_name,
+      last_name: isAnonymous ? "User" : profile.last_name,
+      full_name: displayName,
+      age: displayDetails.age,
+      bio: displayBio,
+      year: displayDetails.year !== "Hidden" ? parseInt(displayDetails.year || '1') : undefined,
+      branch: displayDetails.branch,
+      hometown: displayDetails.hometown,
+      interests: isAnonymous ? [] : (profile.interests || []),
+      photos: displayPhotos.map((url, index) => ({ url, order: index + 1 })),
+      height: displayDetails.height ? `${Math.floor(displayDetails.height / 12)}'${displayDetails.height % 12}"` : 'Not specified',
       looking_for: profile.interested_in || 'Anyone',
       elo_rating: 1000, // Default rating
       last_active: "Active now",
-      verified: profile.is_verified || false
+      verified: profile.is_verified || false,
+      incognito_mode: profile.incognito_mode || false,
+      gender: profile.gender,
+      interested_in: profile.interested_in,
+      date_of_birth: profile.date_of_birth
     };
   };
 

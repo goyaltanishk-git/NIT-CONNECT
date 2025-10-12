@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shield } from "lucide-react";
 import { useEloRating } from "@/hooks/useEloRating";
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
+import { IncognitoModeToggle } from "./IncognitoModeToggle";
 import { SettingsScreen } from "../settings/SettingsScreen";
 import { useState, useEffect } from "react";
 import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
@@ -93,8 +94,6 @@ export function ProfileScreen() {
 
   const user = getUIProfile(profile);
 
-  
-
   useEffect(() => {
     // Load ELO rating from localStorage or database
     const tempUser = localStorage.getItem('temp-user');
@@ -137,6 +136,18 @@ export function ProfileScreen() {
     } catch (error) {
       console.error('❌ Error saving profile:', error);
       throw error; // Re-throw so EditProfileModal can handle the error
+    }
+  };
+
+  const handleIncognitoToggle = async (enabled: boolean) => {
+    if (!profile) return;
+
+    try {
+      await updateProfile({ incognito_mode: enabled });
+      console.log('✅ Incognito mode updated:', enabled);
+    } catch (error) {
+      console.error('❌ Error updating incognito mode:', error);
+      throw error;
     }
   };
 
@@ -282,6 +293,15 @@ if (showSettings) {
       </div>
 
       <div className="p-6 space-y-6">
+        {/* Incognito Mode Toggle - Only for Female Users */}
+        {profile.gender === "female" && (
+          <IncognitoModeToggle
+            isIncognito={Boolean(profile.incognito_mode)}
+            userGender={profile.gender as "male" | "female"}
+            onToggle={handleIncognitoToggle}
+          />
+        )}
+
         {/* Enhanced Stats */}
         
 

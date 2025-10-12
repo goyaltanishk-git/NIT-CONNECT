@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
+
 
 export interface PendingLike {
   id: string;
@@ -15,7 +17,9 @@ export interface PendingLike {
     year_of_study: string | null;
     branch: string | null;
     hometown: string | null;
+    incognito_mode:boolean;
     photos: { url: string; order: number }[];
+    email:string
   };
 }
 
@@ -64,22 +68,34 @@ export function useLikes() {
       const transformedLikes = await Promise.all(pendingInteractions.map(async (interaction) => {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('first_name, last_name, bio, year_of_study, branch, hometown')
+          .select('first_name, last_name, bio, year_of_study, branch, hometown,incognito_mode,email')
           .eq('email', interaction.user_id)
           .single();
        
         const { data: photos } = await supabase
           .from('user_photos')
           .select('photo_url, photo_order')
-          .eq('user_id', interaction.user_id)
+          .eq('user_email', interaction.user_id)
           .order('photo_order');
+
+
+         profileData.first_name=getDisplayName(profileData);
+         profileData.year_of_study=getDisplayDetails(profileData).year;
+        const photo=getDisplayPhotos(profileData,photos.map(p=>(p.photo_url)));
+
+
+        
+    
 
         return {
           ...interaction,
           interaction_type: interaction.interaction_type as 'like' | 'superlike',
           profile: {
             ...profileData,
-            photos: photos?.map(photo => ({ url: photo.photo_url, order: photo.photo_order })) || []
+            photos: (photo || []).map((url, index) => ({
+    url,
+    order: index,
+  })),
           }
         };
       }));

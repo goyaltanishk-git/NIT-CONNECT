@@ -8,6 +8,7 @@ import { MessageCircle, Send, Search, Loader2 } from "lucide-react";
 import { IndividualChat } from "./IndividualChat";
 import { useChat, ChatConversation } from "@/hooks/useChat"; // ✨ Import hook and types
 import { useAuth } from "@/hooks/useAuth"; // ✨ Import auth hook to get current user
+import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldDisplayAnonymously } from "@/utils/incognitoUtils";
 
 export function ChatScreen() {
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
@@ -67,10 +68,19 @@ export function ChatScreen() {
 
    if (selectedConversation && currentUser) {
     // Adapt data structure for the component
+  
+     
+      
+     
+
+  
+
+
+
    const chatUser = {
     id: selectedConversation.user.id,
-    name: `${selectedConversation.user.first_name} ${selectedConversation.user.last_name}`,
-    photos: selectedConversation.user.photos.sort((a, b) => a.photo_order - b.photo_order).map(p => p.photo_url),
+    name: selectedConversation.user.first_name,
+    photos: selectedConversation.user.photos?.map(p => p.photo_url) || [],
     lastSeen: selectedConversation.user.last_active_at,
     // ✨ Pass the new data through
     bio: selectedConversation.user.bio,

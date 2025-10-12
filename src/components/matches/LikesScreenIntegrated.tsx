@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, Star, Clock, Sparkles } from "lucide-react";
 import { useLikes } from "@/hooks/useLikes";
+import { getDisplayName } from "@/utils/incognitoUtils";
 
 export function LikesScreenIntegrated() {
   const [filter, setFilter] = useState<'all' | 'recent' | 'superlikes'>('all');
@@ -39,7 +40,7 @@ export function LikesScreenIntegrated() {
         );
     }
   };
-  console.log(getFilteredLikes());
+  
 
   const handleLikeBackClick = async (likeId: string, targetUserId: string) => {
     await handleLikeBack(likeId, targetUserId);
@@ -137,7 +138,7 @@ export function LikesScreenIntegrated() {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <p className="font-semibold text-lg truncate">
-                          {like.profile?.first_name} {like.profile?.last_name}
+                          {like.profile?.first_name}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Year {like.profile?.year_of_study} • {like.profile?.branch}

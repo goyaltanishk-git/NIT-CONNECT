@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Profile } from '@/lib/auth';
+import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldDisplayAnonymously } from "@/utils/incognitoUtils";
 
 // Create proper realtime subscription interface
 export interface RealtimeSubscription {
@@ -35,6 +36,7 @@ export interface ChatUser {
   year_of_study?: string | null;
   branch?: string | null;
   hometown?: string | null;
+  incognito_mode?:boolean;
 }
 
 export interface ChatConversation {
@@ -159,14 +161,15 @@ export function useChat(user: Profile | null) {
         const sortedUserIds = [match.user1_id, match.user2_id].sort();
         const generatedMatchId = sortedUserIds.join('_');
   console.log(`[DEBUG] Fetching profile for email: '${otherUserId}'`);
+      
 
         // Fetch other user's profile and photos in parallel
         const [profileResult, photosResult, lastMessageResult] = await Promise.all([
           supabase
             .from('profiles')
-            .select('first_name, last_name, last_active_at, bio, year_of_study, branch, hometown,gender,height')
+            .select('*')
             .eq('email', otherUserId)
-            .single(),
+            .maybeSingle(),
           supabase
             .from('user_photos')
             .select('photo_url, photo_order, is_primary')
@@ -182,6 +185,8 @@ export function useChat(user: Profile | null) {
             .limit(1)
             .maybeSingle()
         ]);
+        
+        
 
         // Get unread count - Fixed: Using sender and receiver
         const { count: unreadCount } = await supabase
@@ -190,22 +195,38 @@ export function useChat(user: Profile | null) {
           .eq('reciever', user.email)
           .eq('sender', otherUserId)
           .eq('is_read', false);
+         const displayDetails = getDisplayDetails(profileResult.data);
+          const displayName = getDisplayName(profileResult.data);
+          const displayBio = getDisplayBio(profileResult.data);
+          const displayPhotos = getDisplayPhotos(profileResult.data, photosResult.data?.map(p => p.photo_url) || []);
+             
+          // const displayPhotos = getDisplayPhotos(profileResult.data, profileResult.data.photos?.map(p => p.photo_url) || []);
+          const isAnonymous = shouldDisplayAnonymously(profileResult.data);
+          console.log(profileResult.data);
+          console.log(photosResult.data);
+          console.log(displayPhotos);
+
 
         return {
           id: generatedMatchId,
           match_id: generatedMatchId,
           user: {
             id: otherUserId,
-            first_name: profileResult.data?.first_name || 'Unknown',
-            last_name: profileResult.data?.last_name || 'User',
-            photos: photosResult.data || [],
+            first_name: displayName,
+            last_name: " ",
+            photos: (displayPhotos || []).map((url: string, index: number) => ({
+    photo_url: url,
+    photo_order: index,
+    is_primary: index === 0,
+  })),
             last_active_at: profileResult.data?.last_active_at,
-            bio: profileResult.data?.bio,
-    year_of_study: profileResult.data?.year_of_study,
-    branch: profileResult.data?.branch,
-    hometown: profileResult.data?.hometown,
+            bio: displayBio,
+    year_of_study: displayDetails.year,
+    branch: displayDetails.branch,
+    hometown: displayDetails.hometown,
     gender:profileResult.data?.gender,
-    height:profileResult.data?.height
+    height:displayDetails.height,
+    incognito_mode:profileResult.data?.incognito_mode
           },
           lastMessage: lastMessageResult.data,
           unreadCount: unreadCount || 0,

@@ -85,13 +85,19 @@ export function useProfiles(): UseProfilesReturn {
         .eq("user_id", user.email);
 
       console.log(interactions);
+       const { data: interactions1, error: interactionError1 } = await supabase
+        .from("user_interactions")
+        .select("user_id")
+        .eq("target_user_id", user.email);
 
       if (interactionError) {
         console.error("Error fetching interactions:", interactionError);
       }
-
-      const interactedIds = interactions?.map(i => i.target_user_id) || [];
-      console.log(interactedIds);
+      
+      const interactedIds1 = interactions1?.map(i => i.user_id) || [];
+      const interactedIds2 = interactions?.map(i => i.target_user_id) || [];
+      const interactedIds=[...interactedIds1,...interactedIds2];
+      
 
       // 2️⃣ Fetch only unseen profiles
       const {data:baseProfiles} = await supabase

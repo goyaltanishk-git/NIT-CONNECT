@@ -1,242 +1,207 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Heart, MapPin, GraduationCap, Calendar, Star, X, Info, MessageCircle } from "lucide-react";
-import { Profile } from "@/data/sampleProfiles";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Heart, X, Star, MapPin, GraduationCap, User, EyeOff, Info } from "lucide-react";
+import { CompatibilityScore } from "./CompatibilityScore";
+import { getDisplayName, getDisplayPhotos, getDisplayBio, getDisplayDetails, shouldDisplayAnonymously } from "@/utils/incognitoUtils";
 
 interface ProfileCardProps {
-  profile: Profile;
+  profile: any;
   onLike: () => void;
   onPass: () => void;
   onSuperLike: () => void;
 }
 
 export function ProfileCard({ profile, onLike, onPass, onSuperLike }: ProfileCardProps) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [imageError, setImageError] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showFullBio, setShowFullBio] = useState(false);
 
-  const nextImage = () => {
-    if (profile.photos && profile.photos.length > 1) {
-      setCurrentImageIndex((prev) => (prev + 1) % profile.photos.length);
-    }
+  // Use incognito utils to get display information
+  const displayName = getDisplayName(profile);
+  const displayPhotos = getDisplayPhotos(profile, profile.photos || []);
+  const displayBio = getDisplayBio(profile);
+  const displayDetails = getDisplayDetails(profile);
+  const isAnonymous = shouldDisplayAnonymously(profile);
+
+  const nextPhoto = () => {
+    setCurrentPhotoIndex((prev) => (prev + 1) % displayPhotos.length);
   };
 
-  const prevImage = () => {
-    if (profile.photos && profile.photos.length > 1) {
-      setCurrentImageIndex((prev) => (prev - 1 + profile.photos.length) % profile.photos.length);
-    }
+  const prevPhoto = () => {
+    setCurrentPhotoIndex((prev) => (prev - 1 + displayPhotos.length) % displayPhotos.length);
   };
 
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  const currentPhoto =
-    profile.photos && profile.photos.length > 0
-      ? profile.photos[currentImageIndex].url
-      : null;
+  // Calculate age if available
+  const age = displayDetails.age;
 
   return (
-    <div className="flex justify-center items-center px-2 pt-2">
-      <Card
-        className="
-          w-full max-w-lg        /* wider on desktop */
-          h-[50vh]              /* taller card */
-          flex flex-col 
-          overflow-hidden 
-          bg-gradient-to-br from-card via-card/95 to-card/90 
-          shadow-2xl hover:shadow-3xl 
-          transition-all duration-500 
-          border-2 border-gradient-to-br from-primary/20 to-transparent 
-          backdrop-blur-sm
-        "
-      >
-        {/* Image Section */}
-        <div className="relative flex-1 min-h-[400px] overflow-hidden group">
-          {currentPhoto && !imageError ? (
-            <div className="relative w-full h-full">
-              <img
-                src={currentPhoto}
-                alt={`${profile.full_name}'s photo`}
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                onError={handleImageError}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            </div>
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-primary/30 to-primary/20 rounded-full flex items-center justify-center mb-4 mx-auto shadow-lg">
-                  <span className="text-3xl font-bold text-primary">
-                    {profile.full_name.charAt(0)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">Photo not available</p>
-              </div>
+    <Card className="w-full max-w-sm mx-auto h-[600px] overflow-hidden shadow-xl">
+      <CardContent className="p-0 h-full flex flex-col">
+        {/* Photo Section */}
+        <div className="relative flex-1 bg-gray-100">
+          {/* Incognito Badge */}
+          {isAnonymous && (
+            <div className="absolute top-3 left-3 z-20">
+              <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">
+                <EyeOff className="h-3 w-3 mr-1" />
+                Anonymous
+              </Badge>
             </div>
           )}
 
-          {/* Image Navigation */}
-          {profile.photos && profile.photos.length > 1 && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm border border-white/20 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                onClick={prevImage}
-              >
-                ←
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm border border-white/20 transition-all duration-300 opacity-0 group-hover:opacity-100"
-                onClick={nextImage}
-              >
-                →
-              </Button>
+          {/* Compatibility Score */}
+          <div className="absolute top-3 right-3 z-20">
+            <CompatibilityScore score={profile.compatibility_score || 85} />
+          </div>
 
-              {/* Image Indicators */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-                {profile.photos.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentImageIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                      index === currentImageIndex
-                        ? "bg-white shadow-lg scale-110"
-                        : "bg-white/50 hover:bg-white/70"
-                    }`}
+          {/* Photo Navigation */}
+          {displayPhotos.length > 0 && (
+            <>
+              <img
+                src={displayPhotos[currentPhotoIndex]}
+                alt={displayName}
+                className={`w-full h-full object-cover ${isAnonymous ? 'blur-sm' : ''}`}
+                onError={(e) => {
+                  e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIzMCIgZmlsbD0iIzlDQTNBRiIvPgo8cGF0aCBkPSJNNTAgMTQwQzUwIDEyMC45IDY1LjkgMTA1IDg1IDEwNUgxMTVDMTM0LjEgMTA1IDE1MCAxMjAuOSAxNTAgMTQwVjE2MEg1MFYxNDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
+                }}
+              />
+
+              {/* Photo indicators */}
+              {displayPhotos.length > 1 && (
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
+                  {displayPhotos.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 w-8 rounded-full ${
+                        index === currentPhotoIndex ? 'bg-white' : 'bg-white/50'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Navigation areas */}
+              {displayPhotos.length > 1 && (
+                <>
+                  <div
+                    className="absolute left-0 top-0 w-1/2 h-full cursor-pointer z-10"
+                    onClick={prevPhoto}
                   />
-                ))}
-              </div>
+                  <div
+                    className="absolute right-0 top-0 w-1/2 h-full cursor-pointer z-10"
+                    onClick={nextPhoto}
+                  />
+                </>
+              )}
             </>
           )}
 
-          {/* Quick Action Overlay */}
-          <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="bg-red-500/20 hover:bg-red-500/40 text-white backdrop-blur-sm border border-red-500/30 transition-all duration-300 hover:scale-110"
-              onClick={onPass}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="bg-yellow-500/20 hover:bg-yellow-500/40 text-white backdrop-blur-sm border border-yellow-500/30 transition-all duration-300 hover:scale-110"
-              onClick={onSuperLike}
-            >
-              <Star className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="bg-green-500/20 hover:bg-green-500/40 text-white backdrop-blur-sm border border-green-500/30 transition-all duration-300 hover:scale-110"
-              onClick={onLike}
-            >
-              <Heart className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Name Overlay */}
-          <div className="absolute bottom-4 left-4 text-white">
-            <h3 className="text-2xl font-bold drop-shadow-lg">{profile.full_name}</h3>
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4" />
-              <span className="drop-shadow-md">{profile.age} years old</span>
-            </div>
-          </div>
+          {/* Gradient overlay */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
         </div>
 
         {/* Profile Info */}
-        <div className="p-6 space-y-4 bg-gradient-to-b from-card to-card/80">
-          {/* Rating & Academic Info */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm bg-primary/10 px-3 py-1 rounded-full">
-                <GraduationCap className="h-4 w-4 text-primary" />
-                <span className="font-medium">Year {profile.year} • {profile.branch}</span>
-              </div>
+        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold">
+                {displayName}
+                {age && !isAnonymous && `, ${age}`}
+              </h2>
+              {isAnonymous && (
+                <Info className="h-4 w-4 text-purple-300" />
+              )}
             </div>
-            {profile.elo_rating && (
-              <Badge variant="outline" className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30 text-yellow-700 font-semibold">
-                ⭐ {profile.elo_rating}
-              </Badge>
-            )}
           </div>
 
-          {/* Location */}
-          {profile.hometown && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>From {profile.hometown}</span>
-            </div>
-          )}
-
-          {/* Bio */}
-          {profile.bio && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">About</span>
-              </div>
-              <p className={`text-sm text-muted-foreground leading-relaxed ${
-                !showFullBio ? "line-clamp-3" : ""
-              }`}>
-                {profile.bio}
-              </p>
-              {profile.bio.length > 100 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary hover:text-primary/80 p-0 h-auto font-medium"
-                  onClick={() => setShowFullBio(!showFullBio)}
-                >
-                  {showFullBio ? "Show less" : "Read more"}
-                </Button>
+          {!isAnonymous && (
+            <div className="flex items-center gap-4 text-sm opacity-90 mb-2">
+              {displayDetails.year !== "Hidden" && (
+                <div className="flex items-center gap-1">
+                  <GraduationCap className="h-4 w-4" />
+                  <span>{displayDetails.year} • {displayDetails.branch}</span>
+                </div>
+              )}
+              {displayDetails.hometown !== "Hidden" && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <span>{displayDetails.hometown}</span>
+                </div>
               )}
             </div>
           )}
 
-          {/* Interests */}
-          {profile.interests && profile.interests.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Interests</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.interests.slice(0, 6).map((interest, index) => (
-                  <Badge
-                    key={index}
-                    variant="secondary"
-                    className="text-xs bg-gradient-to-r from-primary/15 to-primary/10 hover:from-primary/25 hover:to-primary/15 border border-primary/20 transition-all duration-300 hover:scale-105 cursor-default"
-                  >
-                    {interest}
-                  </Badge>
-                ))}
-                {profile.interests.length > 6 && (
-                  <Badge variant="outline" className="text-xs border-dashed">
-                    +{profile.interests.length - 6} more
-                  </Badge>
-                )}
-              </div>
+          <p className={`text-sm leading-relaxed ${showFullBio ? '' : 'line-clamp-2'}`}>
+            {displayBio}
+          </p>
+
+          {displayBio.length > 100 && (
+            <button
+              onClick={() => setShowFullBio(!showFullBio)}
+              className="text-xs text-white/80 hover:text-white mt-1 underline"
+            >
+              {showFullBio ? 'Show less' : 'Read more'}
+            </button>
+          )}
+
+          {/* Interests (hidden for anonymous users) */}
+          {!isAnonymous && profile.interests && profile.interests.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-3">
+              {profile.interests.slice(0, 3).map((interest: string, index: number) => (
+                <Badge key={index} variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                  {interest}
+                </Badge>
+              ))}
+              {profile.interests.length > 3 && (
+                <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                  +{profile.interests.length - 3} more
+                </Badge>
+              )}
             </div>
           )}
 
-          {/* Action Hint */}
-          <div className="pt-2 border-t border-border/50">
-            <p className="text-xs text-muted-foreground text-center">
-              Swipe or use buttons below to make your choice
-            </p>
-          </div>
+          {/* Anonymous user notice */}
+          {isAnonymous && (
+            <div className="mt-3 p-2 bg-purple-900/50 rounded-lg border border-purple-400/30">
+              <p className="text-xs text-purple-200">
+                This user is browsing anonymously. Match to start a conversation and learn more!
+              </p>
+            </div>
+          )}
         </div>
-      </Card>
-    </div>
+
+        {/* Action Buttons */}
+        <div className="absolute bottom-4 right-4 flex gap-2 z-20">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full w-12 h-12 bg-white/90 hover:bg-white border-2 border-gray-200"
+            onClick={onPass}
+          >
+            <X className="h-5 w-5 text-gray-600" />
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full w-12 h-12 bg-blue-500/90 hover:bg-blue-600 border-2 border-blue-400 text-white"
+            onClick={onSuperLike}
+          >
+            <Star className="h-5 w-5" />
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full w-12 h-12 bg-green-500/90 hover:bg-green-600 border-2 border-green-400 text-white"
+            onClick={onLike}
+          >
+            <Heart className="h-5 w-5" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
