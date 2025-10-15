@@ -17,24 +17,19 @@ export type Database = {
       daily_limits: {
         Row: {
           date: string
-          id: string
+          email:string
           likes_used: number | null
-          superlikes_used: number | null
-          user_id: string
+          
         }
         Insert: {
-          date?: string
-          id?: string
-          likes_used?: number | null
-          superlikes_used?: number | null
-          user_id: string
+         date: string
+          email:string
+          likes_used: number | null
         }
         Update: {
-          date?: string
-          id?: string
-          likes_used?: number | null
-          superlikes_used?: number | null
-          user_id?: string
+         date: string
+          email:string
+          likes_used: number | null
         }
         Relationships: []
       }

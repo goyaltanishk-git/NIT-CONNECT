@@ -3,10 +3,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, Star, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles } from "lucide-react";
+import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileCard } from "./ProfileCard";
-import { ActionButtons } from "./ActionButtons";
+import { ActionButtonsWithLimits } from "./ActionButtonWithLimits";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { DiscoveryScreenIntegrated } from "./DiscoveryScreenIntegrated";
@@ -32,13 +32,15 @@ function DiscoveryScreenDemo() {
   const [loading, setLoading] = useState(true);
   const [swipeCount, setSwipeCount] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | 'up' | null>(null);
+  const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
   const [userEloRating, setUserEloRating] = useState(1000);
   const [dailyLikes, setDailyLikes] = useState(0);
-  const [dailySuperLikes, setDailySuperLikes] = useState(0);
   const [passedProfiles, setPassedProfiles] = useState<string[]>([]);
   const { toast } = useToast();
   const { updateRating, getUserRating, getRatingTier } = useEloRating();
+
+  // Daily limits constants
+  const DAILY_LIKE_LIMIT = 3;
 
   // ✅ initialize user data first
   useEffect(() => {
@@ -52,6 +54,56 @@ function DiscoveryScreenDemo() {
     }
   }, [userEloRating]);
 
+  // Check if it's a new day and reset limits
+  const checkAndResetDailyLimits = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const lastResetDate = localStorage.getItem('lastResetDate');
+    
+    if (lastResetDate !== today) {
+      // It's a new day, reset limits
+      setDailyLikes(0);
+      localStorage.setItem('lastResetDate', today);
+      
+      // Update temp user data
+      const tempUser = localStorage.getItem('temp-user');
+      if (tempUser) {
+        const userData = JSON.parse(tempUser);
+        userData.dailyLikes = 0;
+        userData.lastResetDate = today;
+        localStorage.setItem('temp-user', JSON.stringify(userData));
+      }
+      
+      toast({
+        title: "Daily limits reset! 🌅",
+        description: "You have fresh likes for today!",
+      });
+    }
+  };
+
+  // Set up automatic reset at midnight
+  useEffect(() => {
+    checkAndResetDailyLimits();
+    
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0); // Set to midnight
+
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+
+    const timeoutId = setTimeout(() => {
+      checkAndResetDailyLimits();
+      
+      // Set up daily interval for subsequent days
+      const intervalId = setInterval(checkAndResetDailyLimits, 24 * 60 * 60 * 1000);
+      
+      // Cleanup interval when component unmounts
+      return () => clearInterval(intervalId);
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   const initializeUserData = async () => {
     try {
       // In demo mode, use localStorage
@@ -60,7 +112,6 @@ function DiscoveryScreenDemo() {
         const userData = JSON.parse(tempUser);
         setUserEloRating(userData.eloRating || 1000);
         setDailyLikes(userData.dailyLikes || 0);
-        setDailySuperLikes(userData.dailySuperLikes || 0);
         setPassedProfiles(userData.passedProfiles || []);
       } else {
         // In real mode, fetch from database
@@ -74,12 +125,11 @@ function DiscoveryScreenDemo() {
           const { data: limits } = await supabase
             .from('daily_limits')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('email', user.email!)
             .eq('date', today)
             .single();
             
           setDailyLikes(limits?.likes_used || 0);
-          setDailySuperLikes(limits?.superlikes_used || 0);
         }
       }
     } catch (error) {
@@ -155,35 +205,27 @@ function DiscoveryScreenDemo() {
     });
   }, [toast]);
 
-  const handleSwipe = useCallback(async (action: 'like' | 'pass' | 'superlike') => {
+  const handleSwipe = useCallback(async (action: 'like' | 'pass') => {
     if (currentIndex >= profiles.length) return;
 
     const profile = profiles[currentIndex];
     
     // Check daily limits
-    if (action === 'like' && dailyLikes >= 100) {
+    if (action === 'like' && dailyLikes >= DAILY_LIKE_LIMIT) {
       toast({
-        title: "Daily like limit reached",
-        description: "You've used all your likes today. Try again tomorrow.",
-      });
-      return;
-    }
-    
-    if (action === 'superlike' && dailySuperLikes >= 5) {
-      toast({
-        title: "Daily super like limit reached",
-        description: "You've used all your super likes today. Try again tomorrow.",
+        title: "Daily like limit reached! 🚫",
+        description: `You've used all ${DAILY_LIKE_LIMIT} likes today. Come back tomorrow at 12 AM!`,
+        variant: "destructive"
       });
       return;
     }
 
     // Set animation
-    setSwipeAnimation(action === 'like' ? 'right' : action === 'pass' ? 'left' : 'up');
+    setSwipeAnimation(action === 'like' ? 'right' : 'left');
     
     // Update counts
     setSwipeCount(prev => prev + 1);
     if (action === 'like') setDailyLikes(prev => prev + 1);
-    if (action === 'superlike') setDailySuperLikes(prev => prev + 1);
     if (action === 'pass') setPassedProfiles(prev => [...prev, profile.user_id]);
     
     try {
@@ -197,7 +239,7 @@ function DiscoveryScreenDemo() {
         const ratingDiff = Math.abs(userRating - profileRating);
         
         // Higher chance of match with similar ELO ratings
-        let matchChance = action === 'superlike' ? 0.6 : 0.25;
+        let matchChance = 0.25;
         if (ratingDiff < 100) matchChance += 0.2;
         if (ratingDiff < 50) matchChance += 0.1;
         
@@ -206,22 +248,15 @@ function DiscoveryScreenDemo() {
         // Update local storage with new stats
         const userData = JSON.parse(tempUser);
         userData.dailyLikes = dailyLikes + (action === 'like' ? 1 : 0);
-        userData.dailySuperLikes = dailySuperLikes + (action === 'superlike' ? 1 : 0);
         userData.passedProfiles = action === 'pass' ? [...passedProfiles, profile.user_id] : passedProfiles;
         localStorage.setItem('temp-user', JSON.stringify(userData));
         
+        // Show appropriate feedback
         if (isMatch) {
           setTimeout(() => {
             toast({
               title: "It's a Match! 🎉",
               description: `You and ${profile.full_name} liked each other!`,
-            });
-          }, 300);
-        } else if (action === 'superlike') {
-          setTimeout(() => {
-            toast({
-              title: "Super Like sent! ⭐",
-              description: `${profile.full_name} will see you super liked them!`,
             });
           }, 300);
         } else if (action === 'like') {
@@ -232,12 +267,29 @@ function DiscoveryScreenDemo() {
             });
           }, 300);
         }
+
+        // Show limit warnings
+        if (action === 'like' && dailyLikes + 1 === DAILY_LIKE_LIMIT - 1) {
+          setTimeout(() => {
+            toast({
+              title: "Almost at your limit! ⚠️",
+              description: `You have 1 like remaining today.`,
+            });
+          }, 500);
+        } else if (action === 'like' && dailyLikes + 1 === DAILY_LIKE_LIMIT) {
+          setTimeout(() => {
+            toast({
+              title: "Daily limit reached! 🚫",
+              description: `You've used all ${DAILY_LIKE_LIMIT} likes today. Come back tomorrow!`,
+            });
+          }, 500);
+        }
+
       } else {
         // Real database operations
-         const userd  = localStorage.getItem('current-user');
-         const user = JSON.parse(userd);
+        const userd = localStorage.getItem('current-user');
+        const user = JSON.parse(userd);
 
-        
         if (user) {
           // Record interaction
           await supabase.from('user_interactions').insert({
@@ -255,7 +307,7 @@ function DiscoveryScreenDemo() {
           const { data: limits } = await supabase
             .from('daily_limits')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('email', user.email)
             .eq('date', today)
             .single();
             
@@ -263,18 +315,19 @@ function DiscoveryScreenDemo() {
             await supabase
               .from('daily_limits')
               .update({
-                likes_used: action === 'like' ? limits.likes_used + 1 : limits.likes_used,
-                superlikes_used: action === 'superlike' ? limits.superlikes_used + 1 : limits.superlikes_used
+                email: user.email,
+    date: today,
+                likes_used: action === 'like' ? limits.likes_used + 1 : limits.likes_used
               })
-              .eq('id', limits.id);
+              .eq('email', user.email)
+              .eq('date', today);
           } else {
             await supabase
               .from('daily_limits')
               .insert({
-                user_id: user.id,
+                email: user.email,
                 date: today,
-                likes_used: action === 'like' ? 1 : 0,
-                superlikes_used: action === 'superlike' ? 1 : 0
+                likes_used: action === 'like' ? 1 : 0
               });
           }
         }
@@ -290,7 +343,7 @@ function DiscoveryScreenDemo() {
       console.error("Error recording interaction:", error);
       setSwipeAnimation(null);
     }
-  }, [currentIndex, profiles, dailyLikes, dailySuperLikes, userEloRating, passedProfiles, toast, updateRating]);
+  }, [currentIndex, profiles, dailyLikes, userEloRating, passedProfiles, toast, updateRating]);
 
   // ✅ clear UI states
   if (loading) {
@@ -341,6 +394,13 @@ function DiscoveryScreenDemo() {
           You've seen {swipeCount} profiles today.<br/>
           Check back later for new people to connect with.
         </p>
+        <div className="bg-green-100 p-4 rounded-lg mb-6">
+          <p className="text-sm text-gray-600">
+            <strong>Today's Activity:</strong><br/>
+            Likes used: {dailyLikes}/{DAILY_LIKE_LIMIT}<br/>
+            Limits reset at 12:00 AM
+          </p>
+        </div>
         <div className="flex gap-4">
           <Button 
             onClick={() => {
@@ -365,63 +425,21 @@ function DiscoveryScreenDemo() {
   }
 
   const currentProfile = profiles[currentIndex];
+  const canLike = dailyLikes < DAILY_LIKE_LIMIT;
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Enhanced Header
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-b border-border/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Discover
-              </h2>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <Badge variant="outline" className="text-xs bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  {profiles.length - currentIndex} left
-                </Badge>
-                <Badge variant="outline" className="text-xs bg-gradient-to-r from-green-500/10 to-green-600/5 border-green-500/20">
-                  <Heart className="h-3 w-3 mr-1 text-green-600" />
-                  {100 - dailyLikes} likes
-                </Badge>
-                <Badge variant="outline" className="text-xs bg-gradient-to-r from-yellow-500/10 to-orange-500/5 border-yellow-500/20">
-                  <Star className="h-3 w-3 mr-1 text-yellow-600" />
-                  {5 - dailySuperLikes} ⭐
-                </Badge>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-xs bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-              <TrendingUp className="h-3 w-3 text-primary" />
-              <span className="font-medium">{getRatingTier(userEloRating).tier}</span>
-              <span className="text-muted-foreground">({userEloRating})</span>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="hover:bg-primary/10"
-            >
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div> */}
-
       {/* Profile Card with Enhanced Animation */}
       <div className="flex p-4 relative overflow-hidden">
         <div className={`h-full transition-all duration-300 ${
           swipeAnimation === 'left' ? 'transform -translate-x-full rotate-12 opacity-0' :
-          swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' :
-          swipeAnimation === 'up' ? 'transform -translate-y-full scale-110 opacity-0' : ''
+          swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' : ''
         }`}>
           <ProfileCard
             profile={currentProfile}
             onLike={() => handleSwipe('like')}
             onPass={() => handleSwipe('pass')}
-            onSuperLike={() => handleSwipe('superlike')}
+            onSuperLike={() => {}}
           />
         </div>
         
@@ -450,22 +468,18 @@ function DiscoveryScreenDemo() {
         )}
       </div>
 
-      {/* Enhanced Action Buttons */}
+      {/* Enhanced Action Buttons with Daily Limits */}
       <div className="bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-sm">
-        <ActionButtons
+        <ActionButtonsWithLimits
           onPass={() => handleSwipe('pass')}
-          onSuperLike={() => handleSwipe('superlike')}
           onLike={() => handleSwipe('like')}
           onRewind={passedProfiles.length > 0 ? handleRewind : undefined}
           onBoost={handleBoost}
           disabled={loading || swipeAnimation !== null}
-          likesRemaining={100 - dailyLikes}
-          superLikesRemaining={5 - dailySuperLikes}
+          likesRemaining={DAILY_LIKE_LIMIT - dailyLikes}
+          canLike={canLike}
         />
       </div>
     </div>
   );
 }
-//vvrrbruhrhrufhrufhruhfurhruhfrufhrhffhurfvfvf
-//bvrr
-//frfhurf
