@@ -2,77 +2,104 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, Star, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles, MapPin, Clock, Shield, Users } from "lucide-react";
+import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles, MapPin, Clock, Shield, Users } from "lucide-react";
 import { EnhancedProfileCard } from "./EnhancedProfileCard";
-import { ActionButtons } from "./ActionButtons";
+import { ActionButtonsWithLimits } from "./ActionButtonWithLimits";
 import { useProfiles, DatabaseProfile } from "@/hooks/useProfiles";
 import { useAuth } from "@/hooks/useAuth";
+import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useToast } from "@/hooks/use-toast";
 import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
 
 export function DiscoveryScreenIntegrated() {
+    console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
+
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | 'up' | null>(null);
+  const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
   const { profiles, loading } = useProfiles();
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Get current user email for daily limits
+  const currentUserData = localStorage.getItem('current-user');
+  const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
+  const userEmail = currentUser?.email || user?.email;
+
+    console.log("📧 Passing this email to useDailyLimits:", userEmail);
+
+  // Use daily limits hook
+  const {
+    dailyLikes,
+    canLike,
+    loading: limitsLoading,
+    incrementLikes
+  } = useDailyLimits(userEmail);
+
   // Add debugging
   useEffect(() => {
-  
-  }, [profiles, loading, user]);
+    console.log("DiscoveryScreenIntegrated state:", {
+      profiles: profiles.length,
+      loading,
+      user: user?.email,
+      currentUser: currentUser?.email,
+      dailyLikes,
+      canLike
+    });
+  }, [profiles, loading, user, dailyLikes, canLike]);
 
-  const handleSwipe = async (action: 'like' | 'pass' | 'superlike') => {
+  const handleSwipe = async (action: 'like' | 'pass') => {
     if (currentIndex >= profiles.length) return;
 
     const profile = profiles[currentIndex];
     
-
- 
+    // Check daily limits before proceeding
+    if (action === 'like' && !canLike) {
+      return; // useDailyLimits hook will show the toast
+    }
 
     // Set animation
-    setSwipeAnimation(action === 'like' ? 'right' : action === 'pass' ? 'left' : 'up');
+    setSwipeAnimation(action === 'like' ? 'right' : 'left');
 
     try {
-      // 
-       const userd  = localStorage.getItem('current-user');
-               const user = JSON.parse(userd);
-      
-              
-              if (user) {
-                // Record interaction
-                console.log(profiles);
-               const {error}= await supabase.from('user_interactions').insert({
-                  user_id: user.email,
-                  target_user_id: profile.email,
-                  interaction_type: action
-                });
-              
-                console.log("liked");}
-   
-      
-      
-        // Move to next profile after animation
-        setTimeout(() => {
-          setCurrentIndex(prev => prev + 1);
+      // Increment daily limits for likes
+      if (action === 'like') {
+        const success = await incrementLikes();
+        if (!success) {
           setSwipeAnimation(null);
-        }, 300);
-
-        // Show feedback
-        if (action === 'like') {
-          toast({
-            title: "Like sent! 💚",
-            description: `You liked ${profile.first_name}. Hope they like you back!`,
-          });
-        } else if (action === 'superlike') {
-          toast({
-            title: "Super Like sent! ⭐",
-            description: `${profile.first_name} will see you super liked them!`,
-          });
+          return;
         }
       }
-    catch (error) {
+
+      // Record interaction in database
+      if (userEmail) {
+        const { error } = await supabase.from('user_interactions').insert({
+          user_id: userEmail,
+          target_user_id: profile.email,
+          interaction_type: action
+        });
+
+        if (error) {
+          console.error("Error recording interaction:", error);
+        } else {
+          console.log("Interaction recorded successfully");
+        }
+      }
+      
+      // Move to next profile after animation
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setSwipeAnimation(null);
+      }, 300);
+
+      // Show feedback
+      if (action === 'like') {
+        toast({
+          title: "Like sent! 💚",
+          description: `You liked ${profile.first_name}. Hope they like you back!`,
+        });
+      }
+    } catch (error) {
       console.error("Error handling swipe:", error);
       setSwipeAnimation(null);
     }
@@ -115,7 +142,7 @@ export function DiscoveryScreenIntegrated() {
     return age;
   };
 
-  if (loading) {
+  if (loading || limitsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
         <div className="text-center space-y-4">
@@ -130,10 +157,12 @@ export function DiscoveryScreenIntegrated() {
   console.log("📊 Final render state:", {
     profilesCount: profiles.length,
     currentIndex,
-    currentProfile: profiles[currentIndex]?.first_name
+    currentProfile: profiles[currentIndex]?.first_name,
+    dailyLikes,
+    canLike
   });
 
-  if (!user) {
+  if (!user && !currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
         <div className="text-center space-y-4">
@@ -144,6 +173,7 @@ export function DiscoveryScreenIntegrated() {
             <p className="text-sm text-gray-600">
               <strong>Debug Info:</strong><br/>
               User: {user ? user.email : 'undefined'}<br/>
+              Current User: {currentUser ? currentUser.email : 'undefined'}<br/>
               Loading: {loading ? 'true' : 'false'}<br/>
               Profiles: {profiles.length}
             </p>
@@ -165,7 +195,7 @@ export function DiscoveryScreenIntegrated() {
           <div className="bg-blue-100 p-4 rounded-lg mt-4">
             <p className="text-sm text-gray-600">
               <strong>Debug Info:</strong><br/>
-              Current User: {user.email}<br/>
+              Current User: {userEmail}<br/>
               Profiles in DB: Check console logs<br/>
               Loading: {loading ? 'true' : 'false'}
             </p>
@@ -190,6 +220,13 @@ export function DiscoveryScreenIntegrated() {
           <p className="text-muted-foreground">
             Check back later for new people to connect with.
           </p>
+          <div className="bg-green-100 p-4 rounded-lg mt-4">
+            <p className="text-sm text-gray-600">
+              <strong>Today's Activity:</strong><br/>
+              Likes used: {dailyLikes}/3<br/>
+              Limits reset at 12:00 AM
+            </p>
+          </div>
           <Button 
             onClick={() => {
               setCurrentIndex(0);
@@ -234,16 +271,16 @@ export function DiscoveryScreenIntegrated() {
             </div>
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats with Daily Limits */}
           <div className="flex gap-2">
             <Card className="flex-1 p-2">
               <CardContent className="p-0 flex items-center gap-2">
-                <div className="p-1 rounded bg-green-100 dark:bg-green-900">
-                  <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />
+                <div className={`p-1 rounded ${canLike ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
+                  <Heart className={`h-3 w-3 ${canLike ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
                 </div>
                 <div>
-                  <p className="text-xs font-medium">Active</p>
-                  <p className="text-xs text-muted-foreground">{profiles.length}</p>
+                  <p className="text-xs font-medium">Likes</p>
+                  <p className="text-xs text-muted-foreground">{3 - dailyLikes}/3</p>
                 </div>
               </CardContent>
             </Card>
@@ -266,8 +303,8 @@ export function DiscoveryScreenIntegrated() {
                   <Clock className="h-3 w-3 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium">Online</p>
-                  <p className="text-xs text-muted-foreground">Now</p>
+                  <p className="text-xs font-medium">Reset</p>
+                  <p className="text-xs text-muted-foreground">12 AM</p>
                 </div>
               </CardContent>
             </Card>
@@ -294,7 +331,7 @@ export function DiscoveryScreenIntegrated() {
               profile={transformProfileForCard(profiles[currentIndex + 1])}
               onLike={() => {handleSwipe('like')}}
               onPass={() => {'pass'}}
-              onSuperLike={() => {'superlike'}}
+              onSuperLike={() => {}}
             />
             </div>
           )}
@@ -303,14 +340,12 @@ export function DiscoveryScreenIntegrated() {
           <div className={`relative transition-all duration-300 ${
             swipeAnimation === 'left' ? 'transform -translate-x-full -rotate-12 opacity-0' :
             swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' :
-            swipeAnimation === 'up' ? 'transform -translate-y-full scale-125 opacity-0' :
             ''
           }`}>
             {/* Swipe Indicators */}
             <div className={`absolute inset-0 rounded-2xl border-4 transition-all duration-200 z-10 pointer-events-none ${
               swipeAnimation === 'right' ? 'border-green-500 bg-green-500/20' :
               swipeAnimation === 'left' ? 'border-red-500 bg-red-500/20' :
-              swipeAnimation === 'up' ? 'border-blue-500 bg-blue-500/20' :
               'border-transparent'
             }`}>
               {swipeAnimation === 'right' && (
@@ -327,20 +362,13 @@ export function DiscoveryScreenIntegrated() {
                   </div>
                 </div>
               )}
-              {swipeAnimation === 'up' && (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-blue-500 text-white px-4 py-2 rounded-full font-bold text-lg">
-                    SUPER LIKE ⭐
-                  </div>
-                </div>
-              )}
             </div>
 
             <EnhancedProfileCard
               profile={currentProfile}
               onLike={() => handleSwipe('like')}
               onPass={() => handleSwipe('pass')}
-              onSuperLike={() => handleSwipe('superlike')}
+              onSuperLike={() => {}}
             />
           </div>
 
@@ -359,15 +387,14 @@ export function DiscoveryScreenIntegrated() {
           </div>
         </div>
 
-        {/* Enhanced Action Buttons */}
+        {/* Enhanced Action Buttons with Daily Limits */}
         <div className="mt-10 px-4">
-          <ActionButtons
+          <ActionButtonsWithLimits
             onPass={() => handleSwipe('pass')}
-            onSuperLike={() => handleSwipe('superlike')}
             onLike={() => handleSwipe('like')}
             disabled={loading || swipeAnimation !== null}
-            likesRemaining={100}
-            superLikesRemaining={5}
+            likesRemaining={3 - dailyLikes}
+            canLike={canLike}
           />
         </div>
 
@@ -377,11 +404,11 @@ export function DiscoveryScreenIntegrated() {
             <CardContent className="p-4 text-center">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Shield className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">Dating Tip</p>
+                <p className="text-sm font-medium">Daily Limits Active</p>
               </div>
               <p className="text-xs text-muted-foreground">
-                Swipe right to like, left to pass, or up for super like! 
-                Be genuine and respectful in your interactions.
+                You have {3 - dailyLikes} likes remaining today. 
+                Limits reset at 12:00 AM every day.
               </p>
             </CardContent>
           </Card>
