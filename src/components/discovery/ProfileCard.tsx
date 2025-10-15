@@ -1,11 +1,21 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+// src/components/discovery/ProfileCard.tsx
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, X, Star, MapPin, GraduationCap, User, EyeOff, Info } from "lucide-react";
+import { Heart, X, Star, EyeOff, Info } from "lucide-react";
 import { CompatibilityScore } from "./CompatibilityScore";
 import { getDisplayName, getDisplayPhotos, getDisplayBio, getDisplayDetails, shouldDisplayAnonymously } from "@/utils/incognitoUtils";
+
+// Import the new CSS for the glowing card effect
+import './NewProfileCard.css';
+
+// --- Helper functions for the tilt effect from ProfileCard.jsx ---
+const clamp = (value: number, min = 0, max = 100) => Math.min(Math.max(value, min), max);
+const round = (value: number, precision = 3) => parseFloat(value.toFixed(precision));
+const adjust = (value: number, fromMin: number, fromMax: number, toMin: number, toMax: number) =>
+  round(toMin + ((toMax - toMin) * (value - fromMin)) / (fromMax - fromMin));
+const easeInOutCubic = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
 
 interface ProfileCardProps {
   profile: any;
@@ -16,192 +26,166 @@ interface ProfileCardProps {
 
 export function ProfileCard({ profile, onLike, onPass, onSuperLike }: ProfileCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [showFullBio, setShowFullBio] = useState(false);
 
-  // Use incognito utils to get display information
+  // --- Data Logic from your original ProfileCard.tsx ---
   const displayName = getDisplayName(profile);
   const displayPhotos = getDisplayPhotos(profile, profile.photos || []);
   const displayBio = getDisplayBio(profile);
   const displayDetails = getDisplayDetails(profile);
   const isAnonymous = shouldDisplayAnonymously(profile);
-
-  const nextPhoto = () => {
-    setCurrentPhotoIndex((prev) => (prev + 1) % displayPhotos.length);
-  };
-
-  const prevPhoto = () => {
-    setCurrentPhotoIndex((prev) => (prev - 1 + displayPhotos.length) % displayPhotos.length);
-  };
-
-  // Calculate age if available
   const age = displayDetails.age;
+  const title = isAnonymous ? 'Student at NIT Kurukshetra' : `${displayDetails.year} • ${displayDetails.branch}`;
+
+  const nextPhoto = () => setCurrentPhotoIndex((prev) => (prev + 1) % (displayPhotos.length || 1));
+  const prevPhoto = () => setCurrentPhotoIndex((prev) => (prev - 1 + (displayPhotos.length || 1)) % (displayPhotos.length || 1));
+
+  // --- UI Tilt/Glow Effect Logic from ProfileCard.jsx ---
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const animationHandlers = useMemo(() => {
+    let rafId: number | null = null;
+    const updateCardTransform = (offsetX: number, offsetY: number, card: HTMLElement, wrap: HTMLElement) => {
+      const { clientWidth: width, clientHeight: height } = card;
+      const percentX = clamp((100 / width) * offsetX);
+      const percentY = clamp((100 / height) * offsetY);
+      const centerX = percentX - 50;
+      const centerY = percentY - 50;
+
+      const properties = {
+        '--pointer-x': `${percentX}%`,
+        '--pointer-y': `${percentY}%`,
+        '--background-x': `${adjust(percentX, 0, 100, 35, 65)}%`,
+        '--background-y': `${adjust(percentY, 0, 100, 35, 65)}%`,
+        '--pointer-from-center': `${clamp(Math.hypot(percentY - 50, percentX - 50) / 50, 0, 1)}`,
+        '--rotate-x': `${round(-(centerX / 5))}deg`,
+        '--rotate-y': `${round(centerY / 4)}deg`
+      };
+      Object.entries(properties).forEach(([p, v]) => wrap.style.setProperty(p, v.toString()));
+    };
+
+    const createSmoothAnimation = (duration: number, startX: number, startY: number, card: HTMLElement, wrap: HTMLElement) => {
+      const startTime = performance.now();
+      const targetX = wrap.clientWidth / 2;
+      const targetY = wrap.clientHeight / 2;
+      const animationLoop = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = clamp(elapsed / duration);
+        const easedProgress = easeInOutCubic(progress);
+        const currentX = adjust(easedProgress, 0, 1, startX, targetX);
+        const currentY = adjust(easedProgress, 0, 1, startY, targetY);
+        updateCardTransform(currentX, currentY, card, wrap);
+        if (progress < 1) rafId = requestAnimationFrame(animationLoop);
+      };
+      rafId = requestAnimationFrame(animationLoop);
+    };
+
+    return { updateCardTransform, createSmoothAnimation, cancelAnimation: () => rafId && cancelAnimationFrame(rafId) };
+  }, []);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    const wrap = wrapRef.current;
+    if (!card || !wrap || !animationHandlers) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const rect = card.getBoundingClientRect();
+      animationHandlers.updateCardTransform(e.clientX - rect.left, e.clientY - rect.top, card, wrap);
+    };
+    const handlePointerEnter = () => {
+      animationHandlers.cancelAnimation();
+      wrap.classList.add('active');
+      card.classList.add('active');
+    };
+    const handlePointerLeave = (e: PointerEvent) => {
+      animationHandlers.createSmoothAnimation(600, e.offsetX, e.offsetY, card, wrap);
+      wrap.classList.remove('active');
+      card.classList.remove('active');
+    };
+
+    card.addEventListener('pointerenter', handlePointerEnter);
+    card.addEventListener('pointermove', handlePointerMove);
+    card.addEventListener('pointerleave', handlePointerLeave);
+
+    return () => {
+      card.removeEventListener('pointerenter', handlePointerEnter);
+      card.removeEventListener('pointermove', handlePointerMove);
+      card.removeEventListener('pointerleave', handlePointerLeave);
+      animationHandlers.cancelAnimation();
+    };
+  }, [animationHandlers]);
 
   return (
-    <Card className="w-full max-w-sm mx-auto h-[600px] overflow-hidden shadow-xl">
-      <CardContent className="p-0 h-full flex flex-col">
-        {/* Photo Section */}
-        <div className="relative flex-1 bg-gray-100">
-          {/* Incognito Badge */}
-          {isAnonymous && (
-            <div className="absolute top-3 left-3 z-20">
-              <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200">
-                <EyeOff className="h-3 w-3 mr-1" />
-                Anonymous
-              </Badge>
-            </div>
-          )}
+    <div ref={wrapRef} className="pc-card-wrapper h-[600px] w-full max-w-sm mx-auto">
+      <section ref={cardRef} className="pc-card" style={{ maxHeight: '600px', height: '100%' }}>
+        <div className="pc-inside">
+          <div className="pc-shine" />
+          <div className="pc-glare" />
 
-          {/* Compatibility Score */}
-          <div className="absolute top-3 right-3 z-20">
-            <CompatibilityScore score={profile.compatibility_score || 85} />
+          {/* --- Content Layer: Merging your data with the new UI --- */}
+          <div className="pc-content pc-avatar-content">
+            <img
+              className={`avatar ${isAnonymous ? 'blur-sm' : ''}`}
+              src={displayPhotos[currentPhotoIndex]}
+              alt={displayName}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
           </div>
 
-          {/* Photo Navigation */}
-          {displayPhotos.length > 0 && (
-            <>
-              <img
-                src={displayPhotos[currentPhotoIndex]}
-                alt={displayName}
-                className={`w-full h-full object-cover ${isAnonymous ? 'blur-sm' : ''}`}
-                onError={(e) => {
-                  e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxjaXJjbGUgY3g9IjEwMCIgY3k9IjgwIiByPSIzMCIgZmlsbD0iIzlDQTNBRiIvPgo8cGF0aCBkPSJNNTAgMTQwQzUwIDEyMC45IDY1LjkgMTA1IDg1IDEwNUgxMTVDMTM0LjEgMTA1IDE1MCAxMjAuOSAxNTAgMTQwVjE2MEg1MFYxNDBaIiBmaWxsPSIjOUNBM0FGIi8+Cjwvc3ZnPgo=";
-                }}
-              />
+          <div className="pc-content z-10 p-4 flex flex-col justify-between h-full text-white pointer-events-none">
+            {/* Top Section: Badges and Photo Indicators */}
+            <div className="flex justify-between items-start">
+              {isAnonymous ? (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 pointer-events-auto">
+                  <EyeOff className="h-3 w-3 mr-1" /> Anonymous
+                </Badge>
+              ) : <div />}
+              <div className="pointer-events-auto">
+                <CompatibilityScore score={profile.compatibility_score || 85} />
+              </div>
+            </div>
+            {displayPhotos.length > 1 && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1">
+                {displayPhotos.map((_, index) => (
+                  <div key={index} className={`h-1 w-8 rounded-full ${index === currentPhotoIndex ? 'bg-white' : 'bg-white/50'}`} />
+                ))}
+              </div>
+            )}
 
-              {/* Photo indicators */}
-              {displayPhotos.length > 1 && (
-                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 flex space-x-1 z-10">
-                  {displayPhotos.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`h-1 w-8 rounded-full ${
-                        index === currentPhotoIndex ? 'bg-white' : 'bg-white/50'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
+            {/* Bottom Section: User Info and Action Buttons */}
+            <div className="relative">
+              {/* Invisible navigation areas for photos */}
+              <div className="absolute inset-0 flex">
+                  <div className="w-1/2 h-full cursor-pointer pointer-events-auto" onClick={prevPhoto} />
+                  <div className="w-1/2 h-full cursor-pointer pointer-events-auto" onClick={nextPhoto} />
+              </div>
 
-              {/* Navigation areas */}
-              {displayPhotos.length > 1 && (
-                <>
-                  <div
-                    className="absolute left-0 top-0 w-1/2 h-full cursor-pointer z-10"
-                    onClick={prevPhoto}
-                  />
-                  <div
-                    className="absolute right-0 top-0 w-1/2 h-full cursor-pointer z-10"
-                    onClick={nextPhoto}
-                  />
-                </>
-              )}
-            </>
-          )}
+              <div className="relative text-left z-10">
+                <h3 className="text-3xl font-bold text-shadow-lg">{displayName}{age && !isAnonymous && `, ${age}`}</h3>
+                <p className="text-md text-shadow">{title}</p>
+              </div>
 
-          {/* Gradient overlay */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent" />
-        </div>
-
-        {/* Profile Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold">
-                {displayName}
-                {age && !isAnonymous && `, ${age}`}
-              </h2>
-              {isAnonymous && (
-                <Info className="h-4 w-4 text-purple-300" />
-              )}
+              {/* Action Buttons from your original ProfileCard.tsx */}
+              <div className="absolute bottom-0 right-0 flex gap-2 z-20 pointer-events-auto">
+                <Button size="sm" variant="outline" className="rounded-full w-12 h-12 bg-white/90 hover:bg-white border-2 border-gray-200" onClick={onPass}>
+                  <X className="h-5 w-5 text-gray-600" />
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-full w-12 h-12 bg-blue-500/90 hover:bg-blue-600 border-2 border-blue-400 text-white" onClick={onSuperLike}>
+                  <Star className="h-5 w-5" />
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-full w-12 h-12 bg-green-500/90 hover:bg-green-600 border-2 border-green-400 text-white" onClick={onLike}>
+                  <Heart className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
-
-          {!isAnonymous && (
-            <div className="flex items-center gap-4 text-sm opacity-90 mb-2">
-              {displayDetails.year !== "Hidden" && (
-                <div className="flex items-center gap-1">
-                  <GraduationCap className="h-4 w-4" />
-                  <span>{displayDetails.year} • {displayDetails.branch}</span>
-                </div>
-              )}
-              {displayDetails.hometown !== "Hidden" && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  <span>{displayDetails.hometown}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          <p className={`text-sm leading-relaxed ${showFullBio ? '' : 'line-clamp-2'}`}>
-            {displayBio}
-          </p>
-
-          {displayBio.length > 100 && (
-            <button
-              onClick={() => setShowFullBio(!showFullBio)}
-              className="text-xs text-white/80 hover:text-white mt-1 underline"
-            >
-              {showFullBio ? 'Show less' : 'Read more'}
-            </button>
-          )}
-
-          {/* Interests (hidden for anonymous users) */}
-          {!isAnonymous && profile.interests && profile.interests.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-3">
-              {profile.interests.slice(0, 3).map((interest: string, index: number) => (
-                <Badge key={index} variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                  {interest}
-                </Badge>
-              ))}
-              {profile.interests.length > 3 && (
-                <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                  +{profile.interests.length - 3} more
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Anonymous user notice */}
-          {isAnonymous && (
-            <div className="mt-3 p-2 bg-purple-900/50 rounded-lg border border-purple-400/30">
-              <p className="text-xs text-purple-200">
-                This user is browsing anonymously. Match to start a conversation and learn more!
-              </p>
-            </div>
-          )}
         </div>
-
-        {/* Action Buttons */}
-        <div className="absolute bottom-4 right-4 flex gap-2 z-20">
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full w-12 h-12 bg-white/90 hover:bg-white border-2 border-gray-200"
-            onClick={onPass}
-          >
-            <X className="h-5 w-5 text-gray-600" />
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full w-12 h-12 bg-blue-500/90 hover:bg-blue-600 border-2 border-blue-400 text-white"
-            onClick={onSuperLike}
-          >
-            <Star className="h-5 w-5" />
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full w-12 h-12 bg-green-500/90 hover:bg-green-600 border-2 border-green-400 text-white"
-            onClick={onLike}
-          >
-            <Heart className="h-5 w-5" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </section>
+    </div>
   );
 }
+
+// Add a simple text-shadow utility class to your global CSS if you don't have one
+// e.g., in `src/app/globals.css`:
+// .text-shadow { text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5); }
+// .text-shadow-lg { text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.6); }

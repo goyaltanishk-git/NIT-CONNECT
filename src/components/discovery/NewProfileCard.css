@@ -1,0 +1,297 @@
+/* Enhanced 3D Profile Card with Premium Dating App Aesthetics */
+
+.pc-card-wrapper {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  position: relative;
+}
+
+.pc-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.dark .pc-card {
+  background: linear-gradient(145deg, hsl(222.2, 84%, 4.9%), hsl(220, 30%, 8%));
+  box-shadow: 
+    0 10px 25px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.pc-card.active {
+  transform: 
+    rotateX(var(--rotate-x, 0deg)) 
+    rotateY(var(--rotate-y, 0deg)) 
+    scale(1.02);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    0 0 30px rgba(340, 82%, 52%, 0.2);
+}
+
+.pc-inside {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+/* Enhanced Shine Effect */
+.pc-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 75%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.pc-card.active .pc-shine {
+  transform: translateX(100%) translateY(100%) rotate(45deg);
+}
+
+/* Enhanced Glare Effect */
+.pc-glare {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.03) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 9;
+  mix-blend-mode: overlay;
+}
+
+.pc-card.active .pc-glare {
+  opacity: 1;
+}
+
+/* Content Layers */
+.pc-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+}
+
+.pc-avatar-content {
+  z-index: 1;
+}
+
+.pc-avatar-content .avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 24px;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pc-card.active .pc-avatar-content .avatar {
+  transform: scale(1.05);
+}
+
+/* Enhanced Gradient Overlays */
+.pc-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.1) 40%,
+    rgba(0, 0, 0, 0.4) 70%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  border-radius: 24px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Romantic Gradient Overlay */
+.pc-content::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(340, 82%, 52%, 0.1) 0%,
+    rgba(320, 70%, 60%, 0.05) 25%,
+    rgba(280, 100%, 70%, 0.05) 50%,
+    rgba(260, 100%, 75%, 0.05) 75%,
+    rgba(240, 100%, 80%, 0.1) 100%
+  );
+  border-radius: 24px;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.pc-card.active .pc-content::after {
+  opacity: 1;
+}
+
+/* Enhanced Hover States for Interactive Elements */
+.pc-content button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.pc-content button:hover {
+  transform: scale(1.1);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* Enhanced Text Shadows for Better Readability */
+.pc-content h3,
+.pc-content p {
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.7),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Floating Animation for Hearts and Sparkles */
+@keyframes float-heart {
+  0%, 100% { 
+    transform: translateY(0px) scale(1); 
+    opacity: 0.6;
+  }
+  50% { 
+    transform: translateY(-10px) scale(1.1); 
+    opacity: 1;
+  }
+}
+
+@keyframes sparkle-glow {
+  0%, 100% { 
+    transform: scale(1) rotate(0deg); 
+    filter: brightness(1);
+  }
+  50% { 
+    transform: scale(1.2) rotate(180deg); 
+    filter: brightness(1.5) drop-shadow(0 0 10px rgba(280, 100%, 70%, 0.6));
+  }
+}
+
+/* Photo Indicators Enhancement */
+.pc-content .photo-indicator {
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.pc-content .photo-indicator.active {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 640px) {
+  .pc-card {
+    border-radius: 20px;
+  }
+  
+  .pc-inside,
+  .pc-content,
+  .pc-avatar-content .avatar {
+    border-radius: 20px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .pc-card,
+  .pc-shine,
+  .pc-glare,
+  .pc-avatar-content .avatar,
+  .pc-content button {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .pc-card.active {
+    transform: none !important;
+  }
+}
+
+/* Dark Mode Specific Enhancements */
+.dark .pc-glare {
+  background: radial-gradient(
+    circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 20%,
+    rgba(255, 255, 255, 0.02) 40%,
+    transparent 70%
+  );
+}
+
+.dark .pc-content::after {
+  background: linear-gradient(
+    135deg,
+    rgba(340, 82%, 52%, 0.15) 0%,
+    rgba(320, 70%, 60%, 0.1) 25%,
+    rgba(280, 100%, 70%, 0.1) 50%,
+    rgba(260, 100%, 75%, 0.1) 75%,
+    rgba(240, 100%, 80%, 0.15) 100%
+  );
+}
+
+/* Premium Badge Styling */
+.premium-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #8B4513;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from { box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3); }
+  to { box-shadow: 0 4px 16px rgba(255, 215, 0, 0.6); }
+}

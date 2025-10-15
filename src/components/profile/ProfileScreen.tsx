@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shield } from "lucide-react";
+import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shield, User, Edit } from "lucide-react";
 import { useEloRating } from "@/hooks/useEloRating";
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
 import { IncognitoModeToggle } from "./IncognitoModeToggle";
@@ -189,10 +189,18 @@ export function ProfileScreen() {
   // --- Loading and Error States ---
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p>Loading your profile...</p>
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center space-y-6 animate-fade-in">
+          <div className="relative">
+            <div className="loading-heart mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <User className="h-8 w-8 text-pink-500 animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold gradient-text-animated">Loading your profile...</h3>
+            <p className="text-gray-400">Getting your information ready</p>
+          </div>
         </div>
       </div>
     );
@@ -200,10 +208,14 @@ export function ProfileScreen() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p>No profile found. Please try logging in again.</p>
-          <Button onClick={handleLogout} className="mt-4">
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center space-y-6 animate-fade-in">
+          <User className="h-20 w-20 text-pink-500/60 mx-auto" />
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-white">No profile found</h2>
+            <p className="text-gray-400">Please try logging in again.</p>
+          </div>
+          <Button onClick={handleLogout} className="btn-primary">
             Return to Login
           </Button>
         </div>
@@ -242,48 +254,58 @@ export function ProfileScreen() {
   };
 
   return (
-    <div className="max-w-lg mx-auto bg-background min-h-screen">
-      {/* Enhanced Header */}
-      <div className="bg-gradient-to-br from-rose-500 to-pink-600 text-white p-6 rounded-b-3xl">
+    <div className="max-w-lg mx-auto bg-black min-h-screen text-white">
+      {/* Enhanced Header with Glassmorphism */}
+      <div className="glass border-b border-white/10 p-6">
         {/* ELO Rating Display */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
-              <Award className="h-6 w-6" />
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
+                <Award className="h-6 w-6 text-pink-500" />
+              </div>
+              <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
             </div>
             <div>
-              <p className="text-sm opacity-90">Your Rating</p>
-              <p className="text-lg font-bold">
+              <p className="text-sm text-gray-400">Your Rating</p>
+              <p className="text-xl font-bold gradient-text">
                 {ratingTier.tier}
-                <span className="text-sm font-normal opacity-75"> ({eloRating})</span>
+                <span className="text-sm font-normal text-gray-400 ml-2">({eloRating})</span>
               </p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-white/20"
+            className="glass-light hover:bg-white/10 interactive rounded-full"
             onClick={() => setShowSettings(true)}
           >
-            <Settings className="h-5 w-5" />
+            <Settings className="h-6 w-6 text-white" />
           </Button>
         </div>
 
-        {/* Profile Card */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
+        {/* Enhanced Profile Card */}
+        <div className="glass-light rounded-3xl p-6 border border-white/10">
           <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16 border-2 border-white/50">
-              <AvatarImage src={user.photos[0]} />
-              <AvatarFallback className="bg-white/20 text-white text-xl">
-                {user.name[0] || 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-20 w-20 ring-2 ring-pink-500/30">
+                <AvatarImage src={user.photos[0]} />
+                <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-2xl font-bold">
+                  {user.name[0] || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {profile.is_verified && (
+                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full p-1">
+                  <Shield className="h-4 w-4 text-white" />
+                </div>
+              )}
+            </div>
             <div className="flex-1">
-              <h1 className="text-xl font-bold">{user.name}, {user.age}</h1>
-              <p className="text-sm opacity-90 mb-2">
+              <h1 className="text-2xl font-bold gradient-text-animated">{user.name}, {user.age}</h1>
+              <p className="text-sm text-gray-400 mb-3 font-medium">
                 Year {user.year} • {user.branch} • {user.hometown}
               </p>
-              <p className="text-sm opacity-80 leading-relaxed">{user.bio}</p>
+              <p className="text-sm text-gray-300 leading-relaxed">{user.bio}</p>
             </div>
           </div>
         </div>
@@ -299,24 +321,27 @@ export function ProfileScreen() {
           />
         )}
 
-        {/* Enhanced Stats */}
-        
-
-        {/* Interests */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Interests</CardTitle>
+        {/* Enhanced Interests */}
+        <Card className="glass-light border-white/10">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Heart className="h-5 w-5 text-pink-400" />
+              Interests
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {user.interests && user.interests.length > 0 ? (
                 user.interests.map((interest, index) => (
-                  <Badge key={index} variant="secondary">
+                  <Badge 
+                    key={index} 
+                    className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-3 py-1 hover:scale-105 transition-transform duration-200 interactive"
+                  >
                     {interest}
                   </Badge>
                 ))
               ) : (
-                <p className="text-muted-foreground">
+                <p className="text-gray-400">
                   Add your interests to help others connect with you!
                 </p>
               )}
@@ -325,26 +350,28 @@ export function ProfileScreen() {
         </Card>
 
         {/* Enhanced Photos */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span>Photos ({user.photos.length}/6)</span>
-              <Camera className="h-5 w-5 text-muted-foreground" />
+        <Card className="glass-light border-white/10">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <Camera className="h-5 w-5 text-pink-400" />
+                <span>Photos ({user.photos.length}/6)</span>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="grid grid-cols-3 gap-3 mb-4">
               {user.photos.map((photo, index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-lg bg-cover bg-center border-2 border-muted"
+                  className="aspect-square rounded-xl bg-cover bg-center border-2 border-white/10 hover:border-pink-500/50 transition-colors duration-200"
                   style={{ backgroundImage: `url(${photo})` }}
                 />
               ))}
               {Array.from({ length: 6 - user.photos.length }).map((_, index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-lg border-2 border-dashed border-muted flex items-center justify-center text-muted-foreground"
+                  className="aspect-square rounded-xl border-2 border-dashed border-white/20 flex items-center justify-center text-gray-400 hover:border-pink-500/50 hover:text-pink-400 transition-all duration-200 interactive"
                 >
                   <div className="text-center">
                     <Camera className="h-6 w-6 mx-auto mb-1" />
@@ -353,28 +380,37 @@ export function ProfileScreen() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-xs text-gray-400 text-center">
               Add more photos to increase your match rate by up to 40%!
             </p>
           </CardContent>
         </Card>
 
-        {/* Account Options */}
-        <div className="space-y-3">
+        {/* Enhanced Account Options */}
+        <div className="space-y-4">
           <EditProfileModal
             profile={profileForModal}
             onSave={handleSaveProfile}
           />
           
           <Button
-            variant="outline"
-            className="w-full justify-start"
+            variant="ghost"
+            className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
             onClick={() => setShowSettings(true)}
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Account Settings
+            <Settings className="h-5 w-5 mr-3 text-pink-400" />
+            <div className="text-left">
+              <p className="font-medium">Account Settings</p>
+              <p className="text-sm text-gray-400">Privacy, notifications, and more</p>
+            </div>
           </Button>
         </div>
+      </div>
+
+      {/* Background effects */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
     </div>
   );
