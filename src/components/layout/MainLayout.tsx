@@ -97,7 +97,7 @@ export function MainLayout() {
           </TabsContent>
           
           <TabsContent value="likes" className="h-full m-0">
-            <LikesScreenIntegrated />
+            <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")}/>
           </TabsContent>
           
           <TabsContent value="chat" className="h-full m-0">

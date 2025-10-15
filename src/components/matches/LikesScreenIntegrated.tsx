@@ -7,7 +7,7 @@ import { Heart, Star, Clock, Sparkles } from "lucide-react";
 import { useLikes } from "@/hooks/useLikes";
 import { getDisplayName } from "@/utils/incognitoUtils";
 
-export function LikesScreenIntegrated() {
+export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToDiscovery?: () => void }) {
   const [filter, setFilter] = useState<'all' | 'recent' | 'superlikes'>('all');
   const { pendingLikes, loading, handleLikeBack, handlePass } = useLikes();
   
@@ -71,7 +71,8 @@ export function LikesScreenIntegrated() {
         <p className="text-muted-foreground mb-8 text-center max-w-md">
           When someone likes your profile, they'll appear here! Keep swiping to increase your chances.
         </p>
-        <Button className="bg-gradient-to-r from-primary to-primary/80">
+        <Button className="bg-gradient-to-r from-primary to-primary/80"
+        onClick={onNavigateToDiscovery}>
           <Sparkles className="h-4 w-4 mr-2" />
           Improve Your Profile
         </Button>

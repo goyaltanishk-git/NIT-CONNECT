@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
-import { X509Certificate } from "node:crypto";
+import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,6 +11,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -20,21 +21,27 @@ export function AuthGuard({ children }: AuthGuardProps) {
         // 1. Check current user from localStorage
         const currentUser = AuthService.getCurrentUser();
         if (currentUser && currentUser.email) {
-  // valid user
+          // valid user
+          if (currentUser && mounted) {
+            setUserEmail(currentUser.email);
+            setProfile(currentUser);
+            console.log(currentUser);
 
-        if (currentUser && mounted) {
-          setUserEmail(currentUser.email);
-          setProfile(currentUser);
-          console.log(currentUser);
+            // Check if profile setup is needed (is_active is false)
+            if (currentUser.is_active === false) {
+              setShowProfileSetup(true);
+              setLoading(false);
+              return;
+            }
 
-          // Update last_active_at immediately
-          await AuthService.updateLastActive(currentUser.email);
-          setLoading(false);
-          return;
-        }}
-         else {
-  localStorage.removeItem("current-user"); // cleanup bad data
-}
+            // Update last_active_at immediately
+            await AuthService.updateLastActive(currentUser.email);
+            setLoading(false);
+            return;
+          }
+        } else {
+          localStorage.removeItem("current-user"); // cleanup bad data
+        }
 
         // 2. Check for temp user (demo/guest mode)
         const tempUser = localStorage.getItem("temp-user");
@@ -45,6 +52,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
           try {
             const userProfile = await AuthService.getOrCreateUserProfile(parsedUser.email);
             setProfile(userProfile);
+            
+            // Check if profile setup is needed for temp user
+            if (userProfile.is_active === false) {
+              setShowProfileSetup(true);
+              setLoading(false);
+              return;
+            }
+            
             await AuthService.updateLastActive(parsedUser.email);
           } catch (profileError) {
             console.warn("Could not load temp user profile:", profileError);
@@ -67,7 +82,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // 3. Update last active periodically
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || showProfileSetup) return;
 
     const updateInterval = setInterval(async () => {
       try {
@@ -78,7 +93,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }, 5 * 60 * 1000); // every 5 min
 
     return () => clearInterval(updateInterval);
-  }, [userEmail]);
+  }, [userEmail, showProfileSetup]);
+
+  const handleProfileSetupComplete = (updatedProfile: Profile) => {
+    setProfile(updatedProfile);
+    setShowProfileSetup(false);
+    // Update localStorage with the new profile
+    localStorage.setItem("current-user", JSON.stringify(updatedProfile));
+  };
 
   if (loading) {
     return (
@@ -90,6 +112,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (!userEmail) {
     return <LoginScreen />;
+  }
+
+  // Show profile setup form if user is not active
+  if (showProfileSetup && userEmail) {
+    return (
+      <ProfileSetupForm 
+        userEmail={userEmail} 
+        onComplete={handleProfileSetupComplete}
+      />
+    );
   }
 
   // Optionally pass `profile` down via context instead of local state

@@ -129,15 +129,6 @@ export function useLikes() {
 
       if (likeError) throw likeError;
 
-      // Create match
-      const { error: matchError } = await supabase
-        .from('matches')
-        .insert({
-          user1_id: targetUserId,
-          user2_id: interactionId
-        });
-
-      if (matchError) throw matchError;
 
       // Remove from pending likes
       setPendingLikes(prev => prev.filter(like => like.user_id !== targetUserId));

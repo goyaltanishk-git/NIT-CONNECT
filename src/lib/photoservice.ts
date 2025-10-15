@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { v4 as uuidv4 } from 'uuid';
-
+import {v4 as uuidv4}from "uuid";
 export interface UserPhoto {
   user_email: string;
   photo_url: string;
