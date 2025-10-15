@@ -282,69 +282,7 @@ export function DiscoveryScreenIntegrated() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Enhanced Header with Glassmorphism */}
-      <div className="glass border-b border-white/10 sticky top-0 z-40">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
-                  <Heart className="h-6 w-6 text-pink-500 animate-heartbeat" />
-                </div>
-                <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold gradient-text">Discover</h1>
-                <p className="text-sm text-gray-400">
-                  {profiles.length - currentIndex} profiles remaining
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="glass-light h-10 w-10 p-0 hover:bg-white/10 interactive">
-                <Filter className="h-5 w-5 text-white/70" />
-              </Button>
-              <Button variant="ghost" size="sm" className="glass-light h-10 w-10 p-0 hover:bg-white/10 interactive">
-                <Settings2 className="h-5 w-5 text-white/70" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Enhanced Stats with Daily Limits */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="glass-light border-white/10 card-hover">
-              <CardContent className="p-4 text-center">
-                <div className={`inline-flex p-2 rounded-full mb-2 ${canLike ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                  <Heart className={`h-4 w-4 ${canLike ? 'text-green-400' : 'text-red-400'}`} />
-                </div>
-                <p className="text-xs font-medium text-white">Likes</p>
-                <p className="text-lg font-bold gradient-text">{3 - dailyLikes}/3</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="glass-light border-white/10 card-hover">
-              <CardContent className="p-4 text-center">
-                <div className="inline-flex p-2 rounded-full bg-blue-500/20 mb-2">
-                  <MapPin className="h-4 w-4 text-blue-400" />
-                </div>
-                <p className="text-xs font-medium text-white">Nearby</p>
-                <p className="text-lg font-bold text-blue-400">5km</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="glass-light border-white/10 card-hover">
-              <CardContent className="p-4 text-center">
-                <div className="inline-flex p-2 rounded-full bg-orange-500/20 mb-2">
-                  <Clock className="h-4 w-4 text-orange-400" />
-                </div>
-                <p className="text-xs font-medium text-white">Reset</p>
-                <p className="text-lg font-bold text-orange-400">12 AM</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="p-6">
         {/* Enhanced Profile Stack with Better UI */}
@@ -405,60 +343,12 @@ export function DiscoveryScreenIntegrated() {
           </div>
 
           {/* Enhanced Profile Progress Indicator */}
-          <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-            <div className="flex gap-2">
-              {Array.from({ length: Math.min(profiles.length, 5) }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    i <= currentIndex 
-                      ? 'bg-gradient-to-r from-pink-400 to-pink-600 w-8 animate-pulse-glow' 
-                      : 'bg-white/20 w-2'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+          
         </div>
 
-        {/* Enhanced Action Buttons with Daily Limits */}
-        <div className="mt-12 px-4">
-          <ActionButtonsWithLimits
-            onPass={() => handleSwipe('pass')}
-            onLike={() => handleSwipe('like')}
-            disabled={loading || swipeAnimation !== null}
-            likesRemaining={3 - dailyLikes}
-            canLike={canLike}
-          />
-        </div>
+       
 
-        {/* Enhanced Bottom Tips */}
-        <div className="mt-8 px-4">
-          <Card className="glass-light border-pink-500/20 card-hover">
-            <CardContent className="p-6 text-center">
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <Shield className="h-5 w-5 text-pink-400" />
-                <p className="text-base font-semibold gradient-text">Daily Limits Active</p>
-              </div>
-              <p className="text-sm text-gray-400 leading-relaxed">
-                You have <span className="text-pink-400 font-semibold">{3 - dailyLikes} likes</span> remaining today. 
-                Limits reset at <span className="text-pink-400 font-semibold">12:00 AM</span> every day.
-              </p>
-              <div className="mt-4 flex justify-center">
-                <div className="flex space-x-1">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <Heart 
-                      key={i} 
-                      className={`h-4 w-4 ${
-                        i < (3 - dailyLikes) ? 'text-pink-500 animate-heartbeat' : 'text-gray-600'
-                      }`} 
-                    />
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      
       </div>
 
       {/* Background effects */}

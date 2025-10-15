@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhotoService, UserPhoto } from '@/lib/photoservice';
-import { Upload, X, Star, Camera } from 'lucide-react';
+import { Upload, X, Star, Camera, Sparkles, Heart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -25,12 +25,13 @@ export function PhotoUpload({
   const { toast } = useToast();
 
   const handleFileUpload = useCallback(async (files: FileList | null) => {
-     console.log("[PhotoUpload] handleFileUpload triggered with files:", files);
+    console.log("[PhotoUpload] handleFileUpload triggered with files:", files);
     
     if (!files || files.length === 0) return;
 
     const file = files[0];
-console.log("[PhotoUpload] File selected:", file);
+    console.log("[PhotoUpload] File selected:", file);
+    
     // Validate file type
     if (!file.type.startsWith('image/')) {
       console.warn("[PhotoUpload] Invalid file type:", file.type);
@@ -65,28 +66,29 @@ console.log("[PhotoUpload] File selected:", file);
 
     // Verify user authentication before upload
     const { data: { user } } = await supabase.auth.getUser();
-     console.log("[PhotoUpload] Supabase user:", user);
+    console.log("[PhotoUpload] Supabase user:", user);
     console.log("[PhotoUpload] Expected email:", userEmail);
     
     if (!user?.email) {
-  console.warn("[PhotoUpload] No Supabase user found, continuing with provided userEmail:", userEmail);
-  // You may want to enforce auth later, but for now allow uploads
-}
+      console.warn("[PhotoUpload] No Supabase user found, continuing with provided userEmail:", userEmail);
+    }
 
     setUploading(true);
 
     try {
       // Upload to Supabase storage
-       console.log("[PhotoUpload] Uploading to Supabase storage...");
+      console.log("[PhotoUpload] Uploading to Supabase storage...");
     
       const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
-console.log("[PhotoUpload] Uploaded photo URL:", photoUrl);
+      console.log("[PhotoUpload] Uploaded photo URL:", photoUrl);
+      
       // Add to database with RLS-compliant method
       const nextOrder = photos.length + 1;
       const isPrimary = photos.length === 0; // First photo is primary
 
       await PhotoService.addUserPhoto(userEmail, photoUrl, nextOrder, isPrimary);
       console.log("[PhotoUpload] Photo added to DB:", { photoUrl, nextOrder, isPrimary });
+      
       // Refresh photos list
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       console.log("[PhotoUpload] Refreshed photos:", updatedPhotos);
@@ -145,7 +147,6 @@ console.log("[PhotoUpload] Uploaded photo URL:", photoUrl);
     }
   }, [userEmail, onPhotosUpdate, toast]);
 
-
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
@@ -163,32 +164,33 @@ console.log("[PhotoUpload] Uploaded photo URL:", photoUrl);
   }, []);
 
   return (
-    <div className="space-y-4">
-      {/* Photo Grid */}
+    <div className="space-y-6 animate-fade-in">
+      {/* Photo Grid with Thursday styling */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {photos.map((photo, index) => (
-          <div key={index} className="relative group aspect-square">
+          <div key={index} className="relative group aspect-square animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
             <img
               src={photo.photo_url}
               alt={`Photo ${photo.photo_order}`}
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-cover rounded-xl border-2 border-white/10 group-hover:border-pink-500/50 transition-all duration-300"
             />
             
-            {/* Photo controls overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+            {/* Photo controls overlay with Thursday styling */}
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl flex items-center justify-center gap-3">
               {!photo.is_primary && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleSetPrimary(photo.photo_order)}
-                  className="bg-white text-black hover:bg-gray-100"
+                  className="glass-light border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-500 hover:scale-110 transition-all duration-300 interactive"
                 >
                   <Star className="w-4 h-4" />
                 </Button>
               )}
               
               {photo.is_primary && (
-                <div className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
+                <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 animate-pulse-glow">
+                  <Star className="w-3 h-3" />
                   Primary
                 </div>
               )}
@@ -197,20 +199,27 @@ console.log("[PhotoUpload] Uploaded photo URL:", photoUrl);
                 size="sm"
                 variant="destructive"
                 onClick={() => handleDeletePhoto(photo.photo_order)}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 border-0 hover:scale-110 transition-all duration-300 interactive"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Floating sparkles on hover */}
+            <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Sparkles className="absolute top-2 right-2 w-4 h-4 text-pink-400 animate-pulse" />
+              <Heart className="absolute bottom-2 left-2 w-3 h-3 text-purple-400 animate-bounce" />
+            </div>
           </div>
         ))}
         
-        {/* Upload area - only show if under maxPhotos limit */}
+        {/* Upload area with Thursday styling */}
         {photos.length < maxPhotos && (
           <div
-            className={`aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
+            className={`aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group interactive ${
               dragOver
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-300 hover:border-gray-400'
+                ? 'border-pink-500 bg-pink-500/10 scale-105'
+                : 'border-white/30 hover:border-pink-500/60 hover:bg-pink-500/5'
             }`}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -224,28 +233,43 @@ console.log("[PhotoUpload] Uploaded photo URL:", photoUrl);
             }}
           >
             {uploading ? (
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                <p className="text-sm text-gray-600">Uploading...</p>
+              <div className="text-center animate-fade-in">
+                <div className="loading-heart mx-auto mb-3"></div>
+                <p className="text-sm text-pink-300 font-medium">Uploading...</p>
+                <div className="flex justify-center space-x-1 mt-2">
+                  <div className="w-1 h-1 bg-pink-500 rounded-full animate-bounce"></div>
+                  <div className="w-1 h-1 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-1 h-1 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
               </div>
             ) : (
               <div className="text-center">
-                <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">
+                <div className="relative">
+                  <Camera className="w-10 h-10 text-gray-400 group-hover:text-pink-400 mx-auto mb-3 transition-colors duration-300" />
+                  <div className="absolute inset-0 bg-pink-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <p className="text-sm text-gray-400 group-hover:text-pink-300 transition-colors duration-300 font-medium">
                   {dragOver ? 'Drop photo here' : 'Click or drag to upload'}
                 </p>
+                <Sparkles className="w-4 h-4 text-purple-400 mx-auto mt-2 opacity-0 group-hover:opacity-100 animate-pulse transition-opacity duration-300" />
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Upload instructions */}
-      <div className="text-xs text-gray-500 space-y-1">
-        <div>• Upload up to {maxPhotos} photos</div>
-        <div>• Maximum file size: 5MB</div>
-        <div>• Supported formats: JPG, PNG, GIF</div>
-        <div>• First photo will be your primary photo</div>
+      {/* Upload instructions with Thursday styling */}
+      <div className="glass-light p-4 rounded-xl border border-white/10 text-xs text-gray-300 space-y-2">
+        <div className="flex items-center gap-2">
+          <Camera className="w-4 h-4 text-pink-400" />
+          <span className="font-semibold text-white">Photo Guidelines</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-6">
+          <div>• Upload up to {maxPhotos} photos</div>
+          <div>• Maximum file size: 5MB</div>
+          <div>• Supported formats: JPG, PNG, GIF</div>
+          <div>• First photo will be your primary photo</div>
+        </div>
       </div>
 
       {/* Hidden file input for fallback */}
