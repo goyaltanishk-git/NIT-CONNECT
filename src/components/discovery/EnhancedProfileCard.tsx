@@ -191,13 +191,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass, onSuperLike }: Pr
             >
               <Heart className="w-6 h-6 text-white" />
             </Button>
-            <Button
-              size="lg"
-              className="rounded-full w-14 h-14 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
-              onClick={onSuperLike}
-            >
-              <Star className="w-6 h-6 text-white" />
-            </Button>
+           
           </div>
         </div>
 

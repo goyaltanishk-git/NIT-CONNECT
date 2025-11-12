@@ -248,69 +248,14 @@ export function DiscoveryScreenIntegrated() {
       {/* Enhanced Header with Stats */}
       <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-40">
         <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20">
-                <Heart className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold gradient-text">Discover</h1>
-                <p className="text-xs text-muted-foreground">
-                  {profiles.length - currentIndex} profiles remaining
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                <Filter className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                <Settings2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          
 
-          {/* Quick Stats with Daily Limits */}
-          <div className="flex gap-2">
-            <Card className="flex-1 p-2">
-              <CardContent className="p-0 flex items-center gap-2">
-                <div className={`p-1 rounded ${canLike ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
-                  <Heart className={`h-3 w-3 ${canLike ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
-                </div>
-                <div>
-                  <p className="text-xs font-medium">Likes</p>
-                  <p className="text-xs text-muted-foreground">{3 - dailyLikes}/3</p>
-                </div>
-              </CardContent>
-            </Card>
+          
             
-            <Card className="flex-1 p-2">
-              <CardContent className="p-0 flex items-center gap-2">
-                <div className="p-1 rounded bg-blue-100 dark:bg-blue-900">
-                  <Users className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium">Nearby</p>
-                  <p className="text-xs text-muted-foreground">5km</p>
-                </div>
-              </CardContent>
-            </Card>
+            </div></div>
             
-            <Card className="flex-1 p-2">
-              <CardContent className="p-0 flex items-center gap-2">
-                <div className="p-1 rounded bg-orange-100 dark:bg-orange-900">
-                  <Clock className="h-3 w-3 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium">Reset</p>
-                  <p className="text-xs text-muted-foreground">12 AM</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+           
+          
 
       
       <div className="p-4">
@@ -387,33 +332,6 @@ export function DiscoveryScreenIntegrated() {
           </div>
         </div>
 
-        {/* Enhanced Action Buttons with Daily Limits */}
-        <div className="mt-10 px-4">
-          <ActionButtonsWithLimits
-            onPass={() => handleSwipe('pass')}
-            onLike={() => handleSwipe('like')}
-            disabled={loading || swipeAnimation !== null}
-            likesRemaining={3 - dailyLikes}
-            canLike={canLike}
-          />
-        </div>
-
-        {/* Bottom Tips */}
-        <div className="mt-6 px-4">
-          <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
-            <CardContent className="p-4 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <p className="text-sm font-medium">Daily Limits Active</p>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                You have {3 - dailyLikes} likes remaining today. 
-                Limits reset at 12:00 AM every day.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+    </div></div>
   );
 }
