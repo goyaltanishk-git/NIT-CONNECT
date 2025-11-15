@@ -3,44 +3,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, Star, Clock, Sparkles, X, Filter, Users } from "lucide-react";
+import { Heart, Sparkles, X, Filter } from "lucide-react"; // 'Eye' and 'Users' removed
 import { useLikes } from "@/hooks/useLikes";
-import { getDisplayName } from "@/utils/incognitoUtils";
+import { UserProfileDialog, Profile } from "../profile/UserProfileDialog";
 
 export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToDiscovery?: () => void }) {
-  const [filter, setFilter] = useState<'all' | 'recent' | 'superlikes'>('all');
+  // --- REMOVED: filter state is no longer needed ---
+  // const [filter, setFilter] = useState<'all' | 'recent'>('all');
   const { pendingLikes, loading, handleLikeBack, handlePass } = useLikes();
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  const formatTime = (timestamp: string | null) => {
-    if (!timestamp) return "Unknown";
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    return `${Math.floor(diffInHours / 24)}d ago`;
-  };
-
   const getFilteredLikes = () => {
-    switch (filter) {
-      case 'recent':
-        return pendingLikes.filter(like => {
-          if (!like.created_at) return false;
-          const likeDate = new Date(like.created_at);
-          const oneDayAgo = new Date();
-          oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-          return likeDate > oneDayAgo;
-        });
-      case 'superlikes':
-        return pendingLikes.filter(like => like.interaction_type === 'superlike');
-      default:
-        return pendingLikes.filter(like => 
-          like.interaction_type === 'like' || like.interaction_type === 'superlike'
-        );
-    }
+    // --- REMOVED: Filter logic, now just returns all 'like' interactions ---
+    return pendingLikes.filter(like => 
+      like.interaction_type === 'like'
+    );
   };
   
+  const totalLikesCount = getFilteredLikes().length;
 
   const handleLikeBackClick = async (likeId: string, targetUserId: string) => {
     await handleLikeBack(likeId, targetUserId);
@@ -48,6 +29,33 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
 
   const handlePassClick = async (likeId: string) => {
     await handlePass(likeId);
+  };
+
+  const handleProfileClick = (profile: Profile | undefined) => {
+    if (profile) {
+      setSelectedProfile(profile);
+      setIsDialogOpen(true);
+    } else {
+      console.error("Profile is undefined");
+    }
+  };
+
+  const handleDialogLikeBack = (profileId: string) => {
+    const like = pendingLikes.find(l => l.profile?.user_id === profileId);
+    if (like) {
+      handleLikeBackClick(like.target_user_id, like.user_id);
+      setIsDialogOpen(false);
+      setSelectedProfile(null);
+    }
+  };
+
+  const handleDialogPass = (profileId: string) => {
+    const like = pendingLikes.find(l => l.profile?.user_id === profileId);
+    if (like) {
+      handlePassClick(like.user_id);
+      setIsDialogOpen(false);
+      setSelectedProfile(null);
+    }
   };
 
   if (loading) {
@@ -69,7 +77,7 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
     );
   }
 
-  if (pendingLikes.length === 0) {
+  if (pendingLikes.filter(l => l.interaction_type === 'like').length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-black">
         <div className="relative mb-8 animate-fade-in">
@@ -96,145 +104,107 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
   }
 
   return (
-    <div className="h-full flex flex-col bg-black text-white">
-      {/* Enhanced Header with Glassmorphism */}
-      <div className="glass border-b border-white/10 sticky top-0 z-40">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
-                  <Heart className="h-6 w-6 text-pink-500 animate-heartbeat" />
+    <>
+      <div className="h-full flex flex-col bg-black text-white">
+        {/* Enhanced Header with Glassmorphism */}
+        <div className="glass border-b border-white/10 sticky top-0 z-40">
+          <div className="p-6">
+            <div className="flex items-center justify-between"> {/* --- REMOVED: mb-6 --- */}
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
+                    <Heart className="h-6 w-6 text-pink-500 animate-heartbeat" />
+                  </div>
+                  <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
                 </div>
-                <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+                <div>
+                  <h1 className="text-2xl font-bold gradient-text-animated">Likes</h1>
+                  <p className="text-sm text-gray-400">People who like you</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold gradient-text-animated">Likes</h1>
-                <p className="text-sm text-gray-400">People who like you</p>
-              </div>
+              
+              <Badge className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-4 py-2 rounded-full">
+                <Heart className="h-4 w-4 mr-2 animate-heartbeat" />
+                {totalLikesCount} {totalLikesCount === 1 ? "person" : "people"}
+              </Badge>
             </div>
             
-            <Badge className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-4 py-2 rounded-full">
-              <Heart className="h-4 w-4 mr-2 animate-heartbeat" />
-              {pendingLikes.filter(l => l.interaction_type === 'like' || l.interaction_type === 'superlike').length} people
-            </Badge>
+            {/* --- REMOVED: Filter buttons div --- */}
+            
           </div>
-          
-          {/* Enhanced Filter buttons */}
-          <div className="flex gap-3">
-            {([['all', 'All'], ['recent', 'Recent'], ['superlikes', '⭐ Super']] as const).map(([filterType, label]) => (
-              <Button
-                key={filterType}
-                variant="ghost"
-                size="sm"
-                onClick={() => setFilter(filterType)}
-                className={`rounded-full px-6 py-2 transition-all duration-300 interactive ${
-                  filter === filterType 
-                    ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg animate-pulse-glow" 
-                    : "glass-light hover:bg-white/10 text-gray-300 hover:text-white"
-                }`}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* --- Grid columns adjusted for SMALLER cards --- */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {getFilteredLikes().map((like, index) => (
+              <Card 
+                key={`like-${like.id || index}`}
+                onClick={() => handleProfileClick(like.profile)}
+                // --- Added rounded-2xl ---
+                className="glass-light border-white/10 transition-all duration-300 hover:scale-[1.02] card-hover animate-fade-in cursor-pointer flex flex-col overflow-hidden rounded-2xl"
               >
-                {label}
-              </Button>
+                {/* --- UPDATED: Added overflow-hidden and rounded-2xl --- */}
+                <CardContent className="p-0 flex flex-col h-full overflow-hidden rounded-2xl">
+                  {/* Name at the top */}
+                  <div className="p-3 text-center">
+                    {/* --- Font size increased to text-4xl --- */}
+                    <p className="font-bold text-4xl text-white truncate">
+                      {like.profile?.first_name || 'Unknown'}
+                    </p>
+                  </div>
+
+                  {/* Image */}
+                  <div className="relative w-full aspect-square bg-gray-800 flex items-center justify-center overflow-hidden">
+                    {like.profile?.photos?.[0]?.photo_url ? (
+                      <img
+                        src={like.profile.photos[0].photo_url}
+                        alt={like.profile?.first_name || 'Profile'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Avatar className="h-full w-full rounded-none">
+                        <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-6xl rounded-none">
+                          {like.profile?.first_name?.[0] || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                  </div>
+
+                  {/* --- "Liked You" text at the bottom --- */}
+                  <div className="p-3 text-center mt-auto">
+                    {/* --- Font size text-2xl, color text-pink-400, icon size w-5 h-5 --- */}
+                    <p className="flex items-center justify-center text-2xl font-medium text-pink-400">
+                      <Heart className="w-5 h-5 mr-1.5 fill-pink-400" />
+                      Liked You
+                    </p>
+                  </div>
+                  
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-4">
-          {getFilteredLikes().map((like) => (
-            <Card 
-              key={like.id} 
-              className="glass-light border-white/10 transition-all duration-300 hover:scale-[1.02] card-hover animate-fade-in"
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <Avatar className="h-20 w-20 ring-2 ring-pink-500/30">
-                      <AvatarImage src={like.profile?.photos[0]?.url} />
-                      <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-lg">
-                        {like.profile?.first_name?.[0] || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    {like.interaction_type === 'superlike' && (
-                      <div className="absolute -top-2 -right-2 h-8 w-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg animate-pulse-glow">
-                        <Star className="h-4 w-4 text-white fill-white" />
-                      </div>
-                    )}
-                    {/* Online indicator */}
-                    <div className="absolute bottom-1 right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="font-bold text-xl text-white truncate">
-                          {like.profile?.first_name}
-                        </p>
-                        <p className="text-sm text-gray-400 font-medium">
-                          Year {like.profile?.year_of_study} • {like.profile?.branch}
-                        </p>
-                        {like.profile?.hometown && (
-                          <p className="text-xs text-gray-500">From {like.profile.hometown}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-400 glass-light px-3 py-2 rounded-full border border-white/10">
-                        <Clock className="h-3 w-3" />
-                        {formatTime(like.created_at)}
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-4 mt-4">
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => handlePassClick(like.user_id)}
-                        className="flex-1 glass-light border border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-400 transition-all duration-300 interactive rounded-full"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Pass
-                      </Button>
-                      <Button 
-                        size="sm"
-                        onClick={() => handleLikeBackClick(like.target_user_id, like.user_id)}
-                        className="flex-1 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-400 hover:to-pink-500 text-white shadow-lg hover:shadow-xl transition-all duration-300 interactive rounded-full animate-pulse-glow"
-                      >
-                        <Heart className="h-4 w-4 mr-2 animate-heartbeat" />
-                        Like Back
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {like.interaction_type === 'superlike' && (
-                  <div className="mt-6 p-4 glass-light rounded-2xl border border-blue-500/20">
-                    <p className="text-sm text-blue-300 font-medium flex items-center gap-3">
-                      <Star className="h-5 w-5 fill-current animate-pulse" />
-                      This person super liked you! They really want to connect.
-                    </p>
-                  </div>
-                )}
-
-                {/* Bio preview */}
-                {like.profile?.bio && (
-                  <div className="mt-4 p-4 glass-light rounded-xl border border-white/10">
-                    <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed">
-                      "{like.profile.bio.substring(0, 100)}{like.profile.bio.length > 100 ? '...' : ''}"
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+        {/* Background effects */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
       </div>
 
-      {/* Background effects */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
-    </div>
+      {/* User Profile Dialog */}
+      <UserProfileDialog
+        profile={selectedProfile}
+        isOpen={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false);
+          setSelectedProfile(null);
+        }}
+        onLikeBack={handleDialogLikeBack}
+        onPass={handleDialogPass}
+        showActionButtons={true}
+      />
+    </>
   );
 }

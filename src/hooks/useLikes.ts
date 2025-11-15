@@ -2,25 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
+// --- ADDED: Import Database types ---
+import { Database } from '@/integrations/supabase/types';
 
+// --- UPDATED: Complete Profile type ---
+// This now matches the full shape of the data we are fetching
+type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
+  photos: Database["public"]["Tables"]["user_photos"]["Row"][];
+  interests: string[]; // We will map the interests to a simple string array
+  prompts: Database["public"]["Tables"]["user_prompts"]["Row"][];
+  elo_rating: number | null;
+};
 
+// --- UPDATED: PendingLike interface ---
 export interface PendingLike {
   id: string;
   user_id: string;
   target_user_id: string;
   interaction_type: 'like' | 'superlike' | 'pass' | 'block';
   created_at: string | null;
-  profile?: {
-    first_name: string;
-    last_name: string;
-    bio: string | null;
-    year_of_study: string | null;
-    branch: string | null;
-    hometown: string | null;
-    incognito_mode:boolean;
-    photos: { url: string; order: number }[];
-    email:string
-  };
+  profile?: Profile; // Use the complete Profile type
 }
 
 export function useLikes() {
@@ -63,43 +64,77 @@ export function useLikes() {
         (interaction.interaction_type === 'like' || interaction.interaction_type === 'superlike')
       ) || [];
 
-      // Get profile data for each interaction
-  
+      // --- UPDATED: Get profile data for each interaction ---
       const transformedLikes = await Promise.all(pendingInteractions.map(async (interaction) => {
+        
+        // 1. Get ALL profile data
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('first_name, last_name, bio, year_of_study, branch, hometown,incognito_mode,email')
+          .select('*') // --- UPDATED: Select all columns
           .eq('email', interaction.user_id)
           .single();
        
+        // 2. Get ALL photo data
         const { data: photos } = await supabase
           .from('user_photos')
-          .select('photo_url, photo_order')
+          .select('*') // --- UPDATED: Select all columns
           .eq('user_email', interaction.user_id)
           .order('photo_order');
+          
+        // --- ADDED: 3. Get interests ---
+        const { data: interestsData } = await supabase
+          .from('user_interests')
+          .select('interest')
+          .eq('user_email', interaction.user_id);
+          
+        // --- ADDED: 4. Get prompts (needs profileData.user_id) ---
+        const { data: prompts } = await supabase
+          .from('user_prompts')
+          .select('*')
+          .eq('user_id', profileData.user_id)
+          .order('prompt_order');
 
+        // --- ADDED: 5. Get ELO rating (needs profileData.user_id) ---
+        const { data: eloData } = await supabase
+          .from('elo_ratings')
+          .select('rating')
+          .eq('user_id', profileData.user_id)
+          .single();
 
+         // --- This is your incognito logic ---
+         // Be aware this might hide the real data you just fetched
          profileData.first_name=getDisplayName(profileData);
          profileData.year_of_study=getDisplayDetails(profileData).year;
-        const photo=getDisplayPhotos(profileData,photos.map(p=>(p.photo_url)));
+         const photoUrls=getDisplayPhotos(profileData, photos?.map(p=>(p.photo_url)) || []);
+         // --- End of incognito logic ---
 
-
-        
-    
-
+        // --- UPDATED: Assemble the complete profile object ---
         return {
           ...interaction,
           interaction_type: interaction.interaction_type as 'like' | 'superlike',
           profile: {
             ...profileData,
-            photos: (photo || []).map((url, index) => ({
-    url,
-    order: index,
-  })),
+            // Map your incognito-safe photo URLs back to the structure the dialog expects
+            photos: (photoUrls || []).map((url, index) => {
+              // Try to find the original photo object to keep its data
+              const originalPhoto = photos?.find(p => p.photo_url === url);
+              return {
+                photo_url: url,
+                photo_order: originalPhoto?.photo_order || index,
+                user_email: interaction.user_id,
+                is_primary: originalPhoto?.is_primary || (index === 0),
+                is_verified: originalPhoto?.is_verified || false,
+                created_at: originalPhoto?.created_at || null
+              };
+            }),
+            // Map the fetched interests into a simple string array
+            interests: (interestsData || []).map(i => i.interest),
+            prompts: prompts || [],
+            elo_rating: eloData?.rating || null,
           }
         };
       }));
-         console.log(transformedLikes);
+         
       setPendingLikes(transformedLikes.filter(like => 
         like.interaction_type === 'like' || like.interaction_type === 'superlike'
       ));

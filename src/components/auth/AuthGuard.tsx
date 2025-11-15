@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
+import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { Heart, Sparkles } from "lucide-react";
 
 interface AuthGuardProps {
@@ -12,6 +13,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [showHeroScreen, setShowHeroScreen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
             // Check if profile setup is needed (is_active is false)
             if (currentUser.is_active === false) {
-              setShowProfileSetup(true);
+              setShowHeroScreen(true); // Show hero screen first
               setLoading(false);
               return;
             }
@@ -56,7 +58,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
             
             // Check if profile setup is needed for temp user
             if (userProfile.is_active === false) {
-              setShowProfileSetup(true);
+              setShowHeroScreen(true); // Show hero screen first
               setLoading(false);
               return;
             }
@@ -83,7 +85,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // 3. Update last active periodically
   useEffect(() => {
-    if (!userEmail || showProfileSetup) return;
+    if (!userEmail || showHeroScreen || showProfileSetup) return;
 
     const updateInterval = setInterval(async () => {
       try {
@@ -94,7 +96,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }, 5 * 60 * 1000); // every 5 min
 
     return () => clearInterval(updateInterval);
-  }, [userEmail, showProfileSetup]);
+  }, [userEmail, showHeroScreen, showProfileSetup]);
+
+  const handleHeroComplete = () => {
+    setShowHeroScreen(false);
+    setShowProfileSetup(true);
+  };
 
   const handleProfileSetupComplete = (updatedProfile: Profile) => {
     setProfile(updatedProfile);
@@ -156,7 +163,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return <LoginScreen />;
   }
 
-  // Show profile setup form if user is not active
+  // Show hero screen first for inactive users
+  if (showHeroScreen && userEmail) {
+    return <HeroFuturistic onComplete={handleHeroComplete} />;
+  }
+
+  // Show profile setup form after hero screen
   if (showProfileSetup && userEmail) {
     return (
       <ProfileSetupForm 

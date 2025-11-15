@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+/* -------------------------------------------------
+    ROOT VARIABLES
+-------------------------------------------------- */
+:root {
+  --color-bg: #000000;
+  --color-text: #ffffff;
+  --color-subtle: #f1f1f1;
+
+  /* This remains our base pink, now used by the progress bar */
+  --color-red: #ec4899; 
+
+  --font-primary: "Inter", sans-serif;
+
+  /* Glass UI */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.18);
+}
+
+/* -------------------------------------------------
+    GLOBAL RESET
+-------------------------------------------------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: var(--color-bg);
+  color: var(--color-text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* -------------------------------------------------
+    CANVAS BACKGROUND (Three.js)
+-------------------------------------------------- */
+.hero-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.hero-content,
+.scroll-sections,
+.scroll-progress,
+.side-menu {
+  position: relative;
+  z-index: 10;
+  isolation: isolate;
+}
+
+/* -------------------------------------------------
+    CENTERED HERO SECTION
+-------------------------------------------------- */
+.hero-content,
+.content-section {
+  height: 100vh;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  text-align: center;
+  padding: 0 2rem;
+}
+
+/* -------------------------------------------------
+    TITLE - EXACT SCREENSHOT STYLE
+-------------------------------------------------- */
+.hero-title {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(8rem, 15vw, 17rem);
+  line-height: 0.88;
+  letter-spacing: -0.03em;
+
+  /* --- UPDATE 1: Apply shiny gradient to ALL .hero-title elements --- */
+  /* This makes "Discover People" etc. shiny */
+  background: linear-gradient(45deg, #f472b6, #db2777);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- UPDATE 2: Special rule for the ANIMATED title container --- */
+/* We turn OFF the gradient on the "Hi, [name]" container... */
+.hero-title.title-container {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: initial; /* This just resets it */
+}
+
+/* --- UPDATE 3: ...and apply it to its CHILDREN instead --- */
+/* This allows the .title-char to fade in correctly */
+.title-char {
+  display: inline-block;
+  will-change: transform, opacity;
+
+  /* Apply gradient to the child, which works with opacity animation */
+  background: linear-gradient(45deg, #f472b6, #db2777);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* -------------------------------------------------
+    SUBTITLE - EXACT SCREENSHOT STYLE
+-------------------------------------------------- */
+.hero-subtitle {
+  margin-top: 3rem; /* Large space */
+  max-width: 60ch;
+
+  font-size: clamp(1.2rem, 2vw, 2rem);
+  font-weight: 300;
+  line-height: 1.6;
+
+  color: var(--color-subtle);
+  opacity: 0.9;
+}
+
+.subtitle-line {
+  margin: 0.4rem 0;
+}
+
+/* -------------------------------------------------
+    SIDE MENU (hidden unless needed)
+-------------------------------------------------- */
+.side-menu {
+  display: none !important;
+}
+
+
+/* Hamburger */
+.menu-icon {
+  cursor: pointer;
+}
+
+.menu-icon span {
+  width: 26px;
+  height: 2px;
+  display: block;
+  margin: 5px 0;
+  background: white;
+}
+
+/* Vertical text */
+.vertical-text {
+  writing-mode: vertical-rl;
+  opacity: 0.6;
+}
+
+/* -------------------------------------------------
+    SCROLL PROGRESS BAR (Polished)
+-------------------------------------------------- */
+.scroll-progress {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: 0.09rem;
+
+  padding: 0.6rem 1.4rem;
+
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  border-radius: 50px;
+
+  font-size: 0.9rem;
+  color: var(--color-subtle);
+}
+
+.scroll-text {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+}
+
+.progress-track {
+  width: 120px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: var(--color-red); /* This will remain the solid pink */
+  transition: width 0.25s ease-out;
+}
+
+.section-counter {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  letter-spacing: 0.18em;
+}
