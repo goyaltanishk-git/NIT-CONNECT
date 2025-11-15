@@ -2,135 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 340 82% 52%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 340 100% 97%;
-    --secondary-foreground: 340 82% 52%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 15 100% 94%;
-    --accent-foreground: 340 82% 52%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 340 82% 52%;
-
-    /* Dating app specific colors */
-    --like: 142 76% 36%;
-    --like-foreground: 0 0% 100%;
-    --superlike: 221 83% 53%;
-    --superlike-foreground: 0 0% 100%;
-    --nope: 0 84% 60%;
-    --nope-foreground: 0 0% 100%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(340 82% 52%), hsl(15 100% 70%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(340 100% 99%));
-    --gradient-like: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
-    --gradient-superlike: linear-gradient(135deg, hsl(221 83% 53%), hsl(221 83% 63%));
-    --gradient-nope: linear-gradient(135deg, hsl(0 84% 60%), hsl(0 84% 70%));
-    
-    /* Animations */
-    --animation-bounce: bounce 1s ease-in-out;
-    --animation-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    --animation-fade-in: fadeIn 0.3s ease-in-out;
-    --animation-slide-up: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* Shadows */
-    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-like: 0 0 0 3px hsl(142 76% 36% / 0.3);
-    --shadow-superlike: 0 0 0 3px hsl(221 83% 53% / 0.3);
-    --shadow-nope: 0 0 0 3px hsl(0 84% 60% / 0.3);
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 340 82% 52%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 340 82% 52%;
-
-    /* Dating app specific colors - dark mode */
-    --like: 142 76% 36%;
-    --like-foreground: 0 0% 100%;
-    --superlike: 221 83% 53%;
-    --superlike-foreground: 0 0% 100%;
-    --nope: 0 84% 60%;
-    --nope-foreground: 0 0% 100%;
-
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(340 82% 42%), hsl(15 100% 60%));
-    --gradient-card: linear-gradient(145deg, hsl(222.2 84% 4.9%), hsl(340 50% 8%));
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 0 0% 0%; /* Black background */
+    --foreground: 0 0% 98%; /* White text */
+    --card: 0 0% 5%; /* Dark card background */
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 330 81% 60%; /* Pink primary */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 330 81% 60%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 330 81% 60%;
+    --radius: 0.75rem;
   }
 }
 
@@ -138,70 +31,268 @@ All colors MUST be HSL.
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Custom animations for Thursday-style UI */
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 79, 162, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 79, 162, 0.6);
+  }
 }
 
-@keyframes swipeLeft {
-  from { transform: translateX(0) rotate(0deg); opacity: 1; }
-  to { transform: translateX(-100vw) rotate(-30deg); opacity: 0; }
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes swipeRight {
-  from { transform: translateX(0) rotate(0deg); opacity: 1; }
-  to { transform: translateX(100vw) rotate(30deg); opacity: 0; }
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes swipeUp {
-  from { transform: translateY(0) scale(1); opacity: 1; }
-  to { transform: translateY(-100vh) scale(1.1); opacity: 0; }
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-@keyframes heartFloat {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; }
-  50% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
 }
 
-@keyframes starGlow {
-  0%, 100% { transform: scale(1); filter: brightness(1); }
-  50% { transform: scale(1.1); filter: brightness(1.2); }
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.8s ease-out;
+}
+
+.animate-gradient {
+  animation: gradient-shift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+/* Glassmorphism effects */
+.glass {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #FF4FA2, #FF69B4, #FF1493);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+}
+
+.gradient-text-animated {
+  background: linear-gradient(135deg, #FF4FA2, #FF69B4, #FF1493, #FF4FA2);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Custom button styles */
+.btn-primary {
+  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(255, 79, 162, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(255, 79, 162, 0.2);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #FF69B4, #FF1493);
+}
+
+/* Loading spinner */
+.loading-heart {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
+  transform: rotate(45deg);
+  position: relative;
+  animation: heartbeat 1s ease-in-out infinite;
+}
+
+.loading-heart::before,
+.loading-heart::after {
+  content: '';
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  left: -20px;
+  top: 0;
+  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
+  border-radius: 20px;
+  transform: rotate(-45deg);
+  transform-origin: 0 100%;
+}
+
+.loading-heart::after {
+  left: 0;
+  top: -20px;
+  transform-origin: 100% 100%;
+}
+
+/* Swipe animations */
 .swipe-left {
-  animation: swipeLeft 0.3s ease-in-out forwards;
+  transform: translateX(-100%) rotate(-30deg);
+  opacity: 0;
+  transition: all 0.3s ease-out;
 }
 
 .swipe-right {
-  animation: swipeRight 0.3s ease-in-out forwards;
+  transform: translateX(100%) rotate(30deg);
+  opacity: 0;
+  transition: all 0.3s ease-out;
 }
 
-.swipe-up {
-  animation: swipeUp 0.4s ease-in-out forwards;
+/* Profile card stack effect */
+.profile-stack {
+  position: relative;
 }
 
-.heart-float {
-  animation: heartFloat 0.6s ease-in-out forwards;
+.profile-stack .profile-card:nth-child(1) {
+  z-index: 3;
+  transform: scale(1) rotate(0deg);
 }
 
-.star-glow {
-  animation: starGlow 0.8s ease-in-out forwards;
+.profile-stack .profile-card:nth-child(2) {
+  z-index: 2;
+  transform: scale(0.95) rotate(-1deg);
+  opacity: 0.8;
 }
 
-.gradient-text {
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.profile-stack .profile-card:nth-child(3) {
+  z-index: 1;
+  transform: scale(0.9) rotate(1deg);
+  opacity: 0.6;
+}
+
+/* Interactive elements */
+.interactive {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.interactive:hover {
+  transform: scale(1.02);
+}
+
+.interactive:active {
+  transform: scale(0.98);
+}
+
+/* Notification styles */
+.notification-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.notification-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: all 0.3s ease;
+}
+
+.notification-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notification-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease;
 }

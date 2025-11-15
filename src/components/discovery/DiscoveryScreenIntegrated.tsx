@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles, MapPin, Clock, Shield, Users } from "lucide-react";
+import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles, MapPin, Clock, Shield, Users, Star } from "lucide-react";
 import { EnhancedProfileCard } from "./EnhancedProfileCard";
 import { ActionButtonsWithLimits } from "./ActionButtonWithLimits";
 import { useProfiles, DatabaseProfile } from "@/hooks/useProfiles";
@@ -13,7 +13,7 @@ import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
 
 export function DiscoveryScreenIntegrated() {
-    console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
+  console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
@@ -26,7 +26,7 @@ export function DiscoveryScreenIntegrated() {
   const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
   const userEmail = currentUser?.email || user?.email;
 
-    console.log("📧 Passing this email to useDailyLimits:", userEmail);
+  console.log("📧 Passing this email to useDailyLimits:", userEmail);
 
   // Use daily limits hook
   const {
@@ -92,10 +92,10 @@ export function DiscoveryScreenIntegrated() {
         setSwipeAnimation(null);
       }, 300);
 
-      // Show feedback
+      // Show feedback with enhanced styling
       if (action === 'like') {
         toast({
-          title: "Like sent! 💚",
+          title: "Like sent! 💖",
           description: `You liked ${profile.first_name}. Hope they like you back!`,
         });
       }
@@ -144,10 +144,20 @@ export function DiscoveryScreenIntegrated() {
 
   if (loading || limitsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-lg text-muted-foreground">Finding amazing people for you...</p>
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center space-y-8 animate-fade-in">
+          <div className="relative">
+            <div className="loading-heart mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-pink-500 animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold gradient-text-animated">
+              Finding amazing people for you...
+            </h3>
+            <p className="text-gray-400">Preparing your perfect matches</p>
+          </div>
         </div>
       </div>
     );
@@ -164,20 +174,24 @@ export function DiscoveryScreenIntegrated() {
 
   if (!user && !currentUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
-        <div className="text-center space-y-4">
-          <Heart className="h-16 w-16 text-primary mx-auto" />
-          <h2 className="text-2xl font-bold text-gray-800">Please log in</h2>
-          <p className="text-muted-foreground">Create your profile to start discovering amazing people!</p>
-          <div className="bg-yellow-100 p-4 rounded-lg mt-4">
-            <p className="text-sm text-gray-600">
-              <strong>Debug Info:</strong><br/>
-              User: {user ? user.email : 'undefined'}<br/>
-              Current User: {currentUser ? currentUser.email : 'undefined'}<br/>
-              Loading: {loading ? 'true' : 'false'}<br/>
-              Profiles: {profiles.length}
-            </p>
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center space-y-8 animate-fade-in">
+          <Heart className="h-20 w-20 text-pink-500 mx-auto animate-heartbeat" />
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold gradient-text">Please log in</h2>
+            <p className="text-gray-400 text-lg">Create your profile to start discovering amazing people!</p>
           </div>
+          <Card className="glass-light p-6 max-w-md mx-auto">
+            <CardContent className="p-0">
+              <p className="text-sm text-gray-400">
+                <strong className="text-pink-400">Debug Info:</strong><br/>
+                User: {user ? user.email : 'undefined'}<br/>
+                Current User: {currentUser ? currentUser.email : 'undefined'}<br/>
+                Loading: {loading ? 'true' : 'false'}<br/>
+                Profiles: {profiles.length}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -185,27 +199,37 @@ export function DiscoveryScreenIntegrated() {
 
   if (profiles.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
-        <div className="text-center space-y-4">
-          <Heart className="h-16 w-16 text-gray-400 mx-auto" />
-          <h2 className="text-2xl font-bold text-gray-800">No profiles available</h2>
-          <p className="text-muted-foreground">
-            No profiles found in the database. Add some profiles to Supabase or check your filters.
-          </p>
-          <div className="bg-blue-100 p-4 rounded-lg mt-4">
-            <p className="text-sm text-gray-600">
-              <strong>Debug Info:</strong><br/>
-              Current User: {userEmail}<br/>
-              Profiles in DB: Check console logs<br/>
-              Loading: {loading ? 'true' : 'false'}
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center space-y-8 animate-fade-in">
+          <div className="relative">
+            <Heart className="h-20 w-20 text-gray-600 mx-auto" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 bg-pink-500/20 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold text-white">No profiles available</h2>
+            <p className="text-gray-400 text-lg">
+              No profiles found in the database. Add some profiles to Supabase or check your filters.
             </p>
           </div>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="bg-gradient-to-r from-primary to-primary/80"
-          >
-            Refresh
-          </Button>
+          <Card className="glass-light p-6 max-w-md mx-auto">
+            <CardContent className="p-0 space-y-4">
+              <p className="text-sm text-gray-400">
+                <strong className="text-pink-400">Debug Info:</strong><br/>
+                Current User: {userEmail}<br/>
+                Profiles in DB: Check console logs<br/>
+                Loading: {loading ? 'true' : 'false'}
+              </p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="btn-primary w-full"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -213,29 +237,42 @@ export function DiscoveryScreenIntegrated() {
 
   if (currentIndex >= profiles.length) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-blue-50">
-        <div className="text-center space-y-4">
-          <Sparkles className="h-16 w-16 text-primary mx-auto" />
-          <h2 className="text-2xl font-bold text-gray-800">You're all caught up! 🎉</h2>
-          <p className="text-muted-foreground">
-            Check back later for new people to connect with.
-          </p>
-          <div className="bg-green-100 p-4 rounded-lg mt-4">
-            <p className="text-sm text-gray-600">
-              <strong>Today's Activity:</strong><br/>
-              Likes used: {dailyLikes}/3<br/>
-              Limits reset at 12:00 AM
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="text-center space-y-8 animate-fade-in">
+          <div className="relative">
+            <Sparkles className="h-20 w-20 text-pink-500 mx-auto animate-heartbeat" />
+            <div className="absolute inset-0 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
+          </div>
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold gradient-text">You're all caught up! 🎉</h2>
+            <p className="text-gray-400 text-lg">
+              Check back later for new people to connect with.
             </p>
           </div>
-          <Button 
-            onClick={() => {
-              setCurrentIndex(0);
-              window.location.reload();
-            }}
-            className="bg-gradient-to-r from-primary to-primary/80"
-          >
-            Start Over
-          </Button>
+          <Card className="glass-light p-6 max-w-md mx-auto">
+            <CardContent className="p-0 space-y-4">
+              <div className="text-center">
+                <h4 className="text-pink-400 font-semibold mb-2">Today's Activity</h4>
+                <div className="flex justify-center space-x-4 text-sm">
+                  <div className="flex items-center space-x-1">
+                    <Heart className="w-4 h-4 text-pink-500" />
+                    <span>Likes used: {dailyLikes}/3</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Limits reset at 12:00 AM</p>
+              </div>
+              <Button 
+                onClick={() => {
+                  setCurrentIndex(0);
+                  window.location.reload();
+                }}
+                className="btn-primary w-full"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Start Over
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -244,65 +281,53 @@ export function DiscoveryScreenIntegrated() {
   const currentProfile = transformProfileForCard(profiles[currentIndex]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10">
-      {/* Enhanced Header with Stats */}
-      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b sticky top-0 z-40">
-        <div className="p-4">
-          
-
-          
-            
-            </div></div>
-            
-           
-          
-
+    <div className="min-h-screen bg-black text-white">
       
-      <div className="p-4">
 
+      <div className="p-6">
         {/* Enhanced Profile Stack with Better UI */}
-        <div className="relative max-w-sm mx-auto">
+        <div className="relative max-w-sm mx-auto profile-stack">
           {/* Profile Stack Background Cards */}
           {profiles[currentIndex + 2] && (
             <div className="absolute inset-0 -z-20 scale-90 opacity-20 rotate-1 transform">
-              <Card className="h-full aspect-[3/4] bg-gradient-to-br from-muted/50 to-muted/30 rounded-2xl" />
+              <Card className="h-full aspect-[3/4] glass-light rounded-3xl border-white/10" />
             </div>
           )}
           
           {/* Next profile preview */}
           {profiles[currentIndex + 1] && (
             <div className="absolute inset-0 -z-10 scale-95 opacity-60 transform -rotate-1">
-            <EnhancedProfileCard
-              profile={transformProfileForCard(profiles[currentIndex + 1])}
-              onLike={() => {handleSwipe('like')}}
-              onPass={() => {'pass'}}
-              onSuperLike={() => {}}
-            />
+              <EnhancedProfileCard
+                profile={transformProfileForCard(profiles[currentIndex + 1])}
+                onLike={() => {handleSwipe('like')}}
+                onPass={() => {handleSwipe('pass')}}
+                onSuperLike={() => {}}
+              />
             </div>
           )}
 
           {/* Current Profile with Enhanced Animations */}
           <div className={`relative transition-all duration-300 ${
-            swipeAnimation === 'left' ? 'transform -translate-x-full -rotate-12 opacity-0' :
-            swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' :
+            swipeAnimation === 'left' ? 'swipe-left' :
+            swipeAnimation === 'right' ? 'swipe-right' :
             ''
           }`}>
-            {/* Swipe Indicators */}
-            <div className={`absolute inset-0 rounded-2xl border-4 transition-all duration-200 z-10 pointer-events-none ${
-              swipeAnimation === 'right' ? 'border-green-500 bg-green-500/20' :
-              swipeAnimation === 'left' ? 'border-red-500 bg-red-500/20' :
+            {/* Swipe Indicators with Enhanced Styling */}
+            <div className={`absolute inset-0 rounded-3xl border-4 transition-all duration-200 z-10 pointer-events-none ${
+              swipeAnimation === 'right' ? 'border-green-500 bg-green-500/20 animate-pulse-glow' :
+              swipeAnimation === 'left' ? 'border-red-500 bg-red-500/20 animate-pulse-glow' :
               'border-transparent'
             }`}>
               {swipeAnimation === 'right' && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-green-500 text-white px-4 py-2 rounded-full font-bold text-lg rotate-12">
-                    LIKE ❤️
+                  <div className="bg-gradient-to-r from-green-400 to-green-600 text-white px-6 py-3 rounded-full font-bold text-xl rotate-12 shadow-lg animate-bounce">
+                    LIKE 💖
                   </div>
                 </div>
               )}
               {swipeAnimation === 'left' && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-red-500 text-white px-4 py-2 rounded-full font-bold text-lg -rotate-12">
+                  <div className="bg-gradient-to-r from-red-400 to-red-600 text-white px-6 py-3 rounded-full font-bold text-xl -rotate-12 shadow-lg animate-bounce">
                     NOPE ❌
                   </div>
                 </div>
@@ -317,21 +342,20 @@ export function DiscoveryScreenIntegrated() {
             />
           </div>
 
-          {/* Profile Progress Indicator */}
-          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(profiles.length, 5) }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 rounded-full transition-all duration-200 ${
-                    i <= currentIndex ? 'bg-primary w-8' : 'bg-muted w-2'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+          {/* Enhanced Profile Progress Indicator */}
+          
         </div>
 
-    </div></div>
+       
+
+      
+      </div>
+
+      {/* Background effects */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+    </div>
   );
 }

@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, User, Settings, Sparkles } from "lucide-react";
+import { Heart, MessageCircle, User, Settings, Sparkles, Zap } from "lucide-react";
 import { DiscoveryScreenIntegrated } from "@/components/discovery/DiscoveryScreenIntegrated";
 import { LikesScreenIntegrated } from "@/components/matches/LikesScreenIntegrated";
 import { ChatScreen } from "@/components/chat/ChatScreen";
 import { ProfileScreen } from "@/components/profile/ProfileScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { AuthService } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -27,7 +26,6 @@ export function MainLayout() {
   const loadUserProfile = async () => {
     try {
       const user = AuthService.getCurrentUser();
-      
       if (user) {
         setUserProfile(user);
       }
@@ -38,136 +36,170 @@ export function MainLayout() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await AuthService.logout();
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out"
-      });
-      window.location.reload();
-    } catch (error) {
-      console.error("Sign out error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    }
-  };
-
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-muted-foreground">Loading your profile...</p>
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <div className="text-center space-y-8 p-8 animate-fade-in">
+          <div className="relative">
+            {/* Custom heart loading animation */}
+            <div className="loading-heart mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold gradient-text-animated">
+              Loading your profile...
+            </h3>
+            <p className="text-gray-400 text-lg">Finding amazing connections for you</p>
+            <div className="flex justify-center space-x-2">
+              <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce stagger-1"></div>
+              <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce stagger-2"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-screen flex flex-col">
-        {/* Header */}
-        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center space-x-2">
-              <Heart className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-black text-white overflow-hidden">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
+
+        {/* Enhanced Glassmorphism Header - Sign Out Button Removed */}
+        <div className="sticky top-0 z-50 glass border-b border-white/10 p-4">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center space-x-4 animate-slide-in-left">
+              <div className="relative">
+                <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
+                <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
+              </div>
+              <h1 className="text-4xl font-bold gradient-text-animated">
                 NIT Connect
               </h1>
+              <div className="flex space-x-1">
+                <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
+                <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
+                <Sparkles className="h-5 w-5 text-blue-400 animate-pulse stagger-3" />
+              </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Sign Out
-            </Button>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-hidden">
-          <TabsContent value="discovery" className="h-full m-0">
+        {/* Main Content with enhanced smooth transitions */}
+        <div className="flex-1 overflow-hidden relative">
+          <TabsContent value="discovery" className="h-full animate-fade-in">
             <DiscoveryScreenIntegrated />
           </TabsContent>
-          
-          <TabsContent value="likes" className="h-full m-0">
-            <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")}/>
+
+          <TabsContent value="likes" className="h-full animate-fade-in">
+            <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")} />
           </TabsContent>
-          
-          <TabsContent value="chat" className="h-full m-0">
+
+          <TabsContent value="chat" className="h-full animate-fade-in">
             <ChatScreen />
           </TabsContent>
-          
-          <TabsContent value="profile" className="h-full m-0">
+
+          <TabsContent value="profile" className="h-full animate-fade-in">
             <ProfileScreen />
           </TabsContent>
-          
-          <TabsContent value="settings" className="h-full m-0">
+
+          <TabsContent value="settings" className="h-full animate-fade-in">
             <SettingsScreen onBack={() => setActiveTab("profile")} />
           </TabsContent>
         </div>
 
-        {/* Bottom Navigation */}
-        <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center justify-around p-2">
-            <Button
-              variant={activeTab === "discovery" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("discovery")}
-              className="flex-col h-auto py-2 px-3"
-            >
-              <Heart className="h-5 w-5 mb-1" />
-              <span className="text-xs">Discover</span>
-            </Button>
-            
-            <Button
-              variant={activeTab === "likes" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("likes")}
-              className="flex-col h-auto py-2 px-3"
-            >
-              <Sparkles className="h-5 w-5 mb-1" />
-              <span className="text-xs">Likes</span>
-            </Button>
-            
-            <Button
-              variant={activeTab === "chat" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("chat")}
-              className="flex-col h-auto py-2 px-3"
-            >
-              <MessageCircle className="h-5 w-5 mb-1" />
-              <span className="text-xs">Chat</span>
-            </Button>
-            
-            <Button
-              variant={activeTab === "profile" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("profile")}
-              className="flex-col h-auto py-2 px-3"
-            >
-              <User className="h-5 w-5 mb-1" />
-              <span className="text-xs">Profile</span>
-            </Button>
-            
-            <Button
-              variant={activeTab === "settings" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setActiveTab("settings")}
-              className="flex-col h-auto py-2 px-3"
-            >
-              <Settings className="h-5 w-5 mb-1" />
-              <span className="text-xs">Settings</span>
-            </Button>
+        {/* Enhanced Bottom Navigation with Premium Animations */}
+        <div className="sticky bottom-0 z-50 glass border-t border-white/10 p-4">
+          <div className="flex justify-around items-center max-w-md mx-auto">
+            {[
+              { tab: "discovery", icon: Heart, label: "Discover", gradient: "from-pink-400 to-pink-600" },
+              { tab: "likes", icon: Sparkles, label: "Likes", gradient: "from-purple-400 to-pink-500" },
+              { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
+              { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
+              { tab: "settings", icon: Settings, label: "Settings", gradient: "from-gray-400 to-gray-600" },
+            ].map(({ tab, icon: Icon, label, gradient }, index) => (
+              <Button
+                key={tab}
+                variant="ghost"
+                onClick={() => setActiveTab(tab)}
+                className={`flex flex-col items-center px-4 py-3 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden ${
+                  activeTab === tab
+                    ? `bg-gradient-to-r ${gradient} shadow-lg scale-110 animate-pulse-glow`
+                    : "hover:bg-white/10 hover:scale-105"
+                } animate-bounce-in stagger-${index + 1}`}
+              >
+                {/* Enhanced background glow effect for active tab */}
+                {activeTab === tab && (
+                  <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-30 blur-xl animate-pulse`}></div>
+                )}
+                
+                {/* Shimmer effect on hover */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+                </div>
+                
+                <Icon className={`h-6 w-6 mb-1 relative z-10 transition-all duration-300 ${
+                  activeTab === tab ? "animate-heartbeat text-white" : "text-white/70 group-hover:text-white group-hover:scale-110"
+                }`} />
+                <span className={`text-xs font-medium relative z-10 transition-all duration-300 ${
+                  activeTab === tab ? "text-white" : "text-white/70 group-hover:text-white"
+                }`}>
+                  {label}
+                </span>
+
+                {/* Enhanced active indicator with pulse */}
+                {activeTab === tab && (
+                  <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse">
+                    <div className="absolute inset-0 bg-white rounded-full animate-ping"></div>
+                  </div>
+                )}
+
+                {/* Ripple effect on click */}
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 bg-white/20 animate-ping"></div>
+              </Button>
+            ))}
           </div>
         </div>
       </Tabs>
+
+      {/* Enhanced background gradient overlay with animation */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-black via-gray-900/50 to-black pointer-events-none animate-gradient-shift"></div>
+      
+      {/* Enhanced animated background particles */}
+      <div className="fixed inset-0 -z-20 overflow-hidden pointer-events-none">
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div
+            key={i}
+            className={`absolute w-1 h-1 rounded-full animate-pulse ${
+              i % 3 === 0 ? 'bg-pink-500/20' : i % 3 === 1 ? 'bg-purple-500/20' : 'bg-blue-500/20'
+            }`}
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`,
+            }}
+          ></div>
+        ))}
+      </div>
+
+      {/* Floating hearts animation */}
+      <div className="fixed inset-0 -z-15 overflow-hidden pointer-events-none">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Heart
+            key={i}
+            className="absolute w-4 h-4 text-pink-500/10 animate-float"
+            style={{
+              left: `${20 + Math.random() * 60}%`,
+              top: `${20 + Math.random() * 60}%`,
+              animationDelay: `${Math.random() * 4}s`,
+              animationDuration: `${4 + Math.random() * 2}s`,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

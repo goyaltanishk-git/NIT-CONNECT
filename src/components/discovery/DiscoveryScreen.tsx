@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles } from "lucide-react";
+import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles, Stars } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileCard } from "./ProfileCard";
 import { ActionButtonsWithLimits } from "./ActionButtonWithLimits";
@@ -40,7 +40,7 @@ function DiscoveryScreenDemo() {
   const { updateRating, getUserRating, getRatingTier } = useEloRating();
 
   // Daily limits constants
-  const DAILY_LIKE_LIMIT = 3;
+  const DAILY_LIKE_LIMIT = 1;
 
   // ✅ initialize user data first
   useEffect(() => {
@@ -209,7 +209,7 @@ function DiscoveryScreenDemo() {
     if (currentIndex >= profiles.length) return;
 
     const profile = profiles[currentIndex];
-    
+    console.log(dailyLikes);
     // Check daily limits
     if (action === 'like' && dailyLikes >= DAILY_LIKE_LIMIT) {
       toast({
@@ -345,13 +345,26 @@ function DiscoveryScreenDemo() {
     }
   }, [currentIndex, profiles, dailyLikes, userEloRating, passedProfiles, toast, updateRating]);
 
-  // ✅ clear UI states
+  // ✅ Enhanced Loading State
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-background to-primary/5">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Finding amazing people for you...</p>
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-background via-primary/5 to-secondary/10 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 animate-pulse"></div>
+        <div className="text-center space-y-6 p-8 relative z-10">
+          <div className="relative">
+            <div className="h-20 w-20 animate-spin rounded-full border-4 border-primary/20 border-t-primary mx-auto"></div>
+            <Heart className="h-8 w-8 text-primary absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+            <div className="absolute inset-0 h-20 w-20 rounded-full bg-gradient-to-r from-primary/20 to-secondary/20 animate-ping opacity-30"></div>
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-2xl font-bold gradient-text animate-fade-in">Finding amazing people for you...</h3>
+            <p className="text-muted-foreground animate-fade-in">Curating perfect matches based on your preferences</p>
+            <div className="flex justify-center space-x-1 mt-4">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -359,25 +372,32 @@ function DiscoveryScreenDemo() {
 
   if (profiles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background to-primary/5">
-        <div className="h-32 w-32 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center mb-6">
-          <Heart className="h-16 w-16 text-primary/60" />
-        </div>
-        <h2 className="text-3xl font-bold mb-4 gradient-text">No profiles available 😢</h2>
-        <p className="text-muted-foreground mb-8 text-center max-w-md">
-          Try adjusting your filters or check back later for new people to connect with.
-        </p>
-        <div className="flex gap-4">
-          <Button onClick={loadProfiles} className="bg-gradient-to-r from-primary to-primary/80">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Reload Profiles
-          </Button>
-          {passedProfiles.length > 0 && (
-            <Button variant="outline" onClick={handleRewind}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Rewind Last
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background via-primary/3 to-secondary/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5"></div>
+        <div className="relative z-10 max-w-md mx-auto">
+          <div className="h-40 w-40 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-full flex items-center justify-center mb-8 mx-auto relative">
+            <Heart className="h-20 w-20 text-primary/60 animate-float" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/10 to-secondary/10 animate-pulse"></div>
+          </div>
+          <h2 className="text-4xl font-bold mb-6 gradient-romantic">No profiles available 😢</h2>
+          <p className="text-muted-foreground mb-8 text-lg leading-relaxed">
+            Try adjusting your filters or check back later for new people to connect with.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={loadProfiles} 
+              className="bg-gradient-to-r from-primary via-primary to-secondary text-primary-foreground font-semibold py-3 px-8 rounded-full hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              Reload Profiles
             </Button>
-          )}
+            {passedProfiles.length > 0 && (
+              <Button variant="outline" onClick={handleRewind} className="py-3 px-8 rounded-full hover:scale-105 transition-all duration-300">
+                <RotateCcw className="h-5 w-5 mr-2" />
+                Rewind Last
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -385,40 +405,47 @@ function DiscoveryScreenDemo() {
 
   if (currentIndex >= profiles.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background to-primary/5">
-        <div className="h-32 w-32 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center mb-8 animate-pulse">
-          <Heart className="h-16 w-16 text-primary-foreground" />
-        </div>
-        <h2 className="text-3xl font-bold mb-4 gradient-text">You're all caught up! 🎉</h2>
-        <p className="text-muted-foreground mb-8 text-center max-w-md">
-          You've seen {swipeCount} profiles today.<br/>
-          Check back later for new people to connect with.
-        </p>
-        <div className="bg-green-100 p-4 rounded-lg mb-6">
-          <p className="text-sm text-gray-600">
-            <strong>Today's Activity:</strong><br/>
-            Likes used: {dailyLikes}/{DAILY_LIKE_LIMIT}<br/>
-            Limits reset at 12:00 AM
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-br from-background via-primary/3 to-secondary/5 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5"></div>
+        <div className="relative z-10 max-w-md mx-auto">
+          <div className="h-40 w-40 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mb-8 mx-auto animate-glow">
+            <Heart className="h-20 w-20 text-primary-foreground animate-pulse" />
+          </div>
+          <h2 className="text-4xl font-bold mb-6 gradient-romantic">You're all caught up! 🎉</h2>
+          <p className="text-muted-foreground mb-6 text-lg leading-relaxed">
+            You've seen <span className="font-semibold text-primary">{swipeCount}</span> profiles today.<br/>
+            Check back later for new people to connect with.
           </p>
-        </div>
-        <div className="flex gap-4">
-          <Button 
-            onClick={() => {
-              setCurrentIndex(0);
-              setSwipeCount(0);
-              loadProfiles();
-            }}
-            className="bg-gradient-to-r from-primary to-primary/80"
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Show me more profiles
-          </Button>
-          {passedProfiles.length > 0 && (
-            <Button variant="outline" onClick={handleRewind}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Rewind Last
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 rounded-2xl mb-8 border border-primary/20">
+            <h3 className="font-semibold text-primary mb-3 flex items-center justify-center">
+              <Stars className="w-5 h-5 mr-2" />
+              Today's Activity
+            </h3>
+            <div className="space-y-2 text-sm">
+              <p><span className="font-medium">Likes used:</span> {dailyLikes}/{DAILY_LIKE_LIMIT}</p>
+              <p><span className="font-medium">Profiles viewed:</span> {swipeCount}</p>
+              <p className="text-xs text-muted-foreground">Limits reset at 12:00 AM</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={() => {
+                setCurrentIndex(0);
+                setSwipeCount(0);
+                loadProfiles();
+              }}
+              className="bg-gradient-to-r from-primary via-primary to-secondary text-primary-foreground font-semibold py-3 px-8 rounded-full hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <Sparkles className="h-5 w-5 mr-2" />
+              Show me more profiles
             </Button>
-          )}
+            {passedProfiles.length > 0 && (
+              <Button variant="outline" onClick={handleRewind} className="py-3 px-8 rounded-full hover:scale-105 transition-all duration-300">
+                <RotateCcw className="h-5 w-5 mr-2" />
+                Rewind Last
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -428,48 +455,54 @@ function DiscoveryScreenDemo() {
   const canLike = dailyLikes < DAILY_LIKE_LIMIT;
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Profile Card with Enhanced Animation */}
-      <div className="flex p-4 relative overflow-hidden">
-        <div className={`h-full transition-all duration-300 ${
-          swipeAnimation === 'left' ? 'transform -translate-x-full rotate-12 opacity-0' :
-          swipeAnimation === 'right' ? 'transform translate-x-full rotate-12 opacity-0' : ''
-        }`}>
-          <ProfileCard
-            profile={currentProfile}
-            onLike={() => handleSwipe('like')}
-            onPass={() => handleSwipe('pass')}
-            onSuperLike={() => {}}
-          />
-        </div>
-        
-        {/* Next profile preview with enhanced styling */}
-        {profiles[currentIndex + 1] && (
-          <div className="absolute inset-0 p-4 z-[-1] opacity-30 scale-95 transform rotate-1">
+    <div className="h-full flex flex-col bg-gradient-to-br from-background via-primary/3 to-secondary/5 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 animate-pulse opacity-50"></div>
+      
+      {/* Enhanced Profile Card Stack */}
+      <div className="flex-1 flex justify-center items-center p-4 relative z-10">
+        <div className="relative w-full max-w-sm">
+          {/* Current Profile Card */}
+          <div className={`transition-all duration-500 ${
+            swipeAnimation === 'left' ? 'swipe-left' :
+            swipeAnimation === 'right' ? 'swipe-right' : 
+            'animate-scale-in'
+          }`}>
             <ProfileCard
-              profile={profiles[currentIndex + 1]}
-              onLike={() => {}}
-              onPass={() => {}}
+              profile={currentProfile}
+              onLike={() => handleSwipe('like')}
+              onPass={() => handleSwipe('pass')}
               onSuperLike={() => {}}
             />
           </div>
-        )}
+          
+          {/* Next profile preview with enhanced styling */}
+          {profiles[currentIndex + 1] && (
+            <div className="absolute inset-0 z-[-1] opacity-40 scale-95 transform rotate-2 transition-all duration-500">
+              <ProfileCard
+                profile={profiles[currentIndex + 1]}
+                onLike={() => {}}
+                onPass={() => {}}
+                onSuperLike={() => {}}
+              />
+            </div>
+          )}
 
-        {/* Third profile preview */}
-        {profiles[currentIndex + 2] && (
-          <div className="absolute inset-0 p-4 z-[-2] opacity-15 scale-90 transform -rotate-1">
-            <ProfileCard
-              profile={profiles[currentIndex + 2]}
-              onLike={() => {}}
-              onPass={() => {}}
-              onSuperLike={() => {}}
-            />
-          </div>
-        )}
+          {/* Third profile preview */}
+          {profiles[currentIndex + 2] && (
+            <div className="absolute inset-0 z-[-2] opacity-20 scale-90 transform -rotate-1 transition-all duration-500">
+              <ProfileCard
+                profile={profiles[currentIndex + 2]}
+                onLike={() => {}}
+                onPass={() => {}}
+                onSuperLike={() => {}}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Enhanced Action Buttons with Daily Limits */}
-      <div className="bg-gradient-to-t from-background via-background/95 to-transparent backdrop-blur-sm">
+      {/* Enhanced Action Buttons */}
+      <div className="relative z-10">
         <ActionButtonsWithLimits
           onPass={() => handleSwipe('pass')}
           onLike={() => handleSwipe('like')}

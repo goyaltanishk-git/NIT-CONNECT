@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
+import { Heart, Sparkles } from "lucide-react";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -104,8 +105,49 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
+        {/* Animated background particles */}
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-pink-500/20 rounded-full animate-pulse"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 3}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Background gradient overlay */}
+        <div className="fixed inset-0 -z-20 bg-gradient-to-br from-black via-gray-900/50 to-black pointer-events-none"></div>
+
+        <div className="text-center space-y-8 p-8 animate-fade-in">
+          <div className="relative">
+            {/* Custom heart loading animation */}
+            <div className="loading-heart mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
+            </div>
+            {/* Floating elements */}
+            <Sparkles className="absolute -top-4 -right-4 w-6 h-6 text-pink-400 animate-pulse" />
+            <Heart className="absolute -bottom-4 -left-4 w-5 h-5 text-purple-400 animate-bounce" />
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-3xl font-bold gradient-text-animated">
+              Loading...
+            </h3>
+            <p className="text-gray-400 text-lg">Preparing your experience</p>
+            <div className="flex justify-center space-x-2">
+              <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce"></div>
+              <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+              <div className="w-3 h-3 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

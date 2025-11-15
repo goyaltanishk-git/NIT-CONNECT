@@ -1,150 +1,144 @@
 import { Button } from "@/components/ui/button";
-import { Heart, X, Zap, RotateCcw, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Heart, X, RotateCcw, Zap, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ActionButtonsWithLimitsProps {
   onPass: () => void;
   onLike: () => void;
-  onBoost?: () => void;
   onRewind?: () => void;
+  onBoost?: () => void;
   disabled?: boolean;
   likesRemaining: number;
   canLike: boolean;
 }
 
-export function ActionButtonsWithLimits({ 
-  onPass, 
-  onLike, 
-  onBoost, 
+export function ActionButtonsWithLimits({
+  onPass,
+  onLike,
   onRewind,
+  onBoost,
   disabled = false,
   likesRemaining,
   canLike
 }: ActionButtonsWithLimitsProps) {
   return (
-    <div className="px-6 pb-2">
-      {/* Enhanced Usage indicators */}
-      <div className="flex justify-center items-center gap-6 mb-6">
-        <div className={cn(
-          "flex items-center gap-2 px-4 py-2 rounded-full border",
-          canLike 
-            ? "bg-gradient-to-r from-green-500/10 to-green-600/10 border-green-500/20"
-            : "bg-gradient-to-r from-red-500/10 to-red-600/10 border-red-500/20"
-        )}>
-          <Heart className={cn(
-            "h-4 w-4",
-            canLike ? "text-green-600" : "text-red-600"
-          )} />
-          <span className={cn(
-            "text-sm font-medium",
-            canLike ? "text-green-700" : "text-red-700"
-          )}>
-            {likesRemaining} likes left
-          </span>
-        </div>
+    <div className="flex flex-col items-center space-y-6 p-6">
+      {/* Likes Remaining Indicator */}
+      <div className="flex items-center justify-center space-x-2">
+        <Badge 
+          variant={canLike ? "default" : "destructive"} 
+          className={cn(
+            "px-6 py-3 rounded-full font-semibold transition-all duration-300 text-sm",
+            canLike 
+              ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg animate-pulse-glow border-pink-400/30" 
+              : "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-400/30"
+          )}
+        >
+          <Heart className="w-4 h-4 mr-2 animate-heartbeat" />
+          {likesRemaining} likes left today
+        </Badge>
       </div>
-      
-      {/* Enhanced Action buttons */}
-      <div className="flex justify-center items-center gap-6 pb-4">
-        {/* Rewind */}
+
+      {/* Main Action Buttons */}
+      <div className="flex items-center justify-center space-x-8">
+        {/* Rewind Button */}
         {onRewind && (
           <Button
+            variant="ghost"
             size="lg"
-            variant="outline"
-            className={cn(
-              "h-14 w-14 rounded-full border-2 transition-all duration-300",
-              "border-yellow-500/60 text-yellow-600 hover:bg-yellow-50 hover:border-yellow-600 hover:scale-110",
-              "shadow-lg hover:shadow-yellow-500/30 active:scale-95 hover:shadow-xl",
-              "bg-gradient-to-br from-background to-yellow-500/5",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
             onClick={onRewind}
             disabled={disabled}
+            className="rounded-full w-16 h-16 glass-light border-2 border-yellow-500/30 hover:border-yellow-400 hover:bg-yellow-500/20 transition-all duration-300 hover:scale-110 group shadow-lg hover:shadow-xl interactive"
           >
-            <RotateCcw className="h-5 w-5" />
+            <RotateCcw className="w-6 h-6 text-yellow-400 group-hover:text-yellow-300 transition-colors duration-300 group-hover:animate-spin" />
           </Button>
         )}
 
-        {/* Pass */}
+        {/* Pass Button */}
         <Button
+          variant="ghost"
           size="lg"
-          variant="outline"
-          className={cn(
-            "h-16 w-16 rounded-full border-2 transition-all duration-300 group",
-            "border-red-500/60 text-red-500 hover:bg-red-50 hover:border-red-600 hover:scale-110",
-            "shadow-lg hover:shadow-red-500/30 active:scale-95 hover:shadow-xl",
-            "bg-gradient-to-br from-background to-red-500/5",
-            disabled && "opacity-50 cursor-not-allowed"
-          )}
           onClick={onPass}
           disabled={disabled}
+          className="rounded-full w-18 h-18 glass-light border-3 border-red-500/30 hover:border-red-400 hover:bg-red-500/20 transition-all duration-300 hover:scale-110 group shadow-lg hover:shadow-xl interactive"
         >
-          <X className="h-7 w-7 group-hover:rotate-90 transition-transform duration-300" />
-        </Button>
-      
-        {/* Like */}
-        <Button
-          size="lg"
-          variant="outline"
-          className={cn(
-            "h-20 w-20 rounded-full border-2 transition-all duration-300 group relative overflow-hidden",
-            canLike
-              ? "border-green-500/60 text-green-500 hover:bg-green-50 hover:border-green-600 hover:scale-110"
-              : "border-gray-400/60 text-gray-400 cursor-not-allowed",
-            "shadow-lg hover:shadow-green-500/30 active:scale-95 hover:shadow-xl",
-            "bg-gradient-to-br from-background to-green-500/5",
-            (disabled || !canLike) && "opacity-30 cursor-not-allowed"
-          )}
-          onClick={onLike}
-          disabled={disabled || !canLike}
-        >
-          <Heart className="h-9 w-9 group-hover:scale-110 transition-all duration-300" />
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-400/20 to-red-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
+          <X className="w-8 h-8 text-red-400 group-hover:text-red-300 transition-colors duration-300 group-hover:rotate-90" />
         </Button>
 
-        {/* Boost */}
+        {/* Like Button - Main CTA */}
+        <Button
+          size="lg"
+          onClick={onLike}
+          disabled={disabled || !canLike}
+          className={cn(
+            "rounded-full w-24 h-24 transition-all duration-300 hover:scale-110 group shadow-xl relative overflow-hidden interactive",
+            canLike
+              ? "bg-gradient-to-r from-pink-500 via-pink-600 to-pink-700 hover:from-pink-400 hover:via-pink-500 hover:to-pink-600 animate-pulse-glow"
+              : "bg-gray-600 cursor-not-allowed opacity-50"
+          )}
+        >
+          <Heart className={cn(
+            "w-10 h-10 text-white transition-all duration-300",
+            canLike && "group-hover:animate-heartbeat group-hover:scale-110"
+          )} />
+          {canLike && (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+              <div className="absolute inset-0 bg-pink-400/20 rounded-full blur-xl animate-pulse-glow"></div>
+            </>
+          )}
+        </Button>
+
+        {/* Boost Button */}
         {onBoost && (
           <Button
+            variant="ghost"
             size="lg"
-            variant="outline"
-            className={cn(
-              "h-14 w-14 rounded-full border-2 transition-all duration-300 group",
-              "border-purple-500/60 text-purple-600 hover:bg-purple-50 hover:border-purple-600 hover:scale-110",
-              "shadow-lg hover:shadow-purple-500/30 active:scale-95 hover:shadow-xl",
-              "bg-gradient-to-br from-background to-purple-500/5",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
             onClick={onBoost}
             disabled={disabled}
+            className="rounded-full w-16 h-16 glass-light border-2 border-purple-500/30 hover:border-purple-400 hover:bg-purple-500/20 transition-all duration-300 hover:scale-110 group shadow-lg hover:shadow-xl interactive"
           >
-            <Zap className="h-5 w-5 group-hover:rotate-12 transition-transform duration-300" />
+            <Zap className="w-6 h-6 text-purple-400 group-hover:text-purple-300 transition-colors duration-300 group-hover:animate-bounce" />
           </Button>
         )}
       </div>
 
-      {/* Action hints */}
-      <div className="flex justify-center items-center gap-8 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1">
-          <X className="h-3 w-3 text-red-500" />
-          <span>Pass</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Heart className="h-3 w-3 text-green-500" />
-          <span>Like</span>
-        </div>
-      </div>
-
-      {/* Daily limit info */}
-      <div className="mt-4 text-center">
-        <p className="text-xs text-muted-foreground">
-          Daily limits reset at 12:00 AM
-        </p>
-        {!canLike && (
-          <p className="text-xs text-red-600 font-medium mt-1">
-            ❌ No likes remaining today
+      {/* Limit Warning */}
+      {!canLike && (
+        <div className="text-center space-y-3 animate-fade-in glass-light p-4 rounded-2xl border border-white/10">
+          <div className="flex items-center justify-center space-x-2">
+            <Heart className="w-5 h-5 text-red-400" />
+            <p className="text-base font-semibold text-red-400">
+              You've reached your daily limit
+            </p>
+          </div>
+          <p className="text-sm text-gray-400">
+            Limits reset at midnight ⏰
           </p>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Premium Upgrade Hint */}
+      {likesRemaining <= 1 && canLike && (
+        <div className="text-center space-y-3 p-6 glass-light rounded-2xl animate-fade-in border border-pink-500/20">
+          <div className="flex items-center justify-center space-x-2">
+            <Sparkles className="w-5 h-5 text-pink-400 animate-pulse" />
+            <p className="text-base font-semibold gradient-text">Almost out of likes!</p>
+          </div>
+          <p className="text-sm text-gray-400">
+            Upgrade to Premium for unlimited likes ✨
+          </p>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="btn-secondary text-pink-400 hover:text-pink-300 border-pink-500/30 hover:bg-pink-500/10"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Go Premium
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

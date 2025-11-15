@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Shield, Zap, Lock, AlertTriangle, LogOut, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, Shield, Zap, Lock, AlertTriangle, LogOut, Eye, Loader2, Settings } from "lucide-react";
 
 // Import sub-screens
 import { HelpScreen } from "@/components/profile/HelpScreen";
@@ -124,83 +124,146 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
   // --- Main Settings Menu ---
   return (
     <>
-      <div className="h-full overflow-y-auto bg-background">
-        <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
-          <div className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <Button variant="ghost" size="sm" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4" />
+      <div className="h-full overflow-y-auto bg-black text-white">
+        {/* Enhanced Header with Glassmorphism */}
+        <div className="glass border-b border-white/10 sticky top-0 z-40">
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onBack}
+                className="glass-light hover:bg-white/10 interactive rounded-full p-2"
+              >
+                <ArrowLeft className="h-5 w-5 text-white" />
               </Button>
-              <h1 className="text-2xl font-bold gradient-text">Settings</h1>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
+                    <Settings className="h-6 w-6 text-pink-500" />
+                  </div>
+                  <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold gradient-text-animated">Settings</h1>
+                  <p className="text-sm text-gray-400">Manage your account and privacy</p>
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground ml-10">
-              Manage your account, privacy, and support
-            </p>
           </div>
         </div>
-        <div className="p-4 space-y-6">
-          <Card>
+
+        <div className="p-6 space-y-6">
+          {/* Enhanced Account & Support Card */}
+          <Card className="glass-light border-white/10">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Lock className="h-5 w-5 text-primary" />
+              <CardTitle className="text-xl flex items-center gap-3 text-white">
+                <Lock className="h-6 w-6 text-pink-400" />
                 Account & Support
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start" onClick={() => setShowPrivacyHub(true)}>
-                <Shield className="h-4 w-4 mr-2" />
-                Privacy & Safety
+            <CardContent className="space-y-4">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
+                onClick={() => setShowPrivacyHub(true)}
+              >
+                <Shield className="h-5 w-5 mr-3 text-pink-400" />
+                <div className="text-left">
+                  <p className="font-medium">Privacy & Safety</p>
+                  <p className="text-sm text-gray-400">Control your privacy settings</p>
+                </div>
               </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => setShowHelp(true)}>
-                <Zap className="h-4 w-4 mr-2" />
-                Help & Support
+
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
+                onClick={() => setShowHelp(true)}
+              >
+                <Zap className="h-5 w-5 mr-3 text-blue-400" />
+                <div className="text-left">
+                  <p className="font-medium">Help & Support</p>
+                  <p className="text-sm text-gray-400">Get help and contact support</p>
+                </div>
               </Button>
-               <Button variant="outline" className="w-full justify-start" onClick={() => setShowSafetyCenter(true)}>
-                <Eye className="h-4 w-4 mr-2" />
-                Safety Center
+
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
+                onClick={() => setShowSafetyCenter(true)}
+              >
+                <Eye className="h-5 w-5 mr-3 text-green-400" />
+                <div className="text-left">
+                  <p className="font-medium">Safety Center</p>
+                  <p className="text-sm text-gray-400">Learn about safety features</p>
+                </div>
               </Button>
-              <Separator />
-              <Button variant="destructive" className="w-full justify-start" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+
+              <Separator className="bg-white/10" />
+
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start glass-light border border-red-500/30 hover:bg-red-500/20 text-red-400 hover:text-red-300 interactive rounded-xl p-4 h-auto"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <p className="font-medium">Logout</p>
+                  <p className="text-sm text-red-400/70">Sign out of your account</p>
+                </div>
               </Button>
+
               <Button
-                variant="outline"
-                className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                variant="ghost"
+                className="w-full justify-start glass-light border border-red-500/30 hover:bg-red-500/20 text-red-400 hover:text-red-300 interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Delete Account
+                <AlertTriangle className="h-5 w-5 mr-3" />
+                <div className="text-left">
+                  <p className="font-medium">Delete Account</p>
+                  <p className="text-sm text-red-400/70">Permanently delete your account</p>
+                </div>
               </Button>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 text-center text-sm text-muted-foreground">
-              <p>NIT Connect v1.0.0</p>
-              <p className="mt-1">Made with ❤️ for NIT students</p>
+
+          {/* Enhanced App Info Card */}
+          <Card className="glass-light border-white/10">
+            <CardContent className="p-6 text-center">
+              <div className="space-y-2">
+                <p className="text-lg font-semibold gradient-text">NIT Connect v1.0.0</p>
+                <p className="text-gray-400">Made with 💖 for NIT students</p>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* --- Delete Account Confirmation Dialog --- */}
+      {/* Enhanced Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass border-white/20 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-xl gradient-text">Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-300 text-base leading-relaxed">
               This action cannot be undone. This will permanently delete your account data, including all photos and personal information.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {deleteError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{deleteError}</p>
+            <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl">
+              <p className="text-sm text-red-300">{deleteError}</p>
+            </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              className="glass-light border-white/20 text-white hover:bg-white/10"
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteAccount}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
             >
               {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isDeleting ? 'Deleting...' : 'Yes, Delete Account'}
@@ -208,6 +271,12 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Background effects */}
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
     </>
   );
 }
