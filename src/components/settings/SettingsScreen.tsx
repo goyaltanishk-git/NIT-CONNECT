@@ -14,6 +14,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+// Import Dialog components
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   Shield,
@@ -24,7 +33,13 @@ import {
   Eye,
   Loader2,
   Settings,
+  EyeOff,
+  Info,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+// 🆕 Import the useUserProfile hook
+import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
 
 // Import sub-screens
 import { HelpScreen } from "@/components/profile/HelpScreen";
@@ -34,14 +49,43 @@ import { PrivacyPolicyScreen } from "@/components/profile/privacyandsafety/Priva
 import { TermsScreen } from "@/components/profile/privacyandsafety/TermsScreen";
 import { SafetyCenterScreen } from "@/components/profile/privacyandsafety/SafetyCenterScreen";
 
-// 🆕 Import Hero Demo
 import { useNavigate } from "react-router-dom";
 
 interface SettingsScreenProps {
   onBack: () => void;
+  // 🆕 Make props optional
+  profile?: FullProfile | null;
+  onIncognitoToggle?: (enabled: boolean) => Promise<void>;
 }
 
-export function SettingsScreen({ onBack }: SettingsScreenProps) {
+export function SettingsScreen({
+  onBack,
+  profile: propProfile, // Rename prop to avoid conflict
+  onIncognitoToggle: propOnToggle, // Rename prop
+}: SettingsScreenProps) {
+  // ----------------------------------------------------------------
+  // 🆕 START: Internal Data Fetching
+  // ----------------------------------------------------------------
+
+  // Fetch profile data internally, in case it's not passed as a prop
+  const { profile: internalProfile, updateProfile } = useUserProfile();
+
+  // Use the profile passed as a prop, OR the one fetched internally
+  const profile = propProfile || internalProfile;
+
+  // Create an internal toggle function that uses the hook's updateProfile
+  const internalOnToggle = async (enabled: boolean) => {
+    if (!updateProfile) return; // Hook might still be loading
+    await updateProfile({ incognito_mode: enabled });
+  };
+  
+  // Use the toggle function passed as a prop, OR the internal one
+  const onIncognitoToggle = propOnToggle || internalOnToggle;
+  
+  // ----------------------------------------------------------------
+  // 🆕 END: Internal Data Fetching
+  // ----------------------------------------------------------------
+
   // State for sub-screens
   const navigate = useNavigate();
   const [showPrivacyHub, setShowPrivacyHub] = useState(false);
@@ -51,19 +95,50 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
   const [showTerms, setShowTerms] = useState(false);
   const [showSafetyCenter, setShowSafetyCenter] = useState(false);
 
-  // 🆕 Hero component toggle
-
   // State for delete confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // State for Incognito Toggle
+  const [isIncognitoLoading, setIsIncognitoLoading] = useState(false);
+  const [showIncognitoDialog, setShowIncognitoDialog] = useState(false); 
+  const { toast } = useToast();
 
   const handleLogout = () => {
     AuthService.clearCurrentUser();
     window.location.reload();
   };
 
+  // Wrapper handler for Incognito Toggle
+  // This logic works perfectly and will now use the correct
+  // onIncognitoToggle function (either prop or internal).
+  const handleIncognitoToggle = async (enabled: boolean) => {
+    setIsIncognitoLoading(true);
+    try {
+      await onIncognitoToggle(enabled);
+      toast({
+        title: enabled
+          ? "Incognito Mode Activated"
+          : "Incognito Mode Deactivated",
+        description: enabled
+          ? "Your identity is now hidden."
+          : "Your profile is now visible.",
+      });
+    } catch (error) {
+      console.error("Error toggling incognito mode:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update incognito mode. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsIncognitoLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
+    // ... (delete account logic remains the same)
     setIsDeleting(true);
     setDeleteError(null);
 
@@ -183,8 +258,6 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
       />
     );
 
-  // 🆕 Show Horizon Hero Demo directly here
-  
   // --- Main Settings Menu ---
   return (
     <>
@@ -258,6 +331,32 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                 </div>
               </Button>
 
+              {/* This logic will now work correctly.
+                If profile prop is null, it uses internalProfile.
+                If internalProfile is still loading, it's null, and
+                the button remains hidden until data is fetched.
+              */}
+              {profile && profile.gender === "female" && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
+                  onClick={() => setShowIncognitoDialog(true)}
+                >
+                  {profile.incognito_mode ? (
+                    <EyeOff className="h-5 w-5 mr-3 text-purple-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 mr-3 text-gray-400" />
+                  )}
+                  <div className="text-left">
+                    <p className="font-medium">Incognito Mode</p>
+                    <p className="text-sm text-gray-400">
+                      {profile.incognito_mode ? "Active" : "Inactive"} -
+                      Browse anonymously
+                    </p>
+                  </div>
+                </Button>
+              )}
+
               <Button
                 variant="ghost"
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
@@ -272,7 +371,6 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                 </div>
               </Button>
 
-              {/* 🆕 NEW HERO TEST BUTTON */}
               <Button
                 variant="ghost"
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
@@ -321,6 +419,68 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
         </div>
       </div>
 
+      {/* INCOGNITO MODE DIALOG */}
+      <Dialog open={showIncognitoDialog} onOpenChange={setShowIncognitoDialog}>
+        <DialogContent className="glass border-white/20 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl gradient-text flex items-center gap-2">
+              <EyeOff className="h-5 w-5" />
+              Incognito Mode
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Browse and match anonymously while keeping all features.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between p-4 glass-light rounded-xl border border-white/10">
+              <div className="text-left">
+                <p className="font-medium text-white">Activate Incognito Mode</p>
+                <p className="text-sm text-gray-400">
+                  Your identity will be hidden from others.
+                </p>
+              </div>
+              <Switch
+                checked={Boolean(profile?.incognito_mode)}
+                onCheckedChange={handleIncognitoToggle}
+                disabled={isIncognitoLoading}
+                className="data-[state=checked]:bg-pink-500"
+              />
+            </div>
+
+            <div className="p-4 glass-light rounded-xl border border-white/10">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-gray-300">
+                  <p className="font-medium text-white mb-2">
+                    When Incognito Mode is active:
+                  </p>
+                  <ul className="space-y-1.5 text-xs text-gray-400 list-disc list-inside">
+                    <li>Your name appears as "Anonymous User" to others</li>
+                    <li>Your photos are blurred or hidden from matches</li>
+                    <li>You can still swipe, match, and chat normally</li>
+                    <li>
+                      Others won't see your real identity until you reveal it
+                    </li>
+                    <li>Your profile details (year, branch, etc.) are hidden</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => setShowIncognitoDialog(false)}
+              className="glass-light border border-white/10 hover:bg-white/10"
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DELETE ACCOUNT DIALOG */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent className="glass border-white/20 text-white">
           <AlertDialogHeader>
@@ -358,6 +518,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Background effects */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div

@@ -3,14 +3,17 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Camera, Heart, Star, Eye, LogOut, TrendingUp, Award, Zap, Shield, User, Edit } from "lucide-react";
-import { useEloRating } from "@/hooks/useEloRating";
+import { Settings, Camera, Heart, Shield, User, Edit, Ruler, Home, BookOpen, GitBranch } from "lucide-react";
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
-import { IncognitoModeToggle } from "./IncognitoModeToggle";
 import { SettingsScreen } from "../settings/SettingsScreen";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
 import { AuthService } from "@/lib/auth";
+
+// Imports for Photo Upload
+import { PhotoUpload } from "@/components/discovery/PhotoUpload";
+import { PhotoService, UserPhoto } from "@/lib/photoservice";
+import { useToast } from "@/hooks/use-toast";
 
 // Import new screens from their respective locations
 import { HelpScreen } from "./HelpScreen";
@@ -20,21 +23,24 @@ import { PrivacyPolicyScreen } from "./privacyandsafety/PrivacyPolicyScreen";
 import { TermsScreen } from "./privacyandsafety/TermsScreen";
 import { SafetyCenterScreen } from "./privacyandsafety/SafetyCenterScreen";
 
+// 🆕 Import the new dialog and its Profile type
+import { MyProfileDialog, Profile as MyProfileType } from "./MyProfileDialog";
+
 // Interface for local UI state
 interface UIProfile {
   name: string;
   age: number;
   bio: string;
-  year: number;
+  year: string; 
   branch: string;
   hometown: string;
-  height: string;
+  height: string; 
   interests: string[];
-  photos: string[];
 }
 
 export function ProfileScreen() {
   const { profile, loading, updateProfile } = useUserProfile();
+  const { toast } = useToast(); 
   
   // State for managing which screen is visible
   const [showSettings, setShowSettings] = useState(false);
@@ -44,12 +50,13 @@ export function ProfileScreen() {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showSafetyCenter, setShowSafetyCenter] = useState(false);
-
-  // Local state for UI elements
-  const [eloRating, setEloRating] = useState(1245);
   
-  const { getRatingTier } = useEloRating();
-  const ratingTier = getRatingTier(eloRating);
+  // 🆕 State for the new profile dialog
+  const [showMyProfileDialog, setShowMyProfileDialog] = useState(false);
+
+  // Photo state (THE SINGLE SOURCE OF TRUTH)
+  const [photos, setPhotos] = useState<UserPhoto[]>([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
 
   // Transform database profile to UI profile
   const getUIProfile = (dbProfile: FullProfile | null): UIProfile => {
@@ -57,13 +64,12 @@ export function ProfileScreen() {
       return {
         name: "Loading...",
         age: 0,
-        bio: "",
-        year: 0,
-        branch: "",
-        hometown: "",
-        height: "",
+        bio: "...",
+        year: "...",
+        branch: "...",
+        hometown: "...",
+        height: "...",
         interests: [],
-        photos: []
       };
     }
 
@@ -82,31 +88,51 @@ export function ProfileScreen() {
     return {
       name: `${dbProfile.first_name} ${dbProfile.last_name}`.trim(),
       age: calculateAge(dbProfile.date_of_birth || '2000-01-01'),
-      bio: dbProfile.bio || "Tell others about yourself...",
-      year: parseInt(dbProfile.year_of_study?.replace(/\D/g, '') || '1'),
-      branch: dbProfile.branch || "Computer Science",
-      hometown: dbProfile.hometown || "Your Hometown",
-      height: dbProfile.height?.toString() || "5'8\"",
-      // --- FIX: Read interests from the profile object ---
+      bio: dbProfile.bio || "No bio yet. Add one!",
+      year: dbProfile.year_of_study || "N/A",
+      branch: dbProfile.branch || "N/A",
+      hometown: dbProfile.hometown || "N/A",
+      height: dbProfile.height ? `${dbProfile.height} cm` : "N/A",
       interests: dbProfile.interests || [],
-      photos: dbProfile.photos || []
     };
   };
 
   const user = getUIProfile(profile);
 
+  // Load photos when profile is available
   useEffect(() => {
-    // Load ELO rating from localStorage or database
-    const tempUser = localStorage.getItem('temp-user');
-    if (tempUser) {
-      try {
-        const userData = JSON.parse(tempUser);
-        setEloRating(userData.eloRating || 1245);
-      } catch (error) {
-        console.error('Error loading temp user data:', error);
-      }
+    if (profile?.email) {
+      loadPhotos();
     }
-  }, []);
+  }, [profile]);
+
+  // Function to load photos
+  const loadPhotos = async () => {
+    if (!profile?.email) return;
+    
+    setPhotosLoading(true);
+    try {
+      console.log("[ProfileScreen] Loading photos for:", profile.email);
+      const userPhotos = await PhotoService.getUserPhotos(profile.email);
+      console.log("[ProfileScreen] Photos loaded:", userPhotos);
+      setPhotos(userPhotos);
+    } catch (error) {
+      console.error('Error loading photos:', error);
+      toast({
+        title: "Error loading photos",
+        description: "Could not load your photos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
+
+  // Handler for PhotoUpload component (wrapped in useCallback)
+  const handlePhotosUpdate = useCallback((updatedPhotos: UserPhoto[]) => {
+    console.log("[ProfileScreen] Photos updated:", updatedPhotos);
+    setPhotos(updatedPhotos);
+  }, []); // Empty dependency array means this function never changes
 
   const handleSaveProfile = async (updatedUser: Partial<ProfileType>) => {
     if (!profile) return;
@@ -114,7 +140,6 @@ export function ProfileScreen() {
     try {
       console.log('📝 Saving profile updates:', updatedUser);
       
-      // Map the updates to database fields
       const dbUpdates: any = {};
       
       if (updatedUser.bio !== undefined) dbUpdates.bio = updatedUser.bio;
@@ -148,7 +173,7 @@ export function ProfileScreen() {
       console.log('✅ Incognito mode updated:', enabled);
     } catch (error) {
       console.error('❌ Error updating incognito mode:', error);
-      throw error;
+      throw error; // Re-throw so SettingsScreen can catch it
     }
   };
 
@@ -180,7 +205,11 @@ export function ProfileScreen() {
            />;
   }
   if (showSettings) {
-    return <SettingsScreen onBack={() => setShowSettings(false)} />;
+    return <SettingsScreen 
+      onBack={() => setShowSettings(false)}
+      profile={profile}
+      onIncognitoToggle={handleIncognitoToggle}
+    />;
   }
   if (showHelp) {
     return <HelpScreen onBack={() => setShowHelp(false)} />;
@@ -249,162 +278,133 @@ export function ProfileScreen() {
     created_at: profile.created_at || new Date().toISOString(),
     updated_at: profile.updated_at || new Date().toISOString(),
     verification_document_url: profile.verification_document_url || null,
-    photos: profile.photos || [],
+    photos: photos.map(p => p.photo_url), 
     interests: user.interests
   };
+  
+  // 🆕 Create the full profile object for the new dialog
+  const myProfileForDialog: MyProfileType | null = profile ? {
+      ...profile, // Spread all properties from the FullProfile object
+      photos: photos, // Override with the local, up-to-date photos state
+      interests: user.interests, // Use the interests from the UIProfile object
+      prompts: profile.prompts || [],   // Use prompts from FullProfile
+      elo_rating: profile.elo_rating || null // Use elo_rating from FullProfile
+  } : null;
 
   return (
     <div className="max-w-lg mx-auto bg-black min-h-screen text-white">
-      {/* Enhanced Header with Glassmorphism */}
-      <div className="glass border-b border-white/10 p-6">
-        {/* ELO Rating Display */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
-                <Award className="h-6 w-6 text-pink-500" />
-              </div>
-              <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
-            </div>
-            <div>
-              <p className="text-sm text-gray-400">Your Rating</p>
-              <p className="text-xl font-bold gradient-text">
-                {ratingTier.tier}
-                <span className="text-sm font-normal text-gray-400 ml-2">({eloRating})</span>
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="glass-light hover:bg-white/10 interactive rounded-full"
-            onClick={() => setShowSettings(true)}
-          >
-            <Settings className="h-6 w-6 text-white" />
-          </Button>
-        </div>
-
-        {/* Enhanced Profile Card */}
-        <div className="glass-light rounded-3xl p-6 border border-white/10">
-          <div className="flex items-start gap-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20 ring-2 ring-pink-500/30">
-                <AvatarImage src={user.photos[0]} />
-                <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-2xl font-bold">
-                  {user.name[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              {profile.is_verified && (
-                <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full p-1">
-                  <Shield className="h-4 w-4 text-white" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold gradient-text-animated">{user.name}, {user.age}</h1>
-              <p className="text-sm text-gray-400 mb-3 font-medium">
-                Year {user.year} • {user.branch} • {user.hometown}
-              </p>
-              <p className="text-sm text-gray-300 leading-relaxed">{user.bio}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* New Tinder-style layout */}
       <div className="p-6 space-y-6">
-        {/* Incognito Mode Toggle - Only for Female Users */}
-        {profile.gender === "female" && (
-          <IncognitoModeToggle
-            isIncognito={Boolean(profile.incognito_mode)}
-            userGender={profile.gender as "male" | "female"}
-            onToggle={handleIncognitoToggle}
-          />
-        )}
+        
+        {/* "Profile" Title (Gray, Larger) */}
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-400 tracking-wide">Profile</h1>
+        </div>
 
-        {/* Enhanced Interests */}
-        <Card className="glass-light border-white/10">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-white flex items-center gap-2">
-              <Heart className="h-5 w-5 text-pink-400" />
-              Interests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {user.interests && user.interests.length > 0 ? (
-                user.interests.map((interest, index) => (
-                  <Badge 
-                    key={index} 
-                    className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-3 py-1 hover:scale-105 transition-transform duration-200 interactive"
-                  >
-                    {interest}
-                  </Badge>
-                ))
-              ) : (
-                <p className="text-gray-400">
-                  Add your interests to help others connect with you!
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Enhanced Photos */}
-        <Card className="glass-light border-white/10">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center justify-between text-white">
-              <div className="flex items-center gap-2">
-                <Camera className="h-5 w-5 text-pink-400" />
-                <span>Photos ({user.photos.length}/6)</span>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {user.photos.map((photo, index) => (
-                <div
-                  key={index}
-                  className="aspect-square rounded-xl bg-cover bg-center border-2 border-white/10 hover:border-pink-500/50 transition-colors duration-200"
-                  style={{ backgroundImage: `url(${photo})` }}
-                />
-              ))}
-              {Array.from({ length: 6 - user.photos.length }).map((_, index) => (
-                <div
-                  key={index}
-                  className="aspect-square rounded-xl border-2 border-dashed border-white/20 flex items-center justify-center text-gray-400 hover:border-pink-500/50 hover:text-pink-400 transition-all duration-200 interactive"
-                >
-                  <div className="text-center">
-                    <Camera className="h-6 w-6 mx-auto mb-1" />
-                    <p className="text-xs">Add Photo</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 text-center">
-              Add more photos to increase your match rate by up to 40%!
+        {/* Top Profile Section */}
+        <div className="flex flex-col items-center space-y-4">
+          {/* 🆕 Wrapped Avatar in a button to open the dialog */}
+          <button 
+            className="relative interactive"
+            onClick={() => setShowMyProfileDialog(true)}
+          >
+            {/* Increased Avatar Size */}
+            <Avatar className="h-96 w-96 ring-4 ring-pink-500/30 border-4 border-black">
+              <AvatarImage src={photos.length > 0 ? photos[0].photo_url : undefined} />
+              <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-9xl font-bold">
+                {user.name[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          </button>
+          
+          <div className="text-center">
+            {/* Increased Text Size */}
+            <h1 className="text-5xl font-bold gradient-text-animated">{user.name}, {user.age}</h1>
+            {/* Updated info line */}
+            <p className="text-lg text-gray-400 mt-1">
+              {user.year} • {user.branch}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Enhanced Account Options */}
-        <div className="space-y-4">
+        {/* "V" Shape Circular Button Row - Adjusted */}
+        {/* Brought buttons closer together */}
+        <div className="flex flex-col items-center gap-0 w-full max-w-sm mx-auto">
+          {/* Top Row - Pushed to edges */}
+          <div className="flex justify-between w-full">
+            {/* Settings Button */}
+            <button 
+              onClick={() => setShowSettings(true)} 
+              className="flex flex-col items-center space-y-2 group interactive"
+            >
+              {/* Increased size to h-24 w-24 */}
+              <div className="h-24 w-24 rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                {/* Increased icon size to h-10 w-10 */}
+                <Settings className="h-10 w-10 text-gray-300 group-hover:text-white transition-colors" />
+              </div>
+              <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">SETTINGS</span>
+            </button>
+
+            {/* Safety Button */}
+            <button 
+              onClick={() => setShowSafetyCenter(true)} 
+              className="flex flex-col items-center space-y-2 group interactive"
+            >
+              {/* Increased size to h-24 w-24 */}
+              <div className="h-24 w-24 rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                {/* Increased icon size to h-10 w-10 */}
+                <Shield className="h-10 w-10 text-gray-300 group-hover:text-white transition-colors" />
+              </div>
+              <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">SAFETY</span>
+            </button>
+          </div>
+
+          {/* Bottom (Edit Profile) Button */}
+          {/* Pulled up with negative margin */}
           <EditProfileModal
             profile={profileForModal}
             onSave={handleSaveProfile}
-          />
-          
-          <Button
-            variant="ghost"
-            className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
-            onClick={() => setShowSettings(true)}
+            photos={photos}
+            onPhotosUpdate={handlePhotosUpdate}
+            photosLoading={photosLoading}
           >
-            <Settings className="h-5 w-5 mr-3 text-pink-400" />
-            <div className="text-left">
-              <p className="font-medium">Account Settings</p>
-              <p className="text-sm text-gray-400">Privacy, notifications, and more</p>
+            <div className="flex flex-col items-center space-y-2 group interactive cursor-pointer -mt-20">
+              {/* Increased size to h-24 w-24 */}
+              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-5In0/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
+                {/* Increased icon size to h-10 w-10 */}
+                <Edit className="h-10 w-10 text-white" />
+              </div>
+              <span className="text-xs font-medium text-gray-400 group-hover:text-white transition-colors">EDIT PROFILE</span>
             </div>
-          </Button>
+          </EditProfileModal>
         </div>
+
+        <Separator className="bg-white/10" />
+
+        {/* Photos Card */}
+        <Card className="glass-light border-white/10">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-white flex items-center gap-2 text-lg">
+              <Camera className="h-5 w-5 text-pink-400" />
+              Edit My Photos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {photosLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white/50"></div>
+              </div>
+            ) : (
+              <PhotoUpload
+                userEmail={profile.email}
+                photos={photos}
+                onPhotosUpdate={handlePhotosUpdate}
+                maxPhotos={3} 
+              />
+            )}
+          </CardContent>
+        </Card>
+        
       </div>
 
       {/* Background effects */}
@@ -412,6 +412,13 @@ export function ProfileScreen() {
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
+      
+      {/* 🆕 Render the new dialog */}
+      <MyProfileDialog
+        profile={myProfileForDialog}
+        isOpen={showMyProfileDialog}
+        onClose={() => setShowMyProfileDialog(false)}
+      />
     </div>
   );
 }

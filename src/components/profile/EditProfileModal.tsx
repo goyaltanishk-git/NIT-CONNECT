@@ -6,10 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Camera, Plus, X, Tag } from "lucide-react";
-import { PhotoUpload } from "@/components/discovery/PhotoUpload";
-import { PhotoService, UserPhoto } from "@/lib/photoservice";
-import { InterestsService } from "@/lib/interests-service";
+import { Edit, Camera, Plus, X, Tag, Star } from "lucide-react"; 
+import { PhotoUpload } from "../discovery/PhotoUpload";
+import { UserPhoto } from "@/lib/photoservice";
+import { InterestsService } from "../../lib/interests-service";
 import { useToast } from "@/hooks/use-toast";
 
 // Define the profile type that matches your database schema
@@ -45,6 +45,11 @@ export interface ProfileType {
 interface EditProfileModalProps {
   profile: ProfileType;
   onSave: (updatedUser: Partial<ProfileType>) => Promise<void>;
+  // Props for lifted state
+  photos: UserPhoto[];
+  onPhotosUpdate: (updatedPhotos: UserPhoto[]) => void;
+  photosLoading: boolean;
+  children: React.ReactNode; 
 }
 
 const BRANCHES = [
@@ -60,14 +65,24 @@ const POPULAR_INTERESTS = [
   "Guitar", "Piano", "Football", "Basketball", "Cricket", "Tennis", "Badminton"
 ];
 
-export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
+export function EditProfileModal({
+  profile,
+  onSave,
+  // Destructure new props
+  photos,
+  onPhotosUpdate,
+  photosLoading,
+  children 
+}: EditProfileModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [photos, setPhotos] = useState<UserPhoto[]>([]);
-  const [photosLoading, setPhotosLoading] = useState(false);
+  
   const [interests, setInterests] = useState<string[]>([]);
   const [interestsLoading, setInterestsLoading] = useState(false);
   const [newInterest, setNewInterest] = useState("");
   const { toast } = useToast();
+  
+  // 🆕 State for phone number validation
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Initialize form data from profile with safe defaults
   const [formData, setFormData] = useState<Partial<ProfileType>>({
@@ -80,28 +95,6 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
     phone_number: profile.phone_number || "",
     instagram_handle: profile.instagram_handle || "",
   });
-
-  // Load user photos when modal opens
-  const loadPhotos = async () => {
-    if (!profile.email) return;
-    
-    setPhotosLoading(true);
-    try {
-      console.log("[EditProfileModal] Loading photos for:", profile.email);
-      const userPhotos = await PhotoService.getUserPhotos(profile.email);
-      console.log("[EditProfileModal] Photos loaded:", userPhotos);
-      setPhotos(userPhotos);
-    } catch (error) {
-      console.error('Error loading photos:', error);
-      toast({
-        title: "Error loading photos",
-        description: "Could not load your photos. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setPhotosLoading(false);
-    }
-  };
 
   // Load user interests when modal opens
   const loadInterests = async () => {
@@ -130,14 +123,20 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
     setIsOpen(open);
     if (open) {
       console.log("[EditProfileModal] Modal opened, loading data...");
-      loadPhotos();
       loadInterests();
+      // 🆕 Reset form data and errors on open
+      setFormData({
+        ...profile,
+        bio: profile.bio || "",
+        branch: profile.branch || "",
+        hometown: profile.hometown || "",
+        year_of_study: profile.year_of_study || "1st Year",
+        height: profile.height || 168,
+        phone_number: profile.phone_number || "",
+        instagram_handle: profile.instagram_handle || "",
+      });
+      setPhoneError(null);
     }
-  };
-
-  const handlePhotosUpdate = (updatedPhotos: UserPhoto[]) => {
-    console.log("[EditProfileModal] Photos updated:", updatedPhotos);
-    setPhotos(updatedPhotos);
   };
 
   // Add interest
@@ -169,13 +168,49 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
     }
   };
 
+  // 🆕 Phone number validation handler
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow only numbers
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    setFormData(prev => ({ ...prev, phone_number: numericValue }));
+
+    if (numericValue === '') {
+      setPhoneError(null); // No error if empty
+    } else if (numericValue.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits.');
+    } else {
+      setPhoneError(null); // Valid
+    }
+  };
+
   const handleSave = async () => {
+    // 🆕 Final check before save
+    if (phoneError) {
+      toast({
+        title: "Invalid Input",
+        description: phoneError,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       console.log("[EditProfileModal] Saving profile:", formData);
       console.log("[EditProfileModal] Saving interests:", interests);
       
-      // Save profile data
-      await onSave(formData);
+      // 🆕 We only send back fields that are meant to be editable
+      const editableData: Partial<ProfileType> = {
+        bio: formData.bio,
+        hometown: formData.hometown,
+        height: formData.height,
+        phone_number: formData.phone_number,
+        instagram_handle: formData.instagram_handle,
+        date_of_birth: formData.date_of_birth, // 🆕 DOB is now saved
+      };
+      
+      await onSave(editableData);
       
       // Save interests separately
       await InterestsService.updateUserInterests(profile.email, interests);
@@ -198,10 +233,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Edit className="w-4 h-4 mr-2" />
-          Edit Profile
-        </Button>
+        {children}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -216,20 +248,33 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               <Label className="text-base font-semibold">Photos</Label>
             </div>
             <p className="text-sm text-muted-foreground">
-              Add photos to make your profile stand out. Your first photo will be your primary photo.
+              Your photos are managed on the profile screen.
             </p>
             
+            {/* Use the photosLoading prop from ProfileScreen */}
             {photosLoading ? (
               <div className="flex items-center justify-center p-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
               </div>
             ) : (
-              <PhotoUpload
-                userEmail={profile.email}
-                photos={photos}
-                onPhotosUpdate={handlePhotosUpdate}
-                maxPhotos={6}
-              />
+              // This is now a simple display grid
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {photos.map((photo) => (
+                  <div key={photo.photo_order} className="relative group aspect-square">
+                    <img
+                      src={photo.photo_url}
+                      alt={`Photo ${photo.photo_order}`}
+                      className="w-full h-full object-cover rounded-xl border-2 border-gray-200"
+                    />
+                    {photo.is_primary && (
+                      <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        Primary
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -322,6 +367,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
                 id="first_name"
                 value={formData.first_name || ""}
                 onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                disabled // Non-editable
               />
             </div>
             <div>
@@ -330,6 +376,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
                 id="last_name"
                 value={formData.last_name || ""}
                 onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                disabled // Non-editable
               />
             </div>
           </div>
@@ -352,6 +399,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               type="date"
               value={formData.date_of_birth || ""}
               onChange={(e) => setFormData(prev => ({ ...prev, date_of_birth: e.target.value }))}
+              // 🆕 Removed 'disabled' prop
             />
           </div>
 
@@ -361,6 +409,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               <Select
                 value={formData.year_of_study || ""}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, year_of_study: value }))}
+                disabled // Non-editable
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select year" />
@@ -379,6 +428,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               <Select
                 value={formData.branch || ""}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, branch: value }))}
+                disabled // Non-editable
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select branch" />
@@ -409,6 +459,7 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               <Select
                 value={formData.gender || ""}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value as "male" | "female" }))}
+                disabled // Non-editable
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select gender" />
@@ -420,32 +471,18 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               </Select>
             </div>
 
+            {/* ⛔️ "Interested In" field removed */}
+            
             <div>
-              <Label htmlFor="interested_in">Interested In</Label>
-              <Select
-                value={formData.interested_in || ""}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, interested_in: value as "male" | "female" }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select preference" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="height">Height (cm)</Label>
+              <Input
+                id="height"
+                type="number"
+                value={formData.height || ""}
+                onChange={(e) => setFormData(prev => ({ ...prev, height: parseInt(e.target.value) || null }))}
+                placeholder="e.g., 175"
+              />
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="height">Height (cm)</Label>
-            <Input
-              id="height"
-              type="number"
-              value={formData.height || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, height: parseInt(e.target.value) || null }))}
-              placeholder="e.g., 175"
-            />
           </div>
 
           <div>
@@ -465,9 +502,12 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
               id="phone_number"
               type="tel"
               value={formData.phone_number || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
-              placeholder="Your phone number"
+              onChange={handlePhoneChange} // 🆕 Use new handler
+              placeholder="10 digit phone number"
+              maxLength={10} // 🆕 Add maxLength
             />
+            {/* 🆕 Show error message if it exists */}
+            {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
           </div>
 
           <div>
@@ -490,7 +530,8 @@ export function EditProfileModal({ profile, onSave }: EditProfileModalProps) {
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} className="flex-1">
+            {/* 🆕 Save button is disabled if phone number is invalid */}
+            <Button onClick={handleSave} className="flex-1" disabled={!!phoneError}>
               Save Changes
             </Button>
           </div>
