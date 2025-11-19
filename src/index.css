@@ -122,6 +122,27 @@
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
 /* Gradient text */
 .gradient-text {
@@ -140,7 +161,9 @@
   background-size: 200% 200%;
   animation: gradient-shift 3s ease infinite;
 }
-
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
 /* Custom button styles */
 .btn-primary {
   background: linear-gradient(135deg, #FF4FA2, #FF69B4);
