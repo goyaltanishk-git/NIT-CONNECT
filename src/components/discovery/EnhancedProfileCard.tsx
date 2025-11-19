@@ -1,315 +1,361 @@
-import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  MapPin,
-  GraduationCap,
-  Heart,
-  X,
-  Star,
-  Info,
-  Clock,
-  Shield,
-  Camera,
-  MessageCircle,
-  Tag,
-  Sparkles,
-  Crown,
-  Zap
-} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Heart, X, ChevronLeft, ChevronRight, GraduationCap, Calendar } from "lucide-react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 
+interface Photo { url: string; order?: number }
+interface Profile {
+  id: string;
+  full_name: string;
+  age: number;
+  bio: string;
+  year: string | number;
+  branch: string;
+  hometown: string;
+  interests: string[];
+  photos: Photo[];
+  height: string;
+  looking_for: string;
+  verified: boolean;
+  lives_in: string;
+  distance_from_you: string;
+}
 interface ProfileCardProps {
-  profile: {
-    id: string;
-    full_name: string;
-    age: number;
-    bio: string;
-    year: number;
-    branch: string;
-    hometown: string;
-    interests: string[];
-    photos: { url: string; order: number }[];
-    height: string;
-    looking_for: string;
-    verified: boolean;
-  };
+  profile: Profile;
   onLike: () => void;
   onPass: () => void;
-  onSuperLike: () => void;
 }
 
-export function EnhancedProfileCard({ profile, onLike, onPass, onSuperLike }: ProfileCardProps) {
+const getFirstName = (fullName: string) => fullName.split(" ")[0];
+
+export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [showDetails, setShowDetails] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showArrows, setShowArrows] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const directionRef = useRef<number>(1);
+  const [burst, setBurst] = useState(false);
+
+  const toggleFlip = () => setIsFlipped((prev) => !prev);
 
   const nextPhoto = () => {
-    if (profile.photos.length > 1) {
-      setCurrentPhotoIndex((prev) => (prev + 1) % profile.photos.length);
-    }
+    if (isFlipped || profile.photos.length <= 1) return;
+    directionRef.current = 1;
+    setCurrentPhotoIndex((p) => (p + 1) % profile.photos.length);
   };
 
   const prevPhoto = () => {
-    if (profile.photos.length > 1) {
-      setCurrentPhotoIndex((prev) => (prev - 1 + profile.photos.length) % profile.photos.length);
+    if (isFlipped || profile.photos.length <= 1) return;
+    directionRef.current = -1;
+    setCurrentPhotoIndex((p) => (p - 1 + profile.photos.length) % profile.photos.length);
+  };
+
+  const handleMouseEnter = () => setShowArrows(true);
+  const handleMouseLeave = () => setShowArrows(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isFlipped) return;
+    touchStartX.current = e.changedTouches[0].screenX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isFlipped) return;
+    if (touchStartX.current == null) return;
+    const endX = e.changedTouches[0].screenX;
+    const dx = touchStartX.current - endX;
+    if (dx > 60) nextPhoto();
+    if (dx < -60) prevPhoto();
+    touchStartX.current = null;
+  };
+
+  const triggerBurst = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onLike();
+    setBurst(true);
+    setTimeout(() => setBurst(false), 400);
+  };
+
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (isFlipped && ev.key === "Escape") setIsFlipped(false);
+      if (!isFlipped && ev.key === "ArrowRight") nextPhoto();
+      if (!isFlipped && ev.key === "ArrowLeft") prevPhoto();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [profile.photos, isFlipped]);
+
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    if (info.offset.y > 100 || info.velocity.y > 800) {
+      setIsFlipped(false);
     }
   };
 
   return (
-    <Card 
-      className="w-full max-w-sm mx-auto glass border-white/10 rounded-3xl overflow-hidden transition-all duration-700 hover:scale-[1.03] group card-hover animate-scale-in"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <CardContent className="p-0 relative">
-        {/* Photo Section with Enhanced Gradients and Animations */}
-        <div className="relative aspect-[3/4] bg-gradient-to-br from-gray-900 to-black overflow-hidden">
-          {/* Photo Navigation Areas */}
-          <div className="absolute inset-0 z-10 flex">
-            <div 
-              className="flex-1 cursor-pointer interactive" 
-              onClick={prevPhoto}
-            />
-            <div 
-              className="flex-1 cursor-pointer interactive" 
-              onClick={nextPhoto}
-            />
-            <div 
-              className="absolute inset-0 cursor-pointer"
-              onClick={() => setShowDetails(!showDetails)}
-            />
-          </div>
+    <div className="relative flex flex-col items-center">
+      
+      {/* CARD WRAPPER WITH SCALE-IN ANIMATION */}
+      <motion.div
+        className="
+          relative w-[68vw] max-w-[360px] h-[590px]
+          perspective-[1000px]
+          animate-scale-in
+        "
+        style={{ transformStyle: "preserve-3d" }}
+      >
 
-          {/* Main Photo with Enhanced Overlay and Animations */}
-          <img
-            src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/300/400"}
-            alt={profile.full_name}
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-          />
+        {/* FRONT FACE */}
+        <motion.div
+          className="
+            absolute inset-0 
+            border-2 border-pink-300 rounded-3xl overflow-hidden 
+            shadow-2xl 
+            bg-gradient-to-br from-pink-500/40 to-purple-600/40 
+            backdrop-blur-3xl
+            cursor-pointer 
+            card-hover
+          "
+          initial={false}
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{ duration: 0.6, type: "spring", stiffness: 120, damping: 20 }}
+          style={{ backfaceVisibility: "hidden" }}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onClick={toggleFlip}
+        >
 
-          {/* Enhanced Gradient Overlays with Animation */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 via-transparent to-purple-500/10 opacity-60 animate-gradient-shift" />
+          {/* PHOTO SECTION */}
+          <div className="relative w-full h-[63%] overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <img
+                key={currentPhotoIndex}
+                src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/800/1000"}
+                alt={profile.full_name}
+                className={`
+                  absolute inset-0 w-full h-full object-cover object-center
+                  ${directionRef.current === 1 ? "animate-slide-in-right" : "animate-slide-in-left"}
+                `}
+                draggable={false}
+              />
+            </AnimatePresence>
 
-          {/* Verified Badge with Enhanced Glow */}
-          {profile.verified && (
-            <div className="absolute top-4 right-4 relative animate-bounce-in">
-              <div className="bg-gradient-to-r from-pink-500 to-pink-600 text-white p-2.5 rounded-full shadow-lg animate-heartbeat">
-                <Shield className="w-4 h-4" />
-              </div>
-              <div className="absolute inset-0 bg-pink-500/50 rounded-full blur-lg animate-pulse-glow"></div>
-            </div>
-          )}
-
-          {/* Enhanced Photo Indicators with Smooth Transitions */}
-          {profile.photos.length > 1 && (
-            <div className="absolute top-4 left-4 flex space-x-2">
-              {profile.photos.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-2 rounded-full transition-all duration-500 cursor-pointer interactive ${
-                    index === currentPhotoIndex 
-                      ? 'bg-white shadow-lg w-8 animate-pulse-glow' 
-                      : 'bg-white/40 hover:bg-white/60 w-2 hover:w-4'
-                  }`}
-                  onClick={() => setCurrentPhotoIndex(index)}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Active Status with Enhanced Floating Animation */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-500">
-            <div className="glass-light text-white px-4 py-2 rounded-full text-sm font-medium flex items-center shadow-xl animate-bounce border border-white/20">
-              <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-              Active now
-            </div>
-          </div>
-
-          {/* Enhanced Floating Hearts and Sparkles Animation */}
-          {isHovered && (
-            <div className="absolute inset-0 pointer-events-none">
-              <Heart className="absolute top-1/4 left-1/4 w-6 h-6 text-pink-400 animate-heartbeat opacity-60 animate-float" />
-              <Sparkles className="absolute top-3/4 right-1/4 w-4 h-4 text-purple-400 animate-pulse opacity-80 animate-float stagger-1" />
-              <Star className="absolute bottom-1/4 left-1/3 w-5 h-5 text-pink-300 animate-bounce opacity-50 animate-float stagger-2" />
-              <Sparkles className="absolute top-1/3 right-1/3 w-3 h-3 text-blue-400 animate-pulse opacity-70 animate-float stagger-3" />
-            </div>
-          )}
-
-          {/* Shimmer effect on hover */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"></div>
-          </div>
-        </div>
-
-        {/* Enhanced Profile Information with Better Animations */}
-        <div className="p-6 space-y-5 glass-light animate-slide-up">
-          {/* Name and Age with Enhanced Typography */}
-          <div className="flex items-center justify-between">
-            <div className="animate-slide-in-left">
-              <h3 className="text-2xl font-bold gradient-text-animated">
-                {profile.full_name}, {profile.age}
-              </h3>
-              <div className="flex items-center text-gray-400 text-sm mt-2">
-                <MapPin className="w-4 h-4 mr-2 text-pink-400 animate-pulse" />
-                <span className="font-medium">2.5 km away</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Education Info with Enhanced Styling and Animation */}
-          <div className="flex items-center text-gray-300 glass-light p-3 rounded-xl border border-white/10 hover:border-pink-500/30 transition-all duration-300 interactive animate-slide-in-right">
-            <GraduationCap className="w-5 h-5 mr-3 text-pink-400 animate-pulse" />
-            <span className="text-sm font-medium">Year {profile.year} • {profile.branch}</span>
-          </div>
-
-          {/* Bio Preview with Better Formatting and Animation */}
-          <div className="glass-light p-4 rounded-xl border border-white/10 hover:border-purple-500/30 transition-all duration-300 interactive animate-fade-in stagger-1">
-            <p className="text-gray-300 text-sm leading-relaxed line-clamp-2 font-medium">
-              {profile.bio}
-            </p>
-          </div>
-
-          {/* Enhanced Interests Preview with Staggered Animations */}
-          {profile.interests && profile.interests.length > 0 && (
-            <div className="animate-fade-in stagger-2">
-              <div className="flex items-center mb-3">
-                <Tag className="w-4 h-4 mr-2 text-pink-400 animate-pulse" />
-                <span className="text-sm font-semibold text-gray-300">Interests</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.interests.slice(0, 3).map((interest, index) => (
-                  <Badge 
-                    key={index} 
-                    variant="secondary" 
-                    className={`bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 text-xs font-medium px-3 py-1.5 hover:scale-110 transition-all duration-300 interactive hover-glow animate-bounce-in stagger-${index + 1}`}
-                  >
-                    {interest}
-                  </Badge>
-                ))}
-                {profile.interests.length > 3 && (
-                  <Badge variant="outline" className="text-xs border-pink-500/30 text-pink-400 hover:bg-pink-500/10 transition-all duration-300 interactive hover:scale-105 animate-bounce-in stagger-4">
-                    +{profile.interests.length - 3} more
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Enhanced Action Buttons with Premium Animations */}
-          <div className="flex justify-center space-x-4 pt-4 animate-slide-up stagger-3">
-            <Button
-              variant="ghost"
-              size="lg"
-              className="rounded-full w-16 h-16 glass-light border-2 border-red-500/30 hover:border-red-400 hover:bg-red-500/20 transition-all duration-500 hover:scale-125 group interactive"
-              onClick={onPass}
-            >
-              <X className="w-6 h-6 text-red-400 group-hover:text-red-300 group-hover:rotate-90 transition-all duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-pink-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="lg"
-              className="rounded-full w-16 h-16 glass-light border-2 border-blue-500/30 hover:border-blue-400 hover:bg-blue-500/20 transition-all duration-500 hover:scale-125 group interactive"
-              onClick={() => setShowDetails(!showDetails)}
-            >
-              <Info className="w-6 h-6 text-blue-400 group-hover:text-blue-300 group-hover:rotate-12 transition-all duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
-            </Button>
-            
-            <Button
-              size="lg"
-              className="rounded-full w-16 h-16 bg-gradient-to-r from-pink-500 via-pink-600 to-pink-700 hover:from-pink-400 hover:via-pink-500 hover:to-pink-600 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-125 group animate-pulse-glow interactive"
-              onClick={onLike}
-            >
-              <Heart className="w-6 h-6 text-white group-hover:animate-heartbeat group-hover:scale-110 transition-all duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-400/30 to-red-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
-            </Button>
-            
-            <Button
-              size="lg"
-              className="rounded-full w-16 h-16 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 hover:from-purple-400 hover:via-indigo-400 hover:to-blue-400 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-125 group interactive"
-              onClick={onSuperLike}
-            >
-              <Star className="w-6 h-6 text-white group-hover:rotate-12 group-hover:scale-110 transition-all duration-500" />
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/30 to-blue-400/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
-              <Sparkles className="absolute top-1 right-1 w-3 h-3 text-white opacity-0 group-hover:opacity-100 animate-pulse transition-opacity duration-300" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Enhanced Detailed Info Modal Overlay with Premium Animations */}
-        {showDetails && (
-          <div className="absolute inset-0 glass z-20 flex items-end animate-fade-in">
-            <div className="w-full glass-light rounded-t-3xl p-6 max-h-[70vh] overflow-y-auto shadow-2xl animate-slide-up border-t border-white/20">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold gradient-text-animated">
-                  {profile.full_name}
-                </h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowDetails(false)}
-                  className="rounded-full hover:bg-white/10 transition-all duration-300 interactive hover:scale-110"
+            {/* ARROWS */}
+            {showArrows && profile.photos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
+                  className="interactive absolute left-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
                 >
-                  <X className="w-5 h-5 text-white" />
-                </Button>
+                  <ChevronLeft className="w-8 h-8 text-white" />
+                </button>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
+                  className="interactive absolute right-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
+                >
+                  <ChevronRight className="w-8 h-8 text-white" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* INFO SECTION */}
+          <div className="relative w-full h-[37%] bg-black backdrop-blur-2xl">
+            
+            {/* NAME + AGE WITH HEARTBEAT */}
+            <div className="flex items-baseline gap-2 mb-2">
+              <h2 className="text-4xl my-2 ms-5 font-bold text-pink-500 animate-heartbeat">
+                {getFirstName(profile.full_name)},
+              </h2>
+              <span className="text-2xl text-pink-100/90">{profile.age}</span>
+            </div>
+
+            {/* TAGS */}
+            <div className="flex flex-wrap ms-3 text-xs text-white/80 mb-4">
+              <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full gradient-text">
+                <GraduationCap className="w-3 h-3" />
+                {profile.branch} Engineering
               </div>
 
-              <div className="space-y-6 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { label: "Age", value: profile.age },
-                    { label: "Year", value: profile.year },
-                    { label: "Branch", value: profile.branch },
-                    { label: "Hometown", value: profile.hometown },
-                    { label: "Height", value: profile.height },
-                    { label: "Looking for", value: profile.looking_for }
-                  ].map((item, index) => (
-                    <div key={index} className={`glass-light p-3 rounded-lg border border-white/10 hover:border-pink-500/30 transition-all duration-300 interactive animate-bounce-in stagger-${index + 1}`}>
-                      <span className="font-semibold text-pink-400">{item.label}:</span>
-                      <span className="ml-2 text-gray-300">{item.value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="glass-light p-4 rounded-xl border border-white/10 hover:border-purple-500/30 transition-all duration-300 interactive animate-fade-in stagger-3">
-                  <h3 className="font-semibold text-white mb-3 flex items-center">
-                    <MessageCircle className="w-4 h-4 mr-2 text-pink-400 animate-pulse" />
-                    About
-                  </h3>
-                  <p className="text-gray-300 leading-relaxed">
-                    {profile.bio}
-                  </p>
-                </div>
-
-                {profile.interests && profile.interests.length > 0 && (
-                  <div className="animate-fade-in stagger-4">
-                    <div className="flex items-center mb-4">
-                      <Tag className="w-5 h-5 mr-2 text-pink-400 animate-pulse" />
-                      <h3 className="font-semibold text-white">Interests</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.interests.map((interest, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="secondary" 
-                          className={`bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 font-medium px-3 py-1.5 hover:scale-110 transition-all duration-300 interactive hover-glow animate-bounce-in stagger-${index + 1}`}
-                        >
-                          {interest}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full gradient-text">
+                <Calendar className="w-3 h-3" />
+                B.Tech {profile.year} Year
               </div>
             </div>
+
+            {/* BUTTONS */}
+            <div className="flex justify-evenly">
+              <motion.button
+                whileTap={{ scale: 0.8 }}
+                whileHover={{ scale: 1.12 }}
+                onClick={(e) => { e.stopPropagation(); onPass(); }}
+                className="interactive hover-glow w-14 h-14 rounded-full bg-pink-200/50 backdrop-blur-2xl border-2 border-pink-100 flex items-center justify-center mt-2"
+              >
+                <X className="w-8 h-8 text-rose-300" />
+              </motion.button>
+
+              {/* LIKE BUTTON WITH PULSE + EXPLOSION */}
+              <motion.button
+                whileHover={{ scale: 1.12 }}
+                whileTap={{ scale: 0.88 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  triggerBurst(e);
+                }}
+                className="
+                  relative w-20 h-20 rounded-full overflow-hidden interactive
+                  bg-gradient-to-br from-pink-700 to-purple-400
+                  shadow-[0_0_25px_rgba(255,120,170,0.55)]
+                  border border-pink-300/100
+                  flex items-center justify-center
+                  transition-all duration-300
+                  animate-pulse-glow
+                "
+              >
+                {burst && (
+                  <span className="absolute inset-0 animate-like-explosion bg-pink-300/60 rounded-full"></span>
+                )}
+
+                <Heart className="w-10 h-10 text-white drop-shadow-xl z-10" />
+              </motion.button>
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </motion.div>
+
+        {/* BACK FACE */}
+        <motion.div
+          className="
+            absolute inset-0 w-full h-full 
+            rounded-3xl overflow-hidden
+            bg-black/90 backdrop-blur-xl
+            border-2 border-pink-300
+            shadow-2xl
+            cursor-pointer
+          "
+          initial={false}
+          animate={{ rotateY: isFlipped ? 0 : -180 }}
+          transition={{ duration: 0.6, type: "spring", stiffness: 120, damping: 20 }}
+          style={{ backfaceVisibility: "hidden" }}
+          onClick={toggleFlip}
+        >
+          <motion.div
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            onDragEnd={handleDragEnd}
+            dragElastic={0.5}
+            className="
+              h-full overflow-y-auto hide-scrollbar
+              bg-gradient-to-b from-black/30 via-black/40 to-black/60
+            "
+          >
+
+            {/* TOP LIKE BUTTON */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onLike(); }}
+              className="interactive absolute top-4 right-4 z-10 w-10 h-10 rounded-full hover-glow bg-gradient-to-br from-pink-700 to-purple-400 shadow-[0_0_25px_rgba(255,120,170,0.55)] border border-pink-300/100 flex items-center justify-center text-white"
+            >
+              <Heart className="w-6 h-6" />
+            </button>
+
+            {/* SMALL PREVIEW IMAGE */}
+            <div className="relative w-full p-2 animate-shimmer">
+              <div className="
+                relative w-full h-60 rounded-3xl overflow-hidden
+                bg-white/5 backdrop-blur-xl
+                border border-white/10
+                shadow-[0_8px_30px_rgba(0,0,0,0.5)]
+              ">
+                <img
+                  src={profile.photos[currentPhotoIndex]?.url}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+              </div>
+            </div>
+
+            {/* CONTENT */}
+            <div className="px-6 pb-20">
+
+              {/* NAME */}
+              <h2 className="text-4xl font-bold text-pink-500 mb-1 mt-4 animate-heartbeat">
+                {getFirstName(profile.full_name)}
+                <span className="text-2xl text-white/60">, {profile.age}</span>
+              </h2>
+
+              {/* TAGS */}
+              <div className="flex flex-wrap gap-3 mt-4 mb-10">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm gradient-text-animated">
+                  <GraduationCap className="w-3 h-3" />
+                  {profile.branch} Engg.
+                </div>
+
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm gradient-text-animated">
+                  <Calendar className="w-3 h-3" />
+                  B.Tech {profile.year} Year
+                </div>
+              </div>
+
+              {/* ABOUT */}
+              <h3 className="text-lg font-semibold text-pink-300 mb-2">About Me</h3>
+              <p className="text-white/80">{profile.bio}</p>
+
+              {/* DIVIDER */}
+              <div className="my-6 border-t border-pink-500/40" />
+
+              {/* DETAILS */}
+              <h3 className="text-lg font-semibold text-pink-300 mb-4">Details</h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                {["height", "hometown", "looking_for"].map((key) =>
+                  (profile as any)[key] && (
+                    <div
+                      key={key}
+                      className="
+                        p-4 rounded-2xl bg-white/10 backdrop-blur-xl
+                        border border-pink-500 shadow-sm
+                        hover:bg-white/15 transition-all
+                        interactive
+                      "
+                    >
+                      <p className="text-xs text-white/50 uppercase tracking-wide">
+                        {key.replace("_", " ")}
+                      </p>
+                      <p className="text-white font-small mt-1">
+                        {(profile as any)[key]}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* DIVIDER */}
+              <div className="my-10 border-t border-pink-500/40" />
+
+              {/* INTERESTS */}
+              <h3 className="text-lg font-semibold text-pink-300 mb-3">
+                Interests
+              </h3>
+
+              <div className="flex flex-wrap gap-3">
+                {profile.interests.map((i) => (
+                  <span
+                    key={i}
+                    className="
+                      px-4 py-2 rounded-full text-sm font-medium border border-pink-500 
+                      text-pink-200 backdrop-blur-xl shadow-sm 
+                      gradient-text-animated
+                    "
+                  >
+                    {i}
+                  </span>
+                ))}
+              </div>
+
+            </div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }

@@ -40,7 +40,7 @@ function DiscoveryScreenDemo() {
   const { updateRating, getUserRating, getRatingTier } = useEloRating();
 
   // Daily limits constants
-  const DAILY_LIKE_LIMIT = 3;
+  const DAILY_LIKE_LIMIT = 1;
 
   // ✅ initialize user data first
   useEffect(() => {
@@ -209,7 +209,7 @@ function DiscoveryScreenDemo() {
     if (currentIndex >= profiles.length) return;
 
     const profile = profiles[currentIndex];
-    
+    console.log(dailyLikes);
     // Check daily limits
     if (action === 'like' && dailyLikes >= DAILY_LIKE_LIMIT) {
       toast({

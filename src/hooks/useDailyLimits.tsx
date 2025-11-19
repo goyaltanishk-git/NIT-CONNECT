@@ -10,7 +10,7 @@ interface UseDailyLimitsReturn {
   refreshLimits: () => Promise<void>;
 }
 
-const DAILY_LIKE_LIMIT = 3;
+const DAILY_LIKE_LIMIT = 2;
 
 export function useDailyLimits(userEmail?: string): UseDailyLimitsReturn {
   const [dailyLikes, setDailyLikes] = useState(0);

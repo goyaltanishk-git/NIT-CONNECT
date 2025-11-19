@@ -232,6 +232,9 @@
 .animate-message-bounce {
   animation: message-bounce 0.8s var(--animation-ease);
 }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari, Opera */
+}
 
 /* Interactive Element Enhancements */
 .interactive {
