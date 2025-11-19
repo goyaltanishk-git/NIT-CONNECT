@@ -111,8 +111,6 @@ export function SettingsScreen({
   };
 
   // Wrapper handler for Incognito Toggle
-  // This logic works perfectly and will now use the correct
-  // onIncognitoToggle function (either prop or internal).
   const handleIncognitoToggle = async (enabled: boolean) => {
     setIsIncognitoLoading(true);
     try {
@@ -138,7 +136,6 @@ export function SettingsScreen({
   };
 
   const handleDeleteAccount = async () => {
-    // ... (delete account logic remains the same)
     setIsDeleting(true);
     setDeleteError(null);
 
@@ -331,11 +328,6 @@ export function SettingsScreen({
                 </div>
               </Button>
 
-              {/* This logic will now work correctly.
-                If profile prop is null, it uses internalProfile.
-                If internalProfile is still loading, it's null, and
-                the button remains hidden until data is fetched.
-              */}
               {profile && profile.gender === "female" && (
                 <Button
                   variant="ghost"
@@ -367,20 +359,6 @@ export function SettingsScreen({
                   <p className="font-medium">Safety Center</p>
                   <p className="text-sm text-gray-400">
                     Learn about safety features
-                  </p>
-                </div>
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
-                onClick={() => navigate("/temp")}
-              >
-                <Zap className="h-5 w-5 mr-3 text-yellow-400" />
-                <div className="text-left">
-                  <p className="font-medium">Test Hero Component</p>
-                  <p className="text-sm text-gray-400">
-                    Preview Horizon Hero animation
                   </p>
                 </div>
               </Button>
