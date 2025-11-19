@@ -40,6 +40,8 @@ interface PhotoFile {
   order: number;
 }
 
+const MAX_PHOTOS = 3; // Set max photos constant
+
 export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProps) {
   const [formData, setFormData] = useState<FormData>({
     date_of_birth: '', bio: '', height: '', hometown: '', phone_number: '', instagram_handle: ''
@@ -53,6 +55,9 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   const [error, setError] = useState<string>('');
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // 🆕 State for phone number validation
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -78,14 +83,39 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     setError('');
   };
 
+  // 🆕 Phone number validation handler
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow only numbers
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    setFormData(prev => ({ ...prev, phone_number: numericValue }));
+
+    if (numericValue === '') {
+      setPhoneError(null); // No error if empty
+    } else if (numericValue.length !== 10) {
+      setPhoneError('Phone number must be exactly 10 digits.');
+    } else {
+      setPhoneError(null); // Valid
+    }
+    setError(''); // Clear global error
+  };
+
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+    
+    if (photos.length + files.length > MAX_PHOTOS) {
+      setError(`You can only upload a maximum of ${MAX_PHOTOS} photos.`);
+      if (fileInputRef.current) fileInputRef.current.value = ''; // Clear input
+      return;
+    }
+
     files.forEach(file => {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (e) => {
           const newPhoto: PhotoFile = { file, preview: e.target?.result as string, order: photos.length + 1 };
-          setPhotos(prev => [...prev, newPhoto]);
+          setPhotos(prev => (prev.length < MAX_PHOTOS ? [...prev, newPhoto] : prev));
         };
         reader.readAsDataURL(file);
       }
@@ -123,9 +153,15 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   };
 
   const validateForm = (): boolean => {
+    // Required fields
     if (photos.length === 0) { setError('At least one photo is required'); return false; }
     if (!formData.date_of_birth) { setError('Date of birth is required'); return false; }
     if (interests.length < 3) { setError('Please add at least 3 interests'); return false; }
+    
+    if (!formData.hometown.trim()) { setError('Hometown is required'); return false; }
+    if (!formData.height) { setError('Height is required'); return false; }
+
+    // Date of Birth validation
     const birthDate = new Date(formData.date_of_birth);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
@@ -134,10 +170,20 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
       setError('You must be at least 16 years old');
       return false;
     }
-    if (formData.height && (parseInt(formData.height) < 120 || parseInt(formData.height) > 250)) {
+
+    // Height range validation
+    const height = parseInt(formData.height);
+    if (height < 120 || height > 250) {
       setError('Height must be between 120 and 250 cm');
       return false;
     }
+    
+    // 🆕 Check for phone error
+    if (phoneError) {
+      setError(phoneError);
+      return false;
+    }
+
     return true;
   };
 
@@ -172,8 +218,8 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         date_of_birth: formData.date_of_birth,
         bio: formData.bio.trim(),
         is_active: true,
-        height: formData.height ? parseInt(formData.height) : null,
-        hometown: formData.hometown.trim() || null,
+        height: parseInt(formData.height),
+        hometown: formData.hometown.trim(),
         phone_number: formData.phone_number.trim() || null,
         instagram_handle: formData.instagram_handle.trim() || null,
       };
@@ -267,7 +313,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
                 <Camera className="w-5 h-5 text-pink-400" />
                 <Label className="text-lg font-semibold text-white">Photos *</Label>
               </div>
-              <p className="text-sm text-gray-400">Add at least one photo. The first is your primary photo.</p>
+              <p className="text-sm text-gray-400">Add 1 to 3 photos. The first is your primary photo.</p>
               <div className="grid grid-cols-3 gap-4">
                 {photos.map((photo, index) => (
                   <div key={index} className="relative aspect-square group">
@@ -290,7 +336,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
                     )}
                   </div>
                 ))}
-                {photos.length < 6 && (
+                {photos.length < MAX_PHOTOS && (
                   <button 
                     type="button" 
                     onClick={() => fileInputRef.current?.click()} 
@@ -324,7 +370,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
             
             {/* Bio Field */}
             <div className="space-y-3">
-              <Label htmlFor="bio" className="text-white font-medium">Bio</Label>
+              <Label htmlFor="bio" className="text-white font-medium">Bio (Optional)</Label>
               <Textarea 
                 id="bio" 
                 value={formData.bio} 
@@ -402,14 +448,14 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
               </div>
             </div>
 
-            {/* Optional Information */}
+            {/* Additional Information */}
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold gradient-text-animated">Additional Information (Optional)</h3>
+              <h3 className="text-xl font-semibold gradient-text-animated">Additional Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <User className="w-4 h-4 text-pink-400" />
-                    <Label htmlFor="height" className="text-white font-medium">Height (cm)</Label>
+                    <Label htmlFor="height" className="text-white font-medium">Height (cm) *</Label>
                   </div>
                   <Input 
                     id="height" 
@@ -420,12 +466,13 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
                     onChange={(e) => handleInputChange('height', e.target.value)} 
                     placeholder="170" 
                     className="glass-light border-white/20 text-white placeholder:text-gray-400 focus:border-pink-500 focus:ring-pink-500/20 transition-all duration-300"
+                    required
                   />
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-pink-400" />
-                    <Label htmlFor="hometown" className="text-white font-medium">Hometown</Label>
+                    <Label htmlFor="hometown" className="text-white font-medium">Hometown *</Label>
                   </div>
                   <Input 
                     id="hometown" 
@@ -433,6 +480,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
                     onChange={(e) => handleInputChange('hometown', e.target.value)} 
                     placeholder="Where are you from?" 
                     className="glass-light border-white/20 text-white placeholder:text-gray-400 focus:border-pink-500 focus:ring-pink-500/20 transition-all duration-300"
+                    required
                   />
                 </div>
               </div>
@@ -440,21 +488,24 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Phone className="w-4 h-4 text-pink-400" />
-                    <Label htmlFor="phone_number" className="text-white font-medium">Phone Number</Label>
+                    <Label htmlFor="phone_number" className="text-white font-medium">Phone Number (Optional)</Label>
                   </div>
                   <Input 
                     id="phone_number" 
                     type="tel" 
                     value={formData.phone_number} 
-                    onChange={(e) => handleInputChange('phone_number', e.target.value)} 
-                    placeholder="+1234567890" 
+                    onChange={handlePhoneChange} // 🆕 Use new handler
+                    placeholder="10 digit phone number" 
+                    maxLength={10} // 🆕 Add maxLength
                     className="glass-light border-white/20 text-white placeholder:text-gray-400 focus:border-pink-500 focus:ring-pink-500/20 transition-all duration-300"
                   />
+                  {/* 🆕 Show error message if it exists */}
+                  {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Instagram className="w-4 h-4 text-pink-400" />
-                    <Label htmlFor="instagram_handle" className="text-white font-medium">Instagram Handle</Label>
+                    <Label htmlFor="instagram_handle" className="text-white font-medium">Instagram Handle (Optional)</Label>
                   </div>
                   <Input 
                     id="instagram_handle" 
@@ -469,7 +520,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
 
             <Button 
               type="submit" 
-              disabled={loading} 
+              disabled={loading || !!phoneError} // 🆕 Disable button if phone error
               className="w-full h-14 bg-gradient-to-r from-pink-500 via-pink-600 to-pink-700 hover:from-pink-400 hover:via-pink-500 hover:to-pink-600 text-white font-semibold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-pulse-glow interactive"
             >
               {loading ? (

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, Search, Loader2, Heart, Sparkles, Clock } from "lucide-react";
+// ⛔️ Removed 'Star'
+import { MessageCircle, Send, Loader2, Heart, Sparkles } from "lucide-react";
 import { IndividualChat } from "./IndividualChat";
 import { useChat, ChatConversation } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +13,6 @@ import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldD
 
 export function ChatScreen() {
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const { user: currentUser } = useAuth();
   const { 
     conversations, 
@@ -44,23 +44,7 @@ export function ChatScreen() {
     await unmatch(selectedConversation.match_id);
     setSelectedConversation(null);
   };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours}h`;
-    return `${Math.floor(diffInHours / 24)}d`;
-  };
-
-  const filteredConversations = conversations.filter(conversation =>
-    `${conversation.user.first_name} ${conversation.user.last_name}`
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-  );
-
+  
   if (selectedConversation && currentUser) {
     const chatUser = {
       id: selectedConversation.user.id,
@@ -131,8 +115,8 @@ export function ChatScreen() {
     <div className="h-full flex flex-col bg-black text-white">
       {/* Enhanced Header with Premium Glassmorphism */}
       <div className="glass border-b border-white/10 sticky top-0 z-40 animate-slide-up">
-        <div className="p-6">
-          <div className="flex items-center gap-4 mb-6 animate-slide-in-left">
+        <div className="p-6"> {/* Padding here controls header height */}
+          <div className="flex items-center gap-4 animate-slide-in-left"> {/* Removed mb-6 */}
             <div className="relative">
               <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
                 <MessageCircle className="h-6 w-6 text-pink-500 animate-pulse" />
@@ -149,53 +133,46 @@ export function ChatScreen() {
               <Sparkles className="h-4 w-4 text-blue-400 animate-pulse stagger-3" />
             </div>
           </div>
-          
-          <div className="relative animate-slide-in-right">
-            <Input 
-              placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 glass-light border-white/20 bg-transparent text-white placeholder:text-gray-400 focus:border-pink-500/50 rounded-full transition-all duration-300 hover:border-pink-500/30"
-            />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 transition-colors duration-300" />
-          </div>
+          {/* No search input, so no extra space from it */}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {filteredConversations.map((conversation, index) => (
+        {conversations.map((conversation, index) => (
           <Card 
             key={conversation.id} 
             className={`glass-light border-white/10 transition-all duration-500 hover:scale-[1.02] card-hover animate-fade-in interactive stagger-${index + 1}`}
             onClick={() => setSelectedConversation(conversation)}
           >
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
+            {/* 1.5x padding */}
+            <CardContent className="p-5">
+              {/* 1.5x gap */}
+              <div className="flex items-start gap-5">
                 <div className="relative">
-                  <Avatar className="h-16 w-16 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
+                  {/* 1.5x Avatar size */}
+                  <Avatar className="h-24 w-24 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
                     <AvatarImage src={conversation.user.photos?.[0]?.photo_url} />
-                    <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-lg">
+                    {/* 1.5x Fallback text size */}
+                    <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-3xl">
                       {conversation.user.first_name[0]}
                     </AvatarFallback>
                   </Avatar>
-                  {/* Enhanced online indicator */}
-                  <div className="absolute bottom-0 right-0 h-4 w-4 bg-green-500 rounded-full border-2 border-black animate-pulse">
-                    <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-75"></div>
-                  </div>
+                  {conversation.unreadCount > 0 && (
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full border-2 border-black animate-pulse-glow"></div>
+                  )}
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-lg text-white truncate hover:text-pink-300 transition-colors duration-300">
+                    {/* 1.5x name size */}
+                    <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
                       {`${conversation.user.first_name} ${conversation.user.last_name}`}
                     </h3>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400 glass-light px-3 py-1 rounded-full border border-white/10">
-                        <Clock className="h-3 w-3 inline mr-1" />
-                        {formatTime(conversation.lastMessage?.created_at || conversation.created_at)}
-                      </span>
+                      {/* ⛔️ Time span removed */}
                       {conversation.unreadCount > 0 && (
-                        <Badge className="h-6 w-6 p-0 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs animate-pulse-glow">
+                        // 1.5x badge size
+                        <Badge className="h-7 w-7 p-0 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs animate-pulse-glow">
                           {conversation.unreadCount}
                         </Badge>
                       )}
@@ -203,10 +180,12 @@ export function ChatScreen() {
                   </div>
                   
                   <div className="flex items-center gap-3 mb-2">
+                    {/* 1.5x Send icon size */}
                     {conversation.lastMessage?.sender === currentUser?.email && (
-                      <Send className="h-4 w-4 text-pink-400" />
+                      <Send className="h-5 w-5 text-pink-400" />
                     )}
-                    <p className={`text-sm truncate flex-1 transition-colors duration-300 ${
+                    {/* 1.5x message text size */}
+                    <p className={`text-base truncate flex-1 transition-colors duration-300 ${
                       conversation.unreadCount > 0 
                         ? 'font-medium text-white' 
                         : 'text-gray-400 hover:text-gray-300'
@@ -215,20 +194,13 @@ export function ChatScreen() {
                     </p>
                   </div>
 
-                  {/* Enhanced message preview with typing indicator */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex space-x-1">
-                      <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce"></div>
-                      <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce stagger-1"></div>
-                      <div className="w-1 h-1 bg-pink-400 rounded-full animate-bounce stagger-2"></div>
-                    </div>
-                    <span className="text-xs text-gray-500">Active now</span>
-                  </div>
+                  {/* ⛔️ "Great match" section removed */}
+
                 </div>
 
-                {/* Enhanced hover indicator */}
+                {/* 1.5x hover icon size */}
                 <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
-                  <MessageCircle className="h-5 w-5 text-pink-400" />
+                  <MessageCircle className="h-6 w-6 text-pink-400" />
                 </div>
               </div>
             </CardContent>

@@ -22,14 +22,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Send, MoreVertical, Phone, Video, Heart, UserX, Flag, Blocks } from "lucide-react";
+// 🆕 Added Lock icon
+import { ArrowLeft, Send, MoreVertical, Phone, Video, Heart, UserX, Flag, Blocks, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ChatMessage } from "@/hooks/useChat";
 import { Profile } from "@/lib/auth";
-import { ProfileDialog } from "@/components/profile/profileDialog"; // ✨ Import the new component
+// 🆕 Import the new dialog and its Profile type
+import { UserProfileDialog, Profile as UserProfileType } from "@/components/profile/UserProfileDialog"; 
 
-// ✨ Updated interface to include all the details for the profile dialog
+// This is the simple user prop passed from the parent
 interface User {
   id: string;
   name: string;
@@ -56,10 +58,10 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
   const [showUnmatchDialog, setShowUnmatchDialog] = useState(false);
   const [isProfileDialogOpen, setProfileDialogOpen] = useState(false);
   const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false); // ✨ Add state for the dialog
+  const [loading, setLoading] = useState(false); 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [reason, setReason] = useState("");
-const [customReason, setCustomReason] = useState("");
+  const [customReason, setCustomReason] = useState("");
 
   const { toast } = useToast();
 
@@ -115,59 +117,90 @@ const [customReason, setCustomReason] = useState("");
 };
 
 
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
+  // ⛔️ formatMessageTime function removed
+
+  // 🆕 Create the complex Profile object that UserProfileDialog expects
+  const profileForDialog: UserProfileType = {
+    // --- Data from User prop ---
+    user_id: user.id,
+    first_name: user.name,
+    bio: user.bio,
+    year_of_study: user.year_of_study,
+    branch: user.branch,
+    hometown: user.hometown,
+    
+    // --- Transform photos: string[] to ProfilePhoto[] ---
+    photos: user.photos.map((url, index) => ({
+      photo_id: `temp-${index}`, // Fake a photo_id
+      user_email: '', // Not available, but this is required by the type
+      photo_url: url,
+      photo_order: index + 1,
+      created_at: new Date().toISOString(),
+      is_primary: index === 0
+    })),
+    
+    // --- Faked/Empty data to satisfy the type ---
+    id: 0, // This is faked, UserProfileDialog should rely on user_id
+    last_name: '', // Not available
+    interests: [], // Not available from the 'user' prop
+    prompts: [],   // Not available from the 'user' prop
+    elo_rating: null,
+    updated_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    email: '', // Not available
+    date_of_birth: '', // Not available
+    gender: 'male', // Not available, faking
+    interested_in: 'female', // Not available, faking
   };
+
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-background to-primary/5">
       {/* Enhanced Header */}
-      <div className="bg-card border-b border-border p-4 shadow-sm backdrop-blur-sm">
-        <div className="flex items-center gap-3">
+      {/* Increased padding from p-6 to p-8 */}
+      <div className="bg-card border-b border-border p-8 shadow-sm backdrop-blur-sm">
+        <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={onBack} className="hover:bg-primary/10">
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
           </Button>
           
-          <div className="relative">
-            <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+          {/* 🆕 Made Avatar clickable */}
+          <button 
+            className="relative interactive" 
+            onClick={() => setProfileDialogOpen(true)}
+          >
+            {/* 🆕 Increased Avatar size */}
+            <Avatar className="h-16 w-16 ring-2 ring-primary/20">
               <AvatarImage src={user.photos[0]} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                 {user.name[0]}
               </AvatarFallback>
             </Avatar>
             {user.isOnline && (
-              <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-background rounded-full"></div>
+              <div className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 border-2 border-background rounded-full"></div>
             )}
-          </div>
+          </button>
           
           <div className="flex-1">
-            <h2 className="font-semibold">{user.name}</h2>
-            <p className="text-xs text-muted-foreground">
-              {user.isOnline ? "Online now" : user.lastSeen || "Active recently"}
-            </p>
+            {/* 🆕 Made Name clickable */}
+            <h2 
+              className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
+              onClick={() => setProfileDialogOpen(true)}
+            >
+              {user.name}
+            </h2>
+            {/* ⛔️ Removed user.lastSeen and online status text */}
           </div>
           
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-              <Phone className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-              <Video className="h-4 w-4" />
-            </Button>
-            
+            {/* ⛔️ Phone and Video buttons removed */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="hover:bg-primary/10">
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {/* ✨ Add onSelect handler to open the dialog */}
                 <DropdownMenuItem 
                   onSelect={() => setProfileDialogOpen(true)}
                   className="hover:bg-primary/10"
@@ -255,28 +288,33 @@ const [customReason, setCustomReason] = useState("");
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className="flex justify-center">
+          {/* Updated Match Card */}
           <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 px-4 py-2 shadow-sm">
             <div className="flex items-center gap-2 text-sm text-primary">
-              <Heart className="h-4 w-4" />
-              <span>You matched with {user.name}!</span>
-              <Heart className="h-4 w-4" />
+              <Lock className="h-4 w-4" />
+              <span>All chats are encrypted</span>
+              <Lock className="h-4 w-4" />
             </div>
           </Card>
         </div>
 
-        {messages.map((message) => {
+        {/* Updated key to use index */}
+        {messages.map((message, index) => {
           const isFromMe = message.sender === currentUser.email;
 
           return (
-             <div key={`${message.sender}-${message.created_at}`}>
+             <div key={index}>
               <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
                 <div className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-2",
+                  "max-w-[80%] rounded-2xl",
+                  // Increased padding
+                  "px-6 py-4", 
                   isFromMe 
                     ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground" 
                     : "bg-card border"
                 )}>
-                  <p className="text-sm">{message.content}</p>
+                  {/* Increased font size */}
+                  <p className="text-xl">{message.content}</p>
                 </div>
               </div>
             </div>
@@ -287,21 +325,25 @@ const [customReason, setCustomReason] = useState("");
       </div>
 
       {/* Message Input */}
-      <div className="border-t border-border p-4 bg-card backdrop-blur-sm">
+      {/* Increased padding on container */}
+      <div className="border-t border-border p-6 bg-card backdrop-blur-sm">
         <div className="flex gap-3">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder={`Message ${user.name}...`}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 bg-background border-border rounded-full px-4 focus:ring-2 focus:ring-primary/20"
+            // Increased size, padding, and text size
+            className="flex-1 bg-background border-border rounded-full px-6 h-16 text-lg focus:ring-2 focus:ring-primary/20"
           />
           <Button 
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}
-            className="rounded-full h-10 w-10 p-0 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+            // Increased size
+            className="rounded-full h-16 w-16 p-0 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
           >
-            <Send className="h-4 w-4" />
+            {/* Increased icon size */}
+            <Send className="h-7 w-7" />
           </Button>
         </div>
       </div>
@@ -333,18 +375,12 @@ const [customReason, setCustomReason] = useState("");
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ✨ Add the Profile Dialog component here */}
-      <ProfileDialog
+      {/* 🆕 Use the new UserProfileDialog */}
+      <UserProfileDialog
         isOpen={isProfileDialogOpen}
         onClose={() => setProfileDialogOpen(false)}
-        user={{
-          name: user.name,
-          photos: user.photos,
-          bio: user.bio,
-          year_of_study: user.year_of_study,
-          branch: user.branch,
-          hometown: user.hometown,
-        }}
+        profile={profileForDialog}
+        showActionButtons={false} // Make sure no "Like Back" buttons appear
       />
     </div>
   );

@@ -268,7 +268,7 @@ export function UserProfileDialog({
           {[
             { icon: Ruler, label: "Height", value: profile.height ? `${profile.height} cm` : null, color: "text-green-400" },
             { icon: Calendar, label: "Age", value: profileAge && `${profileAge} years old`, color: "text-orange-400" },
-            { icon: User, label: "User ID", value: profile.user_id, color: "text-cyan-400" }
+            // ⛔️ User ID line removed
           ].filter(item => item.value).map((item, index) => (
             <Card key={index} className="glass-light border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300">
               {/* --- Increased padding and icon/text size --- */}
