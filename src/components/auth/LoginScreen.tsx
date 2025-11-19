@@ -42,7 +42,7 @@ export function LoginScreen() {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       await AuthService.generateOtp(email, generatedOtp, expiresAt);
       try {
-        await fetch("https://nitconnectbackend.vercel.app/api/send-otp", {
+        await fetch("https://portfoliotrial-omega.vercel.app/api/send-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, otp: generatedOtp }),
