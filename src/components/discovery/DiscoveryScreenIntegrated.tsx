@@ -53,9 +53,14 @@ export function DiscoveryScreenIntegrated() {
 
     const profile = profiles[currentIndex];
     
-    // Check daily limits before proceeding
+    // 🆕 Check daily limits and show popup if out of likes
     if (action === 'like' && !canLike) {
-      return; // useDailyLimits hook will show the toast
+      toast({
+        title: "Daily Limit Reached 🚫",
+        description: "You have ran out of likes for today. Please come back tomorrow!",
+        variant: "destructive",
+      });
+      return;
     }
 
     // Set animation
@@ -181,17 +186,6 @@ export function DiscoveryScreenIntegrated() {
             <h2 className="text-3xl font-bold gradient-text">Please log in</h2>
             <p className="text-gray-400 text-lg">Create your profile to start discovering amazing people!</p>
           </div>
-          <Card className="glass-light p-6 max-w-md mx-auto">
-            <CardContent className="p-0">
-              <p className="text-sm text-gray-400">
-                <strong className="text-pink-400">Debug Info:</strong><br/>
-                User: {user ? user.email : 'undefined'}<br/>
-                Current User: {currentUser ? currentUser.email : 'undefined'}<br/>
-                Loading: {loading ? 'true' : 'false'}<br/>
-                Profiles: {profiles.length}
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -210,26 +204,9 @@ export function DiscoveryScreenIntegrated() {
           <div className="space-y-4">
             <h2 className="text-3xl font-bold text-white">No profiles available</h2>
             <p className="text-gray-400 text-lg">
-              No profiles found in the database. Add some profiles to Supabase or check your filters.
+              Check back later for new people to connect with.
             </p>
           </div>
-          <Card className="glass-light p-6 max-w-md mx-auto">
-            <CardContent className="p-0 space-y-4">
-              <p className="text-sm text-gray-400">
-                <strong className="text-pink-400">Debug Info:</strong><br/>
-                Current User: {userEmail}<br/>
-                Profiles in DB: Check console logs<br/>
-                Loading: {loading ? 'true' : 'false'}
-              </p>
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="btn-primary w-full"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -244,35 +221,11 @@ export function DiscoveryScreenIntegrated() {
             <div className="absolute inset-0 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
           </div>
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold gradient-text">You're all caught up! 🎉</h2>
+            <h2 className="text-3xl font-bold gradient-text">No more profiles available</h2>
             <p className="text-gray-400 text-lg">
               Check back later for new people to connect with.
             </p>
           </div>
-          <Card className="glass-light p-6 max-w-md mx-auto">
-            <CardContent className="p-0 space-y-4">
-              <div className="text-center">
-                <h4 className="text-pink-400 font-semibold mb-2">Today's Activity</h4>
-                <div className="flex justify-center space-x-4 text-sm">
-                  <div className="flex items-center space-x-1">
-                    <Heart className="w-4 h-4 text-pink-500" />
-                    <span>Likes used: {dailyLikes}/3</span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Limits reset at 12:00 AM</p>
-              </div>
-              <Button 
-                onClick={() => {
-                  setCurrentIndex(0);
-                  window.location.reload();
-                }}
-                className="btn-primary w-full"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Start Over
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );
@@ -282,8 +235,6 @@ export function DiscoveryScreenIntegrated() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      
-
       <div className="p-6">
         {/* Enhanced Profile Stack with Better UI */}
         <div className="relative max-w-sm mx-auto profile-stack">
@@ -341,14 +292,7 @@ export function DiscoveryScreenIntegrated() {
               onSuperLike={() => {}}
             />
           </div>
-
-          {/* Enhanced Profile Progress Indicator */}
-          
         </div>
-
-       
-
-      
       </div>
 
       {/* Background effects */}
