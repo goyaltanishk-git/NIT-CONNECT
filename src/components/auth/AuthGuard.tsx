@@ -4,6 +4,7 @@ import { LoginScreen } from "./LoginScreen";
 import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { Heart, Sparkles } from "lucide-react";
+import { encryptedStorage } from "@/utils/encryptedStorage";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -47,7 +48,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         }
 
         // 2. Check for temp user (demo/guest mode)
-        const tempUser = localStorage.getItem("temp-user");
+        const tempUser = encryptedStorage.get("temp-user");
         if (tempUser && mounted) {
           const parsedUser = JSON.parse(tempUser);
           setUserEmail(parsedUser.email);
@@ -107,7 +108,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     setProfile(updatedProfile);
     setShowProfileSetup(false);
     // Update localStorage with the new profile
-    localStorage.setItem("current-user", JSON.stringify(updatedProfile));
+    encryptedStorage.set("current-user", JSON.stringify(updatedProfile));
   };
 
   if (loading) {

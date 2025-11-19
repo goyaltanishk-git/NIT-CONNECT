@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {encryptedStorage} from "@/utils/encryptedStorage"
 
 // Interface matching your exact database schema
 export interface DatabaseProfile {
@@ -74,7 +75,7 @@ export function useProfiles(): UseProfilesReturn {
 
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
-      const userd = localStorage.getItem('current-user');
+      const userd = encryptedStorage.get('current-user');
       const user = JSON.parse(userd);
       console.log(`🔄 Fetching profiles with offset: ${startOffset}`);
 

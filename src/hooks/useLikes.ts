@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
 // --- ADDED: Import Database types ---
 import { Database } from '@/integrations/supabase/types';
+import { encryptedStorage } from "@/utils/encryptedStorage";
 
 // --- UPDATED: Complete Profile type ---
 // This now matches the full shape of the data we are fetching
@@ -32,7 +33,8 @@ export function useLikes() {
   const fetchPendingLikes = useCallback(async () => {
     try {
       setLoading(true);
-        const userd  = localStorage.getItem('current-user');
+        const userd  = encryptedStorage.get('current-user');
+
                const user = JSON.parse(userd);
       // Get interactions where others liked current user
       const { data: interactions, error } = await supabase
@@ -187,7 +189,7 @@ export function useLikes() {
 
   const handlePass = useCallback(async (targetUserId: string) => {
   try {
-    const userd = localStorage.getItem("current-user");
+    const userd = encryptedStorage.get("current-user");
     const user = JSON.parse(userd);
 
     const { error } = await supabase

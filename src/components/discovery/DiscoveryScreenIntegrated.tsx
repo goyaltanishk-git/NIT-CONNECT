@@ -11,6 +11,7 @@ import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useToast } from "@/hooks/use-toast";
 import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
+import {encryptedStorage} from "@/utils/encryptedStorage";
 
 export function DiscoveryScreenIntegrated() {
   console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
@@ -22,7 +23,7 @@ export function DiscoveryScreenIntegrated() {
   const { toast } = useToast();
 
   // Get current user email for daily limits
-  const currentUserData = localStorage.getItem('current-user');
+  const currentUserData = encryptedStorage.get('current-user');
   const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
   const userEmail = currentUser?.email || user?.email;
 

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { encryptedStorage } from "@/utils/encryptedStorage";
+
 import { AuthService } from "@/lib/auth";
 import { Heart, Mail, User, Sparkles, Zap } from "lucide-react";
 
@@ -92,8 +94,9 @@ export function LoginScreen() {
       await AuthService.updateLastActive(email);
 
       // Save complete profile information to localStorage
-      localStorage.setItem("current-user", JSON.stringify(userProfile));
-      localStorage.setItem("user-login-time", new Date().toISOString());
+      encryptedStorage.set("current-user", userProfile);
+encryptedStorage.set("user-login-time", new Date().toISOString());
+
 
       // Redirect user or reload the page
       window.location.reload();
@@ -147,7 +150,7 @@ export function LoginScreen() {
         email: `demo.user.${Date.now()}@nitkkr.ac.in`,
         role: "authenticated",
       };
-      localStorage.setItem("current-user", JSON.stringify(fakeUser));
+      encryptedStorage.set("current-user", JSON.stringify(fakeUser));
       toast({
         title: "Demo Mode (Offline)",
         description: "Using local storage for demo",

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import {encryptedStorage} from '@/utils/encryptedStorage'
 
 // Type aliases from your database
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -71,7 +72,7 @@ export class AuthService {
 
       if (data) {
         console.log("✅ Profile found:", data);
-        localStorage.setItem("current-user", JSON.stringify(data));
+        encryptedStorage.set("current-user", JSON.stringify(data));
         return data;
       }
 
@@ -135,7 +136,7 @@ export class AuthService {
       }
 
       console.log("✅ User created successfully:", newUserProfile);
-      localStorage.setItem('current-user', JSON.stringify(newUserProfile));
+      encryptedStorage.set('current-user', JSON.stringify(newUserProfile));
       return newUserProfile;
     } catch (error) {
       console.error("❌ Exception in createNewUser:", error);
@@ -164,7 +165,7 @@ export class AuthService {
           throw error;
         }
 
-        localStorage.setItem('current-user', JSON.stringify(updatedUser));
+        encryptedStorage.set('current-user', JSON.stringify(updatedUser));
         return updatedUser;
       } else {
         console.log("🆕 User doesn't exist, creating new user");
@@ -196,7 +197,7 @@ export class AuthService {
       }
 
       console.log("✅ Profile updated successfully:", data);
-      localStorage.setItem('current-user', JSON.stringify(data));
+      encryptedStorage.set('current-user', JSON.stringify(data));
       return data;
     } catch (error) {
       console.error("❌ Exception in updateProfile:", error);
@@ -217,7 +218,7 @@ export class AuthService {
 
   static getCurrentUser(): Profile | null {
     try {
-      const storedUser = localStorage.getItem('current-user');
+      const storedUser = encryptedStorage.get('current-user');
       if (storedUser) {
         return JSON.parse(storedUser);
       }

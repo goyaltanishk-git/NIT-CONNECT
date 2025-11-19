@@ -13,6 +13,7 @@ import { DiscoveryScreenIntegrated } from "./DiscoveryScreenIntegrated";
 import { SAMPLE_PROFILES, Profile } from "@/data/sampleProfiles";
 import { useEloRating } from "@/hooks/useEloRating";
 import { filterProfile } from "@/utils/contentFilter";
+import{encryptedStorage} from "@/utils/encryptedStorage";
 
 export function DiscoveryScreen() {
   const { user, loading: authLoading } = useAuth();
@@ -287,7 +288,7 @@ function DiscoveryScreenDemo() {
 
       } else {
         // Real database operations
-        const userd = localStorage.getItem('current-user');
+        const userd = encryptedStorage.get('current-user');
         const user = JSON.parse(userd);
 
         if (user) {

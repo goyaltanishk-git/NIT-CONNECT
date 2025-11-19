@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AuthService, Profile, ProfileUpdate } from '@/lib/auth';
 import { InterestsService } from '@/lib/interests-service';
 import { supabase } from '@/integrations/supabase/client';
+import {encryptedStorage} from '@/utils/encryptedStorage';
 
 // Define a complete profile type that includes photos and interests
 export type FullProfile = Profile & {
@@ -27,7 +28,7 @@ export function useUserProfile() {
       // If no authenticated user, check localStorage
       if (!userEmail) {
         console.log('⚠️ No authenticated user, checking localStorage...');
-        const storedUser = localStorage.getItem('current-user');
+        var storedUser = encryptedStorage.get('current-user');
         const tempUser = localStorage.getItem('temp-user');
 
         if (storedUser) {
