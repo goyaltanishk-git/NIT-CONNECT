@@ -1,4 +1,3 @@
-// hero-futuristic.tsx
 import React, { 
   useEffect, 
   useLayoutEffect, 
@@ -15,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Heart } from 'lucide-react';
 import './HeroSection.css'; 
 
-// Import your user profile hook
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -24,19 +22,16 @@ interface ComponentProps {
   onComplete?: () => void;
 }
 
-// --- HELPER: Calculate size to fix the Black Space caused by Zoom ---
+// --- HELPER: Aggressive Size Calculation ---
 const getCompensatedSize = () => {
   if (typeof window === 'undefined') return { width: 1920, height: 1080 };
   
-  // Get the zoom level applied to the body (default to 1 if not found)
-  // @ts-ignore - 'zoom' is standard in Chrome/Edge/Webkit
+  // @ts-ignore
   const zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
   
-  // We divide by zoom to make the canvas LARGER
-  // When CSS shrinks it (zoom: 0.85), it will snap back to perfect 100% size
   return {
-    width: window.innerWidth / zoom,
-    height: window.innerHeight / zoom
+    width: (window.innerWidth / zoom) * 1.05, 
+    height: (window.innerHeight / zoom) * 1.05
   };
 };
 
@@ -49,11 +44,9 @@ export const Component = ({ onComplete }: ComponentProps) => {
   const menuRef = useRef(null);
   const ctaButtonRef = useRef(null);
 
-  // User profile
   const { profile, loading: profileLoading } = useUserProfile();
-  const [displayName, setDisplayName] = useState("Welcome");
+  const [userName, setUserName] = useState(""); 
 
-  // Camera State - Starts further back (z: 400)
   const smoothCameraPos = useRef({ x: 0, y: 30, z: 400 });
   
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -73,82 +66,63 @@ export const Component = ({ onComplete }: ComponentProps) => {
     animationId: null as any,
     targetCameraX: 0,
     targetCameraY: 0,
-    targetCameraZ: 0, // Starts at 0 relative to offset, handled in animate
+    targetCameraZ: 0, 
     locations: [] as number[],
   });
 
-  // Set user name
   useEffect(() => {
     if (profileLoading) return;
     if (profile && profile.first_name) {
-      setDisplayName(`Hi, ${profile.first_name}`);
+      setUserName(profile.first_name.toUpperCase());
+    } else {
+      setUserName("RISHUL"); // Default fallback
     }
   }, [profile, profileLoading]);
 
-  // Initialize Three.js
+  // --- THREE.JS INIT ---
   useEffect(() => {
     const initThree = () => {
       const { current: refs } = threeRefs;
-      const size = getCompensatedSize(); // Get the fixed size
+      const size = getCompensatedSize();
 
-      // 1. Scene setup
       refs.scene = new THREE.Scene();
-      refs.scene.fog = new THREE.FogExp2(0x000000, 0.00025);
-      
-      // --- FIX: Solid Black Background ---
-      // This prevents the "Light Blue Box" artifact on the text bloom
+      refs.scene.fog = new THREE.FogExp2(0x000000, 0.0003); 
       refs.scene.background = new THREE.Color(0x000000);
 
-      // 2. Camera Setup
-      refs.camera = new THREE.PerspectiveCamera(
-        75,
-        size.width / size.height, // Use compensated aspect ratio
-        0.1,
-        3000 // Increased draw distance
-      );
-      
-      // Start zoomed out
+      refs.camera = new THREE.PerspectiveCamera(75, size.width / size.height, 0.1, 3000);
       refs.camera.position.z = 400; 
       refs.camera.position.y = 20;
 
-      // 3. Renderer Setup
       refs.renderer = new THREE.WebGLRenderer({
         canvas: canvasRef.current,
         antialias: true,
-        // --- FIX: Disable Alpha ---
-        // We don't need transparency anymore because we have a black background.
-        // This fixes the weird boxy glow artifacts.
         alpha: false 
       });
       
-      // Use compensated size to fill the screen despite CSS zoom
       refs.renderer.setSize(size.width, size.height);
       refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       refs.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      refs.renderer.toneMappingExposure = 0.5;
+      refs.renderer.toneMappingExposure = 0.4; 
 
-      // 4. Post-processing
       refs.composer = new EffectComposer(refs.renderer);
-      refs.composer.setSize(size.width, size.height); // Ensure composer matches size
+      refs.composer.setSize(size.width, size.height);
 
       const renderPass = new RenderPass(refs.scene, refs.camera);
       refs.composer.addPass(renderPass);
 
       const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(size.width, size.height),
-        0.8, // Strength
-        0.4, // Radius
-        0.85 // Threshold
+        0.5,
+        0.4,
+        0.9
       );
       refs.composer.addPass(bloomPass);
 
-      // Create Elements
       createStarField();
       createNebula();
       createMountains();
       createAtmosphere();
-      getLocation(); // Store mountain locations
-
+      getLocation();
       animate();
       setIsReady(true);
     };
@@ -242,7 +216,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
           time: { value: 0 },
           color1: { value: new THREE.Color(0x0033ff) },
           color2: { value: new THREE.Color(0xff0066) },
-          opacity: { value: 0.3 }
+          opacity: { value: 0.15 } 
         },
         vertexShader: `
           varying vec2 vUv;
@@ -373,11 +347,9 @@ export const Component = ({ onComplete }: ComponentProps) => {
 
       const time = Date.now() * 0.001;
 
-      // Update stars and nebula time
       refs.stars.forEach(s => s.material.uniforms.time.value = time);
       if (refs.nebula) refs.nebula.material.uniforms.time.value = time * 0.5;
 
-      // Camera Movement
       if (refs.camera) {
         const smoothingFactor = 0.05;
         
@@ -394,7 +366,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
         refs.camera.lookAt(0, 10, -600);
       }
 
-      // Parallax mountains
       refs.mountains.forEach((mountain, i) => {
         const parallaxFactor = 1 + i * 0.5;
         mountain.position.x = Math.sin(time * 0.1) * 2 * parallaxFactor;
@@ -406,11 +377,10 @@ export const Component = ({ onComplete }: ComponentProps) => {
 
     initThree();
 
-    // --- FIX: Resize Logic with Zoom Compensation ---
     const handleResize = () => {
       const { current: refs } = threeRefs;
       if (refs.camera && refs.renderer && refs.composer) {
-        const size = getCompensatedSize(); // Calculate new required size
+        const size = getCompensatedSize();
         
         refs.camera.aspect = size.width / size.height;
         refs.camera.updateProjectionMatrix();
@@ -426,8 +396,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
       const { current: refs } = threeRefs;
       if (refs.animationId) cancelAnimationFrame(refs.animationId);
       window.removeEventListener('resize', handleResize);
-      
-      // Cleanup Three.js
       refs.stars.forEach(s => { s.geometry.dispose(); s.material.dispose(); });
       refs.mountains.forEach(m => { m.geometry.dispose(); m.material.dispose(); });
       if (refs.nebula) { refs.nebula.geometry.dispose(); refs.nebula.material.dispose(); }
@@ -435,14 +403,12 @@ export const Component = ({ onComplete }: ComponentProps) => {
     };
   }, []);
 
-  // GSAP Animations
   useLayoutEffect(() => {
     if (!isReady) return;
     
     gsap.set([menuRef.current, scrollProgressRef.current], { visibility: 'visible' });
     const titleChars = titleRef.current?.querySelectorAll('.title-char') ?? [];
     
-    // Initial states
     gsap.set(titleChars, { opacity: 0, y: 50 });
     gsap.set(titleRef.current, { visibility: 'visible' }); 
     gsap.set(subtitleRef.current, { visibility: "hidden", opacity: 0, y: 20 }); 
@@ -463,9 +429,8 @@ export const Component = ({ onComplete }: ComponentProps) => {
     }
 
     return () => { tl.kill(); };
-  }, [isReady, displayName]);
+  }, [isReady, userName]); 
 
-  // CTA Button Animation
   useEffect(() => {
     if (ctaButtonRef.current && showCTAButton) {
       gsap.set(ctaButtonRef.current, { visibility: 'visible' });
@@ -473,7 +438,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
     }
   }, [showCTAButton]);
 
-  // Scroll Handling
   useEffect(() => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
@@ -494,11 +458,10 @@ export const Component = ({ onComplete }: ComponentProps) => {
       const totalProgress = progress * totalSections;
       const sectionProgress = totalProgress % 1;
       
-      // Camera Positions - Adjusted for zoomed out view
       const cameraPositions = [
-        { x: 0, y: 30, z: 400 },    // Start: Zoomed out
-        { x: 0, y: 40, z: -50 },    // Middle: Fly in
-        { x: 0, y: 50, z: -700 }    // End: Deep space
+        { x: 0, y: 30, z: 400 },
+        { x: 0, y: 40, z: -50 },
+        { x: 0, y: 50, z: -700 }
       ];
       
       const currentPos = cameraPositions[newSection] || cameraPositions[0];
@@ -508,13 +471,12 @@ export const Component = ({ onComplete }: ComponentProps) => {
       refs.targetCameraY = currentPos.y + (nextPos.y - currentPos.y) * sectionProgress;
       refs.targetCameraZ = currentPos.z + (nextPos.z - currentPos.z) * sectionProgress;
       
-      // Mountain Parallax
       refs.mountains.forEach((mountain, i) => {
         const speed = 1 + i * 0.9;
         const targetZ = mountain.userData.baseZ + scrollY * speed * 0.5;
         refs.nebula.position.z = (targetZ + progress * speed * 0.01) - 100;
         
-        if (progress > 0.7) mountain.position.z = 600000; // Move out of way
+        if (progress > 0.7) mountain.position.z = 600000;
         else mountain.position.z = refs.locations[i];
       });
       if(refs.mountains[3]) refs.nebula.position.z = refs.mountains[3].position.z;
@@ -526,14 +488,9 @@ export const Component = ({ onComplete }: ComponentProps) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [totalSections, showCTAButton]);
 
-  const splitTitle = (text: string) => {
-    return text.split(" ").map((word, wIndex) => (
-      <span key={wIndex} className="title-word">
-        {word.split("").map((char, i) => (
-          <span key={i} className="title-char">{char}</span>
-        ))}
-        &nbsp;
-      </span>
+  const splitText = (text: string) => {
+    return text.split("").map((char, i) => (
+      <span key={i} className="title-char">{char}</span>
     ));
   };
 
@@ -550,17 +507,34 @@ export const Component = ({ onComplete }: ComponentProps) => {
         <div className="vertical-text">SPACE</div>
       </div>
 
+      {/* --- SECTION 1: WELCOME [NAME] --- */}
       <div className="hero-content cosmos-content">
-        <h1 ref={titleRef} className="hero-title title-container" style={{ visibility: 'hidden' }}>
-          {splitTitle(displayName)}
+        {/* Added marginTop to push the title DOWN as requested */}
+        <h1 
+          ref={titleRef} 
+          className="hero-title title-container" 
+          style={{ 
+            visibility: 'hidden', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.2em', 
+            marginTop: '15vh' // Pushes title lower
+          }}
+        >
+          <div className="block">
+            {splitText("WELCOME")}
+          </div>
+          <div className="block">
+            {splitText(userName)}
+          </div>
         </h1>
         
         <div ref={subtitleRef} className="hero-subtitle cosmos-subtitle" style={{ visibility: "hidden" }}>
-          <p className="subtitle-line">Welcome to your college's</p>
-          <p className="subtitle-line">exclusive dating community.</p>
+          <p className="subtitle-line">Scroll down to see more</p>
         </div>
       </div>
 
+      {/* CTA Button */}
       {showCTAButton && (
         <div ref={ctaButtonRef} className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50" style={{ visibility: 'hidden' }}>
           <Button
@@ -575,6 +549,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
         </div>
       )}
 
+      {/* Scroll Progress */}
       <div ref={scrollProgressRef} className="scroll-progress" style={{ visibility: 'hidden' }}>
         <div className="scroll-text">SCROLL</div>
         <div className="progress-track">
@@ -585,17 +560,23 @@ export const Component = ({ onComplete }: ComponentProps) => {
         </div>
       </div>
 
+      {/* Scroll Sections */}
       <div className="scroll-sections">
        {[...Array(2)].map((_, i) => {
           const titles = { 1: 'Discover People', 2: 'Make Connections' };
+          
           const subtitles = {
-            1: { line1: 'Scroll to explore profiles', line2: 'from right here at NIT Kurukshetra.' },
+            1: { line1: 'Scroll to explore profiles', line2: 'from right here at NIT Kurukshetra.' }, // Reverted to original
             2: { line1: 'Genuine connections', line2: 'are just a swipe away.' }
           };
           
+          const isMakeConnections = i + 1 === 2;
+
           return (
             <section key={i} className="content-section">
-              <h1 className="hero-title">{titles[i+1] || 'DEFAULT'}</h1>
+              <h1 className={`hero-title ${isMakeConnections ? 'make-connections-title' : ''}`}>
+                {titles[i+1] || 'DEFAULT'}
+              </h1>
               <div className="hero-subtitle cosmos-subtitle">
                 <p className="subtitle-line">{subtitles[i+1].line1}</p>
                 <p className="subtitle-line">{subtitles[i+1].line2}</p>
