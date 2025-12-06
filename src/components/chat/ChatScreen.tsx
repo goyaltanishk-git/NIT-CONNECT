@@ -113,7 +113,8 @@ export function ChatScreen({ onNavigateToDiscovery }: ChatScreenProps) {
 
   return (
     <div className="h-full flex flex-col bg-black text-white">
-       <div className="glass border-b border-white/10 sticky top-0 z-40 animate-slide-up">
+       <div className="glass h-[12%] border-b border-white/10 sticky top-0 z-40 animate-slide-up
+       flex flex-column  items-center">
         <div className="p-6"> 
           <div className="flex items-center gap-4 animate-slide-in-left"> 
             <div className="relative">
@@ -123,7 +124,7 @@ export function ChatScreen({ onNavigateToDiscovery }: ChatScreenProps) {
               <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold gradient-text-animated">Messages</h1>
+              <h1 className="text-xl font-bold gradient-text-animated">Messages</h1>
               <p className="text-sm text-gray-400">{conversations.length} conversations</p>
             </div>
             <div className="flex space-x-1 ml-auto">
@@ -142,10 +143,10 @@ export function ChatScreen({ onNavigateToDiscovery }: ChatScreenProps) {
             className={`glass-light border-white/10 transition-all duration-500 hover:scale-[1.02] card-hover animate-fade-in interactive stagger-${index + 1}`}
             onClick={() => setSelectedConversation(conversation)}
           >
-            <CardContent className="p-5">
+            <CardContent className="p-4">
               <div className="flex items-start gap-5">
                 <div className="relative">
-                  <Avatar className="h-24 w-24 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
+                  <Avatar className="h-16 w-16 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
                     <AvatarImage src={conversation.user.photos?.[0]?.photo_url} />
                     <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-3xl">
                       {conversation.user.first_name[0]}

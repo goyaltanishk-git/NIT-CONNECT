@@ -94,19 +94,28 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
     <div className="relative flex flex-col items-center">
       
       {/* CARD WRAPPER WITH SCALE-IN ANIMATION */}
-      <motion.div
-        className="
-          relative w-[68vw] max-w-[360px] h-[590px]
-          perspective-[1000px]
-          animate-scale-in
-        "
-        style={{ transformStyle: "preserve-3d" }}
-      >
+     
+        <motion.div
+  className="
+    relative 
+    w-[90%]
+    max-w-[420px]
+    h-[78vh]
+    aspect-[3/4]
+    mx-auto
+    flex flex-col justify-center items-center
+    perspective-[1000px]
+    animate-scale-in
+  "
+  style={{ transformStyle: "preserve-3d" }}
+>
+
 
         {/* FRONT FACE */}
         <motion.div
           className="
             absolute inset-0 
+            h-[99%]
             border-2 border-pink-300 rounded-3xl overflow-hidden 
             shadow-2xl 
             bg-gradient-to-br from-pink-500/40 to-purple-600/40 
@@ -161,7 +170,16 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
           </div>
 
           {/* INFO SECTION */}
-          <div className="relative w-full h-[37%] bg-black backdrop-blur-2xl">
+          <div
+  className="
+    relative 
+    w-full 
+    h-[37%] 
+    bg-black
+    backdrop-blur-xl">
+
+     
+
             
             {/* NAME + AGE WITH HEARTBEAT */}
             <div className="flex items-baseline gap-2 mb-2">
@@ -172,13 +190,13 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             </div>
 
             {/* TAGS */}
-            <div className="flex flex-wrap ms-3 text-xs text-white/80 mb-4">
-              <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full gradient-text">
+            <div className="flex flex-wrap ms-3 text-xs text-pink-100 mb-4">
+              <div className="flex w-full items-center gap-1  px-2 py-1 rounded-full ">
                 <GraduationCap className="w-3 h-3" />
                 {profile.branch} Engineering
               </div>
 
-              <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full gradient-text">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full ">
                 <Calendar className="w-3 h-3" />
                 B.Tech {profile.year} Year
               </div>
@@ -190,7 +208,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
                 whileTap={{ scale: 0.8 }}
                 whileHover={{ scale: 1.12 }}
                 onClick={(e) => { e.stopPropagation(); onPass(); }}
-                className="interactive hover-glow w-14 h-14 rounded-full bg-pink-200/50 backdrop-blur-2xl border-2 border-pink-100 flex items-center justify-center mt-2"
+                className="interactive hover-glow w-14 h-14 rounded-full bg-pink-200/50 backdrop-blur-2xl border-2 border-pink-100 flex items-center justify-center mt-1"
               >
                 <X className="w-8 h-8 text-rose-300" />
               </motion.button>
@@ -204,23 +222,27 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
                   triggerBurst(e);
                 }}
                 className="
-                  relative w-20 h-20 rounded-full overflow-hidden interactive
+                   w-20 h-20 rounded-full overflow-hidden interactive
                   bg-gradient-to-br from-pink-700 to-purple-400
                   shadow-[0_0_25px_rgba(255,120,170,0.55)]
                   border border-pink-300/100
                   flex items-center justify-center
                   transition-all duration-300
                   animate-pulse-glow
+                  -mt-5
+                
+                  
                 "
               >
                 {burst && (
                   <span className="absolute inset-0 animate-like-explosion bg-pink-300/60 rounded-full"></span>
                 )}
 
-                <Heart className="w-10 h-10 text-white drop-shadow-xl z-10" />
+                <Heart className="w-12 h-12 text-white drop-shadow-xl z-10" />
               </motion.button>
             </div>
           </div>
+          
         </motion.div>
 
         {/* BACK FACE */}
@@ -228,9 +250,10 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
           className="
             absolute inset-0 w-full h-full 
             rounded-3xl overflow-hidden
-            bg-black/90 backdrop-blur-xl
+            bg-black/90 backdrop-blur-1xl
             border-2 border-pink-300
             shadow-2xl
+            h-[99%]
             cursor-pointer
           "
           initial={false}
@@ -355,6 +378,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             </div>
           </motion.div>
         </motion.div>
+        
       </motion.div>
     </div>
   );

@@ -155,10 +155,10 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
 
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-b from-background to-primary/5">
+    <div className="  h-full flex flex-col bg-gradient-to-b from-background to-primary/5">
       {/* Enhanced Header */}
       {/* Increased padding from p-6 to p-8 */}
-      <div className="bg-card border-b border-border p-8 shadow-sm backdrop-blur-sm">
+      <div className="bg-card border-b border-border p-5 shadow-sm backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={onBack} className="hover:bg-primary/10">
             <ArrowLeft className="h-5 w-5" />
@@ -170,7 +170,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
             onClick={() => setProfileDialogOpen(true)}
           >
             {/* 🆕 Increased Avatar size */}
-            <Avatar className="h-16 w-16 ring-2 ring-primary/20">
+            <Avatar className="h-8 w-8 ring-2 ring-primary/20">
               <AvatarImage src={user.photos[0]} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                 {user.name[0]}
@@ -306,15 +306,15 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
              <div key={index}>
               <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
                 <div className={cn(
-                  "max-w-[80%] rounded-2xl",
+                  "max-w-[80%] rounded-xl",
                   // Increased padding
-                  "px-6 py-4", 
+                  "px-4 py-1 ", 
                   isFromMe 
                     ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground" 
                     : "bg-card border"
                 )}>
                   {/* Increased font size */}
-                  <p className="text-xl">{message.content}</p>
+                  <p className="text-l">{message.content}</p>
                 </div>
               </div>
             </div>
@@ -326,7 +326,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
 
       {/* Message Input */}
       {/* Increased padding on container */}
-      <div className="border-t border-border p-6 bg-card backdrop-blur-sm">
+      <div className="border-t border-border p-4 pb-8 bg-card backdrop-blur-sm">
         <div className="flex gap-3">
           <Input
             value={newMessage}
@@ -334,13 +334,13 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
             placeholder={`Message ${user.name}...`}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             // Increased size, padding, and text size
-            className="flex-1 bg-background border-border rounded-full px-6 h-16 text-lg focus:ring-2 focus:ring-primary/20"
+            className="flex-1 bg-background border-border rounded-full px-4 h-8 text-m focus:ring-2 focus:ring-primary/20"
           />
           <Button 
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}
             // Increased size
-            className="rounded-full h-16 w-16 p-0 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+            className="rounded-full h-8 w-8 p-0 bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg transition-all duration-300 disabled:opacity-50"
           >
             {/* Increased icon size */}
             <Send className="h-7 w-7" />

@@ -9,6 +9,7 @@ import { ProfileScreen } from "@/components/profile/ProfileScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -18,6 +19,8 @@ export function MainLayout() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [insideIndividualChat, setInsideIndividualChat] = useState(false);
+
 
   useEffect(() => {
     loadUserProfile();
