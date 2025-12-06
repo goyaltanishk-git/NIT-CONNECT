@@ -2,30 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- FIX: FORCE FULL SCREEN LAYOUT --- */
+/* --- FIX: RE-ENABLE SCROLLING --- */
 html {
-  height: 100%;
   width: 100%;
-  /* This creates the "Zoomed Out" look safely by scaling 1rem to ~13.6px */
+  /* Keep the "Zoomed Out" look via font scaling */
   font-size: 85%; 
   background: #000;
-  overflow: hidden; /* Prevent double scrollbars */
+  
+  /* ALLOW SCROLLING AGAIN */
+  overflow-y: auto; 
+  overflow-x: hidden; 
+  scroll-behavior: smooth;
 }
 
 body {
-  height: 100%;
   width: 100%;
+  min-height: 100vh;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
-  /* IMPORTANT: Override the old zoom causing the black bar */
+  
+  /* Remove fixed height so body can grow/scroll */
+  height: auto; 
+  
+  /* Override any residual zoom issues */
   zoom: 1 !important; 
   -moz-transform: none !important;
+  
+  background: #000;
+  color: #fff;
+  overflow-x: hidden;
 }
 
 #root {
-  height: 100%;
   width: 100%;
+  min-height: 100vh;
 }
 
 @layer base {
@@ -64,31 +74,12 @@ body {
   }
 }
 
-/* Custom animations for Thursday-style UI */
-@keyframes heartbeat {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 79, 162, 0.3); }
-  50% { box-shadow: 0 0 30px rgba(255, 79, 162, 0.6); }
-}
-
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(100px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
+/* Animations & Glass Effects (Kept exactly the same) */
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(255, 79, 162, 0.3); } 50% { box-shadow: 0 0 30px rgba(255, 79, 162, 0.6); } }
+@keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slide-up { from { opacity: 0; transform: translateY(100px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 
 .animate-heartbeat { animation: heartbeat 1.5s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
@@ -96,83 +87,19 @@ body {
 .animate-slide-up { animation: slide-up 0.8s ease-out; }
 .animate-gradient { animation: gradient-shift 3s ease infinite; background-size: 200% 200%; }
 
-/* Glassmorphism effects */
-.glass {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+.glass { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+.glass-light { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
 
-.glass-light {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+.gradient-text { background: linear-gradient(135deg, #FF4FA2, #FF69B4, #FF1493); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% 200%; }
+.gradient-text-animated { background: linear-gradient(135deg, #FF4FA2, #FF69B4, #FF1493, #FF4FA2); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 200% 200%; animation: gradient-shift 3s ease infinite; }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, #FF4FA2, #FF69B4, #FF1493);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 200% 200%;
-}
+.btn-primary { background: linear-gradient(135deg, #FF4FA2, #FF69B4); border: none; color: white; transition: all 0.3s ease; }
+.btn-primary:hover { transform: scale(1.05); box-shadow: 0 10px 25px rgba(255, 79, 162, 0.4); }
 
-.gradient-text-animated {
-  background: linear-gradient(135deg, #FF4FA2, #FF69B4, #FF1493, #FF4FA2);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
-}
+.loading-heart { width: 40px; height: 40px; background: linear-gradient(135deg, #FF4FA2, #FF69B4); transform: rotate(45deg); position: relative; animation: heartbeat 1s ease-in-out infinite; }
+.loading-heart::before, .loading-heart::after { content: ''; width: 40px; height: 40px; position: absolute; left: -20px; top: 0; background: linear-gradient(135deg, #FF4FA2, #FF69B4); border-radius: 20px; transform: rotate(-45deg); transform-origin: 0 100%; }
+.loading-heart::after { left: 0; top: -20px; transform-origin: 100% 100%; }
 
-/* Custom button styles */
-.btn-primary {
-  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
-  border: none;
-  color: white;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 25px rgba(255, 79, 162, 0.4);
-}
-
-/* Loading spinner */
-.loading-heart {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
-  transform: rotate(45deg);
-  position: relative;
-  animation: heartbeat 1s ease-in-out infinite;
-}
-
-.loading-heart::before,
-.loading-heart::after {
-  content: '';
-  width: 40px;
-  height: 40px;
-  position: absolute;
-  left: -20px;
-  top: 0;
-  background: linear-gradient(135deg, #FF4FA2, #FF69B4);
-  border-radius: 20px;
-  transform: rotate(-45deg);
-  transform-origin: 0 100%;
-}
-
-.loading-heart::after {
-  left: 0;
-  top: -20px;
-  transform-origin: 100% 100%;
-}
-
-/* Interactive elements */
 .interactive { transition: all 0.2s ease; cursor: pointer; }
 .interactive:hover { transform: scale(1.02); }
 .interactive:active { transform: scale(0.98); }
