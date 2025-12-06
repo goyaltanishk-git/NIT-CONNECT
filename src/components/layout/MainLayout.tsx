@@ -68,26 +68,29 @@ export function MainLayout() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
 
         {/* Enhanced Glassmorphism Header */}
-        <div className="sticky top-0 z-50 glass border-b border-white/10 p-4">
-          <div className="flex items-center justify-center">
-            <div className="flex items-center space-x-4 animate-slide-in-left">
-              <div className="relative">
-                <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
-                <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
-              </div>
-              
-              <h1 className="text-2xl md:text-3xl font-bold gradient-text-animated whitespace-nowrap">
-                NIT Connect
-              </h1>
-              
-              <div className="flex space-x-1">
-                <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
-                <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
-                <Sparkles className="h-5 w-5 text-blue-400 animate-pulse stagger-3" />
+        {/* UPDATED LOGIC: Hide header if activeTab is 'profile' so it can scroll inside the screen instead */}
+        {activeTab !== 'profile' && (
+          <div className="sticky top-0 z-50 glass border-b border-white/10 py-2 px-4">
+            <div className="flex items-center justify-center">
+              <div className="flex items-center space-x-4 animate-slide-in-left">
+                <div className="relative">
+                  <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
+                  <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
+                </div>
+                
+                <h1 className="text-2xl md:text-3xl font-bold gradient-text-animated whitespace-nowrap">
+                  NIT Connect
+                </h1>
+                
+                <div className="flex space-x-1">
+                  <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
+                  <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
+                  <Sparkles className="h-5 w-5 text-blue-400 animate-pulse stagger-3" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Main Content with enhanced smooth transitions */}
         <div className="flex-1 overflow-hidden relative">
@@ -126,11 +129,6 @@ export function MainLayout() {
                 key={tab}
                 variant="ghost"
                 onClick={() => setActiveTab(tab)}
-                /* UPDATED LAYOUT: 
-                   - gap-1.5: increased space between icon and text
-                   - pb-2: pushes the text up further
-                   - pt-3: ensures icons aren't too high
-                */
                 className={`flex flex-col items-center justify-center pt-3 pb-2 px-3 gap-1.5 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden ${
                   activeTab === tab
                     ? `bg-gradient-to-r ${gradient} shadow-lg scale-110 animate-pulse-glow`

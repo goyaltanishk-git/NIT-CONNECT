@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Camera, Heart, Shield, User, Edit, Ruler, Home, BookOpen, GitBranch } from "lucide-react";
+import { Settings, Camera, Heart, Shield, User, Edit, Ruler, Home, BookOpen, GitBranch, Sparkles } from "lucide-react";
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
 import { SettingsScreen } from "../settings/SettingsScreen";
 import { useState, useEffect, useCallback } from "react";
@@ -251,15 +251,37 @@ export function ProfileScreen() {
 
   return (
     <div className="h-full overflow-y-auto bg-black text-white pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
-      <div className="px-4 pb-4 pt-2 space-y-3 max-w-lg mx-auto">
+      
+      {/* 🆕 ADDED HEADER HERE: Scrolls with content */}
+      <div className="glass border-b border-white/10 py-2 px-4 mb-2">
+        <div className="flex items-center justify-center">
+          <div className="flex items-center space-x-4 animate-slide-in-left">
+            <div className="relative">
+              <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
+              <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold gradient-text-animated whitespace-nowrap">
+              NIT Connect
+            </h1>
+            <div className="flex space-x-1">
+              <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
+              <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
+              <Sparkles className="h-5 w-5 text-blue-400 animate-pulse stagger-3" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pb-4 pt-0 space-y-3 max-w-lg mx-auto">
         
         {/* Top Profile Section */}
-        <div className="flex flex-col items-center space-y-3 mt-1">
+        <div className="flex flex-col items-center space-y-3 mt-0">
           <button 
             className="relative interactive"
             onClick={() => setShowMyProfileDialog(true)}
           >
-            <Avatar className="w-[75vw] h-[75vw] max-w-[300px] max-h-[300px] ring-4 ring-pink-500/30 border-4 border-black">
+            {/* Avatar size 200px / 55vw */}
+            <Avatar className="w-[55vw] h-[55vw] max-w-[200px] max-h-[200px] ring-4 ring-pink-500/30 border-4 border-black">
               <AvatarImage src={photos.length > 0 ? photos[0].photo_url : undefined} />
               <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-5xl font-bold">
                 {user.name[0] || 'U'}
@@ -276,18 +298,16 @@ export function ProfileScreen() {
         </div>
 
         {/* Buttons Section */}
-        {/* UPDATED: Increased width to max-w-[270px] to spread buttons slightly */}
-        <div className="flex flex-col items-center gap-0 w-full max-w-[270px] mx-auto">
+        <div className="flex flex-col items-center gap-0 w-full max-w-[200px] mx-auto">
           {/* Top Row: Settings & Safety */}
           <div className="flex justify-between w-full px-0.5">
             <button 
               onClick={() => setShowSettings(true)} 
               className="flex flex-col items-center space-y-1.5 group interactive"
             >
-              <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
-                <Settings className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
+              <div className="h-12 w-12 rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                <Settings className="h-6 w-6 text-gray-300 group-hover:text-white transition-colors" />
               </div>
-              {/* UPDATED: Text size reduced to text-[9px] */}
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">SETTINGS</span>
             </button>
 
@@ -295,10 +315,9 @@ export function ProfileScreen() {
               onClick={() => setShowSafetyCenter(true)} 
               className="flex flex-col items-center space-y-1.5 group interactive"
             >
-              <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
-                <Shield className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
+              <div className="h-12 w-12 rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                <Shield className="h-6 w-6 text-gray-300 group-hover:text-white transition-colors" />
               </div>
-              {/* UPDATED: Text size reduced to text-[9px] */}
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">SAFETY</span>
             </button>
           </div>
@@ -311,12 +330,10 @@ export function ProfileScreen() {
             onPhotosUpdate={handlePhotosUpdate}
             photosLoading={photosLoading}
           >
-            {/* UPDATED: Adjusted negative margin to -mt-14 to bring it down slightly */}
-            <div className="flex flex-col items-center space-y-1.5 group interactive cursor-pointer -mt-14">
-              <div className="h-[60px] w-[60px] rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-500/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
-                <Edit className="h-7 w-7 text-white" />
+            <div className="flex flex-col items-center space-y-1.5 group interactive cursor-pointer -mt-10">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-500/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
+                <Edit className="h-6 w-6 text-white" />
               </div>
-              {/* UPDATED: Text size reduced to text-[9px] */}
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">EDIT PROFILE</span>
             </div>
           </EditProfileModal>
