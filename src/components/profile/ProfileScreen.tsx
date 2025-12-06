@@ -252,7 +252,7 @@ export function ProfileScreen() {
   return (
     <div className="h-full overflow-y-auto bg-black text-white pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
       
-      {/* 🆕 ADDED HEADER HERE: Scrolls with content */}
+      {/* Internal Header that scrolls */}
       <div className="glass border-b border-white/10 py-2 px-4 mb-2">
         <div className="flex items-center justify-center">
           <div className="flex items-center space-x-4 animate-slide-in-left">
@@ -280,7 +280,7 @@ export function ProfileScreen() {
             className="relative interactive"
             onClick={() => setShowMyProfileDialog(true)}
           >
-            {/* Avatar size 200px / 55vw */}
+            {/* KEPT SMALL: Avatar size 200px / 55vw */}
             <Avatar className="w-[55vw] h-[55vw] max-w-[200px] max-h-[200px] ring-4 ring-pink-500/30 border-4 border-black">
               <AvatarImage src={photos.length > 0 ? photos[0].photo_url : undefined} />
               <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-5xl font-bold">
@@ -298,15 +298,17 @@ export function ProfileScreen() {
         </div>
 
         {/* Buttons Section */}
-        <div className="flex flex-col items-center gap-0 w-full max-w-[200px] mx-auto">
+        {/* RESTORED: Max width 270px */}
+        <div className="flex flex-col items-center gap-0 w-full max-w-[270px] mx-auto">
           {/* Top Row: Settings & Safety */}
           <div className="flex justify-between w-full px-0.5">
             <button 
               onClick={() => setShowSettings(true)} 
               className="flex flex-col items-center space-y-1.5 group interactive"
             >
-              <div className="h-12 w-12 rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
-                <Settings className="h-6 w-6 text-gray-300 group-hover:text-white transition-colors" />
+              {/* RESTORED: Size h-[60px] w-[60px] */}
+              <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                <Settings className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
               </div>
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">SETTINGS</span>
             </button>
@@ -315,8 +317,9 @@ export function ProfileScreen() {
               onClick={() => setShowSafetyCenter(true)} 
               className="flex flex-col items-center space-y-1.5 group interactive"
             >
-              <div className="h-12 w-12 rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
-                <Shield className="h-6 w-6 text-gray-300 group-hover:text-white transition-colors" />
+              {/* RESTORED: Size h-[60px] w-[60px] */}
+              <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
+                <Shield className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
               </div>
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">SAFETY</span>
             </button>
@@ -330,9 +333,11 @@ export function ProfileScreen() {
             onPhotosUpdate={handlePhotosUpdate}
             photosLoading={photosLoading}
           >
-            <div className="flex flex-col items-center space-y-1.5 group interactive cursor-pointer -mt-10">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-500/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
-                <Edit className="h-6 w-6 text-white" />
+            {/* RESTORED: -mt-14 margin */}
+            <div className="flex flex-col items-center space-y-1.5 group interactive cursor-pointer -mt-14">
+              {/* RESTORED: Size h-[60px] w-[60px] */}
+              <div className="h-[60px] w-[60px] rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-500/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
+                <Edit className="h-7 w-7 text-white" />
               </div>
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">EDIT PROFILE</span>
             </div>
