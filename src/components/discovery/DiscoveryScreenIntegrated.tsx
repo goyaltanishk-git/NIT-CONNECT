@@ -235,10 +235,14 @@ export function DiscoveryScreenIntegrated() {
   const currentProfile = transformProfileForCard(profiles[currentIndex]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="p-6">
+
+  <div className="min-h-screen bg-black text-white">
+      <div className="p-0 m-0 w-full">
+
         {/* Enhanced Profile Stack with Better UI */}
-        <div className="relative max-w-sm mx-auto profile-stack">
+       <div className="relative w-full max-w-[420px] mx-auto p-0 profile-stack overflow-visible">
+
+
           {/* Profile Stack Background Cards */}
           {profiles[currentIndex + 2] && (
             <div className="absolute inset-0 -z-20 scale-90 opacity-20 rotate-1 transform">
