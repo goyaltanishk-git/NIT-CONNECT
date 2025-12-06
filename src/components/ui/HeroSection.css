@@ -20,7 +20,6 @@ html {
   background: #000000;
   width: 100%;
   height: 100%;
-  /* Fixes scroll delay by preventing rubber-banding on some devices */
   overscroll-behavior: none; 
 }
 
@@ -31,15 +30,9 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* --- ZOOM FIX --- */
   zoom: 0.85; 
-  
-  /* FIXED: Use 100% instead of 117vw to prevent scroll locking */
   width: 100%;
-  
-  /* Ensure vertical scroll is prioritized immediately */
   touch-action: pan-y; 
-  
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
@@ -56,7 +49,6 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  /* Make canvas cover the viewport regardless of zoom */
   width: 100vw; 
   height: 100vh;
   z-index: 1;
@@ -64,7 +56,6 @@ body {
 
 .hero-content,
 .content-section {
-  /* Use dynamic viewport height for mobile responsiveness */
   height: 100dvh; 
   width: 100%;
   display: flex;
@@ -78,13 +69,15 @@ body {
 }
 
 /* -------------------------------------------------
-    TITLE STYLES
+    TITLE STYLES - UPDATED SIZES
 -------------------------------------------------- */
 .hero-title {
   font-weight: 900;
   text-transform: uppercase;
-  /* Kept your preferred small sizes */
-  font-size: clamp(2.5rem, 9vw, 8rem); 
+  
+  /* INCREASED: Was clamp(2.5rem...) -> Now clamp(3.5rem...) */
+  font-size: clamp(3.5rem, 11vw, 9rem); 
+  
   line-height: 0.95;
   letter-spacing: -0.03em;
   background: linear-gradient(45deg, #f472b6, #db2777);
@@ -94,9 +87,13 @@ body {
   max-width: 95%; 
 }
 
-/* Make Connections - Even Smaller */
+/* MAKE CONNECTIONS - UPDATED */
 .make-connections-title {
-  font-size: clamp(1.8rem, 5vw, 5rem) !important; 
+  /* INCREASED: Was clamp(1.8rem...) -> Now clamp(2.8rem...) */
+  font-size: clamp(2.8rem, 8vw, 6rem) !important; 
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .hero-title.title-container {
@@ -118,7 +115,10 @@ body {
 .hero-subtitle {
   margin-top: 1.5rem;
   max-width: 90%;
-  font-size: clamp(0.9rem, 1.5vw, 1.2rem); 
+  
+  /* INCREASED: Was clamp(0.9rem...) -> Now clamp(1.15rem...) */
+  font-size: clamp(1.15rem, 2vw, 1.6rem); 
+  
   font-weight: 300;
   line-height: 1.5;
   color: var(--color-subtle);
