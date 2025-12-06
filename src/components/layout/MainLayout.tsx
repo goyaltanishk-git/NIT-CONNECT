@@ -9,7 +9,6 @@ import { ProfileScreen } from "@/components/profile/ProfileScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
 import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
-
 import type { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -19,8 +18,6 @@ export function MainLayout() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const [insideIndividualChat, setInsideIndividualChat] = useState(false);
-
 
   useEffect(() => {
     loadUserProfile();
@@ -129,13 +126,13 @@ export function MainLayout() {
                 onClick={() => setActiveTab(tab)}
                 className={`flex flex-col items-center px-4 py-3 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden ${
                   activeTab === tab
-                    ? `bg-gradient-to-r ${gradient} shadow-lg scale-110 animate-pulse-glow`
+                    ? bg-gradient-to-r ${gradient} shadow-lg scale-110 animate-pulse-glow
                     : "hover:bg-white/10 hover:scale-105"
                 } animate-bounce-in stagger-${index + 1}`}
               >
                 {/* Enhanced background glow effect for active tab */}
                 {activeTab === tab && (
-                  <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-30 blur-xl animate-pulse`}></div>
+                  <div className={absolute inset-0 bg-gradient-to-r ${gradient} opacity-30 blur-xl animate-pulse}></div>
                 )}
                 
                 {/* Shimmer effect on hover */}
@@ -179,10 +176,10 @@ export function MainLayout() {
               i % 3 === 0 ? 'bg-pink-500/20' : i % 3 === 1 ? 'bg-purple-500/20' : 'bg-blue-500/20'
             }`}
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`,
+              left: ${Math.random() * 100}%,
+              top: ${Math.random() * 100}%,
+              animationDelay: ${Math.random() * 3}s,
+              animationDuration: ${2 + Math.random() * 2}s,
             }}
           ></div>
         ))}
@@ -195,10 +192,10 @@ export function MainLayout() {
             key={i}
             className="absolute w-4 h-4 text-pink-500/10 animate-float"
             style={{
-              left: `${20 + Math.random() * 60}%`,
-              top: `${20 + Math.random() * 60}%`,
-              animationDelay: `${Math.random() * 4}s`,
-              animationDuration: `${4 + Math.random() * 2}s`,
+              left: ${20 + Math.random() * 60}%,
+              top: ${20 + Math.random() * 60}%,
+              animationDelay: ${Math.random() * 4}s,
+              animationDuration: ${4 + Math.random() * 2}s,
             }}
           />
         ))}

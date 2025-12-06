@@ -6,8 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Camera, Plus, X, Tag, Star } from "lucide-react"; 
-import { PhotoUpload } from "../discovery/PhotoUpload";
+import { Plus, X, Tag, ArrowLeft } from "lucide-react"; 
 import { UserPhoto } from "@/lib/photoservice";
 import { InterestsService } from "../../lib/interests-service";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +44,7 @@ export interface ProfileType {
 interface EditProfileModalProps {
   profile: ProfileType;
   onSave: (updatedUser: Partial<ProfileType>) => Promise<void>;
-  // Props for lifted state
+  // Props kept for compatibility, though photos are no longer displayed here
   photos: UserPhoto[];
   onPhotosUpdate: (updatedPhotos: UserPhoto[]) => void;
   photosLoading: boolean;
@@ -68,8 +67,7 @@ const POPULAR_INTERESTS = [
 export function EditProfileModal({
   profile,
   onSave,
-  // Destructure new props
-  photos,
+  photos, // Kept in destructuring to satisfy interface
   onPhotosUpdate,
   photosLoading,
   children 
@@ -81,7 +79,6 @@ export function EditProfileModal({
   const [newInterest, setNewInterest] = useState("");
   const { toast } = useToast();
   
-  // 🆕 State for phone number validation
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   // Initialize form data from profile with safe defaults
@@ -102,9 +99,7 @@ export function EditProfileModal({
     
     setInterestsLoading(true);
     try {
-      console.log("[EditProfileModal] Loading interests for:", profile.email);
       const userInterests = await InterestsService.getUserInterests(profile.email);
-      console.log("[EditProfileModal] Interests loaded:", userInterests);
       setInterests(userInterests);
     } catch (error) {
       console.error('Error loading interests:', error);
@@ -122,9 +117,7 @@ export function EditProfileModal({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open) {
-      console.log("[EditProfileModal] Modal opened, loading data...");
       loadInterests();
-      // 🆕 Reset form data and errors on open
       setFormData({
         ...profile,
         bio: profile.bio || "",
@@ -168,25 +161,23 @@ export function EditProfileModal({
     }
   };
 
-  // 🆕 Phone number validation handler
+  // Phone number validation handler
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only numbers
     const numericValue = value.replace(/[^0-9]/g, '');
     
     setFormData(prev => ({ ...prev, phone_number: numericValue }));
 
     if (numericValue === '') {
-      setPhoneError(null); // No error if empty
+      setPhoneError(null);
     } else if (numericValue.length !== 10) {
       setPhoneError('Phone number must be exactly 10 digits.');
     } else {
-      setPhoneError(null); // Valid
+      setPhoneError(null);
     }
   };
 
   const handleSave = async () => {
-    // 🆕 Final check before save
     if (phoneError) {
       toast({
         title: "Invalid Input",
@@ -197,22 +188,17 @@ export function EditProfileModal({
     }
 
     try {
-      console.log("[EditProfileModal] Saving profile:", formData);
-      console.log("[EditProfileModal] Saving interests:", interests);
-      
-      // 🆕 We only send back fields that are meant to be editable
       const editableData: Partial<ProfileType> = {
         bio: formData.bio,
         hometown: formData.hometown,
         height: formData.height,
         phone_number: formData.phone_number,
         instagram_handle: formData.instagram_handle,
-        date_of_birth: formData.date_of_birth, // 🆕 DOB is now saved
+        date_of_birth: formData.date_of_birth,
       };
       
       await onSave(editableData);
       
-      // Save interests separately
       await InterestsService.updateUserInterests(profile.email, interests);
       
       setIsOpen(false);
@@ -236,49 +222,162 @@ export function EditProfileModal({
         {children}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center gap-2">
+          {/* Go Back Button */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setIsOpen(false)} 
+            className="h-8 w-8 -ml-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Photos Section */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Camera className="w-5 h-5" />
-              <Label className="text-base font-semibold">Photos</Label>
+          
+          {/* 1. First Name & Last Name */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="first_name">First Name</Label>
+              <Input
+                id="first_name"
+                value={formData.first_name || ""}
+                onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+                disabled 
+              />
             </div>
-            <p className="text-sm text-muted-foreground">
-              Your photos are managed on the profile screen.
-            </p>
-            
-            {/* Use the photosLoading prop from ProfileScreen */}
-            {photosLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              </div>
-            ) : (
-              // This is now a simple display grid
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {photos.map((photo) => (
-                  <div key={photo.photo_order} className="relative group aspect-square">
-                    <img
-                      src={photo.photo_url}
-                      alt={`Photo ${photo.photo_order}`}
-                      className="w-full h-full object-cover rounded-xl border-2 border-gray-200"
-                    />
-                    {photo.is_primary && (
-                      <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
-                        <Star className="w-3 h-3" />
-                        Primary
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div>
+              <Label htmlFor="last_name">Last Name</Label>
+              <Input
+                id="last_name"
+                value={formData.last_name || ""}
+                onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+                disabled 
+              />
+            </div>
           </div>
 
-          {/* Interests Section */}
+          {/* 2. Year & Branch */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="year_of_study">Year</Label>
+              <Select
+                value={formData.year_of_study || ""}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, year_of_study: value }))}
+                disabled 
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1st Year">1st Year</SelectItem>
+                  <SelectItem value="2nd Year">2nd Year</SelectItem>
+                  <SelectItem value="3rd Year">3rd Year</SelectItem>
+                  <SelectItem value="4th Year">4th Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="branch">Branch</Label>
+              <Select
+                value={formData.branch || ""}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, branch: value }))}
+                disabled 
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BRANCHES.map((branch) => (
+                    <SelectItem key={branch} value={branch}>
+                      {branch}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* 3. Gender & Height */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="gender">Gender</Label>
+              <Select
+                value={formData.gender || ""}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value as "male" | "female" }))}
+                disabled 
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="height">Height (cm)</Label>
+              <Input
+                id="height"
+                type="number"
+                value={formData.height || ""}
+                onChange={(e) => setFormData(prev => ({ ...prev, height: parseInt(e.target.value) || null }))}
+                placeholder="e.g., 175"
+              />
+            </div>
+          </div>
+
+          {/* 4. Email */}
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              disabled
+            />
+          </div>
+
+          {/* 5. Date of Birth */}
+          <div>
+            <Label htmlFor="date_of_birth">Date of Birth</Label>
+            <Input
+              id="date_of_birth"
+              type="date"
+              value={formData.date_of_birth || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, date_of_birth: e.target.value }))}
+            />
+          </div>
+
+          {/* 6. Bio */}
+          <div>
+            <Label htmlFor="bio">Bio</Label>
+            <Textarea
+              id="bio"
+              value={formData.bio || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+              placeholder="Tell others about yourself..."
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* 7. Hometown */}
+          <div>
+            <Label htmlFor="hometown">Hometown</Label>
+            <Input
+              id="hometown"
+              value={formData.hometown || ""}
+              onChange={(e) => setFormData(prev => ({ ...prev, hometown: e.target.value }))}
+            />
+          </div>
+
+          {/* 8. Interests Section */}
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <Tag className="w-5 h-5" />
@@ -294,7 +393,6 @@ export function EditProfileModal({
               </div>
             ) : (
               <>
-                {/* Current Interests */}
                 <div className="flex flex-wrap gap-2">
                   {interests.map((interest, index) => (
                     <Badge key={index} variant="secondary" className="flex items-center gap-1">
@@ -307,7 +405,6 @@ export function EditProfileModal({
                   ))}
                 </div>
 
-                {/* Add New Interest */}
                 {interests.length < 10 && (
                   <div className="space-y-3">
                     <div className="flex gap-2">
@@ -327,7 +424,6 @@ export function EditProfileModal({
                       </Button>
                     </div>
 
-                    {/* Popular Interests */}
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Popular interests:</Label>
                       <div className="flex flex-wrap gap-2">
@@ -359,157 +455,21 @@ export function EditProfileModal({
             )}
           </div>
 
-          {/* Basic Info */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="first_name">First Name</Label>
-              <Input
-                id="first_name"
-                value={formData.first_name || ""}
-                onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
-                disabled // Non-editable
-              />
-            </div>
-            <div>
-              <Label htmlFor="last_name">Last Name</Label>
-              <Input
-                id="last_name"
-                value={formData.last_name || ""}
-                onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
-                disabled // Non-editable
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={formData.bio || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-              placeholder="Tell others about yourself..."
-              className="min-h-[100px]"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="date_of_birth">Date of Birth</Label>
-            <Input
-              id="date_of_birth"
-              type="date"
-              value={formData.date_of_birth || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, date_of_birth: e.target.value }))}
-              // 🆕 Removed 'disabled' prop
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="year_of_study">Year</Label>
-              <Select
-                value={formData.year_of_study || ""}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, year_of_study: value }))}
-                disabled // Non-editable
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select year" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1st Year">1st Year</SelectItem>
-                  <SelectItem value="2nd Year">2nd Year</SelectItem>
-                  <SelectItem value="3rd Year">3rd Year</SelectItem>
-                  <SelectItem value="4th Year">4th Year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="branch">Branch</Label>
-              <Select
-                value={formData.branch || ""}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, branch: value }))}
-                disabled // Non-editable
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BRANCHES.map((branch) => (
-                    <SelectItem key={branch} value={branch}>
-                      {branch}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="hometown">Hometown</Label>
-            <Input
-              id="hometown"
-              value={formData.hometown || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, hometown: e.target.value }))}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="gender">Gender</Label>
-              <Select
-                value={formData.gender || ""}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value as "male" | "female" }))}
-                disabled // Non-editable
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* ⛔️ "Interested In" field removed */}
-            
-            <div>
-              <Label htmlFor="height">Height (cm)</Label>
-              <Input
-                id="height"
-                type="number"
-                value={formData.height || ""}
-                onChange={(e) => setFormData(prev => ({ ...prev, height: parseInt(e.target.value) || null }))}
-                placeholder="e.g., 175"
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email || ""}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              disabled
-            />
-          </div>
-
+          {/* 9. Phone Number */}
           <div>
             <Label htmlFor="phone_number">Phone Number</Label>
             <Input
               id="phone_number"
               type="tel"
               value={formData.phone_number || ""}
-              onChange={handlePhoneChange} // 🆕 Use new handler
+              onChange={handlePhoneChange} 
               placeholder="10 digit phone number"
-              maxLength={10} // 🆕 Add maxLength
+              maxLength={10} 
             />
-            {/* 🆕 Show error message if it exists */}
             {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
           </div>
 
+          {/* 10. Instagram Handle */}
           <div>
             <Label htmlFor="instagram_handle">Instagram Handle</Label>
             <Input
@@ -530,7 +490,6 @@ export function EditProfileModal({
             >
               Cancel
             </Button>
-            {/* 🆕 Save button is disabled if phone number is invalid */}
             <Button onClick={handleSave} className="flex-1" disabled={!!phoneError}>
               Save Changes
             </Button>

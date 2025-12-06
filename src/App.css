@@ -6,6 +6,19 @@
   padding: 2rem;
   text-align: center;
 }
+#root, .app {
+  min-height: 100vh;
+  height: 100%;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #000; /* optional */
+  overflow-x: hidden;
+}
+
 .backface-hidden {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;

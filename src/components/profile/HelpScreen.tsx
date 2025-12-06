@@ -1,5 +1,3 @@
-// src/components/profile/HelpScreen.tsx
-
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -45,9 +43,9 @@ export function HelpScreen({ onBack }: HelpScreenProps) {
   ];
 
   return (
-    <div className="max-w-lg mx-auto bg-black min-h-screen text-white">
+    <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
       {/* Header */}
-      <div className="flex items-center p-4 border-b border-white/10 sticky top-0 bg-black/80 backdrop-blur-md z-10">
+      <div className="glass border-b border-white/10 sticky top-0 z-50 p-4 flex items-center">
         <Button variant="ghost" size="icon" onClick={onBack} className="hover:bg-white/10 text-white">
           <ChevronLeft className="h-5 w-5" />
         </Button>

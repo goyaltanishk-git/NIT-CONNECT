@@ -14,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// Import Dialog components
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft,
   Shield,
   Zap,
   Lock,
@@ -38,7 +36,6 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-// 🆕 Import the useUserProfile hook
 import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
 
 // Import sub-screens
@@ -53,40 +50,26 @@ import { useNavigate } from "react-router-dom";
 
 interface SettingsScreenProps {
   onBack: () => void;
-  // 🆕 Make props optional
   profile?: FullProfile | null;
   onIncognitoToggle?: (enabled: boolean) => Promise<void>;
 }
 
 export function SettingsScreen({
   onBack,
-  profile: propProfile, // Rename prop to avoid conflict
-  onIncognitoToggle: propOnToggle, // Rename prop
+  profile: propProfile,
+  onIncognitoToggle: propOnToggle,
 }: SettingsScreenProps) {
-  // ----------------------------------------------------------------
-  // 🆕 START: Internal Data Fetching
-  // ----------------------------------------------------------------
-
-  // Fetch profile data internally, in case it's not passed as a prop
+  
   const { profile: internalProfile, updateProfile } = useUserProfile();
-
-  // Use the profile passed as a prop, OR the one fetched internally
   const profile = propProfile || internalProfile;
 
-  // Create an internal toggle function that uses the hook's updateProfile
   const internalOnToggle = async (enabled: boolean) => {
-    if (!updateProfile) return; // Hook might still be loading
+    if (!updateProfile) return; 
     await updateProfile({ incognito_mode: enabled });
   };
   
-  // Use the toggle function passed as a prop, OR the internal one
   const onIncognitoToggle = propOnToggle || internalOnToggle;
   
-  // ----------------------------------------------------------------
-  // 🆕 END: Internal Data Fetching
-  // ----------------------------------------------------------------
-
-  // State for sub-screens
   const navigate = useNavigate();
   const [showPrivacyHub, setShowPrivacyHub] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -95,12 +78,10 @@ export function SettingsScreen({
   const [showTerms, setShowTerms] = useState(false);
   const [showSafetyCenter, setShowSafetyCenter] = useState(false);
 
-  // State for delete confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // State for Incognito Toggle
   const [isIncognitoLoading, setIsIncognitoLoading] = useState(false);
   const [showIncognitoDialog, setShowIncognitoDialog] = useState(false); 
   const { toast } = useToast();
@@ -110,7 +91,6 @@ export function SettingsScreen({
     window.location.reload();
   };
 
-  // Wrapper handler for Incognito Toggle
   const handleIncognitoToggle = async (enabled: boolean) => {
     setIsIncognitoLoading(true);
     try {
@@ -201,7 +181,6 @@ export function SettingsScreen({
     }
   };
 
-  // Navigation Router
   if (showHelp) return <HelpScreen onBack={() => setShowHelp(false)} />;
   if (showReportConcern)
     return (
@@ -255,37 +234,25 @@ export function SettingsScreen({
       />
     );
 
-  // --- Main Settings Menu ---
   return (
     <>
-      <div className="h-full overflow-y-auto bg-black text-white">
+      <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
         {/* Enhanced Header with Glassmorphism */}
         <div className="glass border-b border-white/10 sticky top-0 z-40">
           <div className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="glass-light hover:bg-white/10 interactive rounded-full p-2"
-              >
-                <ArrowLeft className="h-5 w-5 text-white" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
-                    <Settings className="h-6 w-6 text-pink-500" />
-                  </div>
-                  <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+            <div className="flex items-center gap-3">
+              {/* REMOVED: Back Button */}
+              
+              <div className="relative">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
+                  <Settings className="h-6 w-6 text-pink-500" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold gradient-text-animated">
-                    Settings
-                  </h1>
-                  <p className="text-sm text-gray-400">
-                    Manage your account and privacy
-                  </p>
-                </div>
+                <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold gradient-text-animated">
+                  Settings
+                </h1>
               </div>
             </div>
           </div>
@@ -305,8 +272,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowPrivacyHub(true)}
               >
-                <Shield className="h-5 w-5 mr-3 text-pink-400" />
-                <div className="text-left">
+                <Shield className="h-5 w-5 mr-3 text-pink-400 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Privacy & Safety</p>
                   <p className="text-sm text-gray-400">
                     Control your privacy settings
@@ -319,8 +286,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowHelp(true)}
               >
-                <Zap className="h-5 w-5 mr-3 text-blue-400" />
-                <div className="text-left">
+                <Zap className="h-5 w-5 mr-3 text-blue-400 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Help & Support</p>
                   <p className="text-sm text-gray-400">
                     Get help and contact support
@@ -335,13 +302,13 @@ export function SettingsScreen({
                   onClick={() => setShowIncognitoDialog(true)}
                 >
                   {profile.incognito_mode ? (
-                    <EyeOff className="h-5 w-5 mr-3 text-purple-400" />
+                    <EyeOff className="h-5 w-5 mr-3 text-purple-400 flex-shrink-0" />
                   ) : (
-                    <Eye className="h-5 w-5 mr-3 text-gray-400" />
+                    <Eye className="h-5 w-5 mr-3 text-gray-400 flex-shrink-0" />
                   )}
-                  <div className="text-left">
+                  <div className="text-left whitespace-normal break-words">
                     <p className="font-medium">Incognito Mode</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-gray-400 leading-tight">
                       {profile.incognito_mode ? "Active" : "Inactive"} -
                       Browse anonymously
                     </p>
@@ -354,8 +321,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowSafetyCenter(true)}
               >
-                <Eye className="h-5 w-5 mr-3 text-green-400" />
-                <div className="text-left">
+                <Eye className="h-5 w-5 mr-3 text-green-400 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Safety Center</p>
                   <p className="text-sm text-gray-400">
                     Learn about safety features
@@ -370,8 +337,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-red-500/30 hover:bg-red-500/20 text-red-400 hover:text-red-300 interactive rounded-xl p-4 h-auto"
                 onClick={handleLogout}
               >
-                <LogOut className="h-5 w-5 mr-3" />
-                <div className="text-left">
+                <LogOut className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Logout</p>
                   <p className="text-sm text-red-400/70">
                     Sign out of your account
@@ -384,8 +351,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-red-500/30 hover:bg-red-500/20 text-red-400 hover:text-red-300 interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                <AlertTriangle className="h-5 w-5 mr-3" />
-                <div className="text-left">
+                <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Delete Account</p>
                   <p className="text-sm text-red-400/70">
                     Permanently delete your account
