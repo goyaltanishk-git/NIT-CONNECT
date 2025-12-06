@@ -28,6 +28,8 @@ body {
   /* This forces the browser to render everything at 85% scale, 
      simulating the "pinch out" effect you like. */
   zoom: 0.85; 
+  width: 117.65vw;
+  min-height: 117.65vh;
 }
 
 /* --- FIX 2: MEDIA QUERY FOR LAPTOPS --- */
