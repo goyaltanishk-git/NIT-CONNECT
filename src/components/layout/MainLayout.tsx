@@ -64,7 +64,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
+    <div className="min-h-screen bg-red text-white overflow-hidden ">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
 
         {/* Enhanced Glassmorphism Header - Sign Out Button Removed */}
@@ -88,7 +88,7 @@ export function MainLayout() {
         </div>
 
         {/* Main Content with enhanced smooth transitions */}
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-hidden relative bg-black">
           <TabsContent value="discovery" className="h-full animate-fade-in">
             <DiscoveryScreenIntegrated />
           </TabsContent>
@@ -111,7 +111,7 @@ export function MainLayout() {
         </div>
 
         {/* Enhanced Bottom Navigation with Premium Animations */}
-        <div className="sticky bottom-0 z-50 glass border-t border-white/10 p-4">
+        <div className="sticky  z-50 glass border-t border-white/10 p-4 ">
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
               { tab: "discovery", icon: Heart, label: "Discover", gradient: "from-pink-400 to-pink-600" },
