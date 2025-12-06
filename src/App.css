@@ -1,4 +1,9 @@
 @import './styles/animations.css';
+@layer base {
+  html, body {
+    @apply h-full overflow-hidden bg-black;
+  }
+}
 
 #root {
   max-width: 1280px;
