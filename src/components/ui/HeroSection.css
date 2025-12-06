@@ -1,26 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
 
-/* -------------------------------------------------
-    ROOT VARIABLES
--------------------------------------------------- */
 :root {
   --color-bg: #000000;
   --color-text: #ffffff;
   --color-subtle: #f1f1f1;
-
-  /* This remains our base pink, now used by the progress bar */
   --color-red: #ec4899; 
-
   --font-primary: "Inter", sans-serif;
-
-  /* Glass UI */
   --glass-bg: rgba(255, 255, 255, 0.06);
   --glass-border: rgba(255, 255, 255, 0.18);
 }
 
-/* -------------------------------------------------
-    GLOBAL RESET
--------------------------------------------------- */
 * {
   margin: 0;
   padding: 0;
@@ -34,11 +23,21 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* --- FIX 1: GLOBAL ZOOM --- */
+  /* This forces the browser to render everything at 85% scale, 
+     simulating the "pinch out" effect you like. */
+  zoom: 0.85; 
 }
 
-/* -------------------------------------------------
-    CANVAS BACKGROUND (Three.js)
--------------------------------------------------- */
+/* --- FIX 2: MEDIA QUERY FOR LAPTOPS --- */
+/* If the screen is a standard laptop, zoom out even more */
+@media screen and (max-width: 1500px) and (min-width: 768px) {
+  body {
+    zoom: 0.75; /* 75% scale for laptops */
+  }
+}
+
 .hero-canvas {
   position: fixed;
   inset: 0;
@@ -56,74 +55,60 @@ body {
   isolation: isolate;
 }
 
-/* -------------------------------------------------
-    CENTERED HERO SECTION
--------------------------------------------------- */
 .hero-content,
 .content-section {
   height: 100vh;
   width: 100%;
-
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-
   text-align: center;
   padding: 0 2rem;
 }
 
 /* -------------------------------------------------
-    TITLE - EXACT SCREENSHOT STYLE
+    TITLE - UPDATED SIZING
 -------------------------------------------------- */
 .hero-title {
   font-weight: 900;
   text-transform: uppercase;
-  font-size: clamp(8rem, 15vw, 17rem);
-  line-height: 0.88;
+  
+  /* --- FIX 3: REDUCED FONT SIZE --- */
+  /* Old was clamp(8rem, 15vw, 17rem) - That was HUGE. */
+  /* New is smaller, making it feel further away. */
+  font-size: clamp(4rem, 10vw, 10rem); 
+  
+  line-height: 0.95; /* Increased slightly for breathing room */
   letter-spacing: -0.03em;
-
-  /* --- UPDATE 1: Apply shiny gradient to ALL .hero-title elements --- */
-  /* This makes "Discover People" etc. shiny */
   background: linear-gradient(45deg, #f472b6, #db2777);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* --- UPDATE 2: Special rule for the ANIMATED title container --- */
-/* We turn OFF the gradient on the "Hi, [name]" container... */
 .hero-title.title-container {
   background: none;
   -webkit-background-clip: initial;
   background-clip: initial;
-  color: initial; /* This just resets it */
+  color: initial;
 }
 
-/* --- UPDATE 3: ...and apply it to its CHILDREN instead --- */
-/* This allows the .title-char to fade in correctly */
 .title-char {
   display: inline-block;
   will-change: transform, opacity;
-
-  /* Apply gradient to the child, which works with opacity animation */
   background: linear-gradient(45deg, #f472b6, #db2777);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* -------------------------------------------------
-    SUBTITLE - EXACT SCREENSHOT STYLE
--------------------------------------------------- */
 .hero-subtitle {
-  margin-top: 3rem; /* Large space */
+  margin-top: 2rem; /* Reduced space */
   max-width: 60ch;
-
-  font-size: clamp(1.2rem, 2vw, 2rem);
+  font-size: clamp(1rem, 1.5vw, 1.5rem); /* Slightly smaller text */
   font-weight: 300;
   line-height: 1.6;
-
   color: var(--color-subtle);
   opacity: 0.9;
 }
@@ -132,15 +117,10 @@ body {
   margin: 0.4rem 0;
 }
 
-/* -------------------------------------------------
-    SIDE MENU (hidden unless needed)
--------------------------------------------------- */
 .side-menu {
   display: none !important;
 }
 
-
-/* Hamburger */
 .menu-icon {
   cursor: pointer;
 }
@@ -153,34 +133,32 @@ body {
   background: white;
 }
 
-/* Vertical text */
 .vertical-text {
   writing-mode: vertical-rl;
   opacity: 0.6;
 }
 
 /* -------------------------------------------------
-    SCROLL PROGRESS BAR (Polished)
+    SCROLL PROGRESS BAR
 -------------------------------------------------- */
 .scroll-progress {
   position: fixed;
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%);
-
   display: flex;
   align-items: center;
   gap: 0.09rem;
-
   padding: 0.6rem 1.4rem;
-
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(10px);
   border-radius: 50px;
-
   font-size: 0.9rem;
   color: var(--color-subtle);
+  
+  /* Prevent the zoom from messing up the fixed position centering */
+  transform-origin: center bottom;
 }
 
 .scroll-text {
@@ -199,7 +177,7 @@ body {
 .progress-fill {
   width: 0;
   height: 100%;
-  background: var(--color-red); /* This will remain the solid pink */
+  background: var(--color-red); 
   transition: width 0.25s ease-out;
 }
 

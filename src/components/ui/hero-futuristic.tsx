@@ -39,7 +39,8 @@ export const Component = ({ onComplete }: ComponentProps) => {
   // Start with "Welcome"
   const [displayName, setDisplayName] = useState("Welcome");
 
-  const smoothCameraPos = useRef({ x: 0, y: 30, z: 100 });
+// CHANGE: Was z: 100. Change to z: 400
+const smoothCameraPos = useRef({ x: 0, y: 30, z: 400 });
   const cameraVelocity = useRef({ x: 0, y: 0, z: 0 });
 
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -83,14 +84,16 @@ export const Component = ({ onComplete }: ComponentProps) => {
       refs.scene.fog = new THREE.FogExp2(0x000000, 0.00025);
 
       // Camera
-      refs.camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        2000
-      );
-      refs.camera.position.z = 100;
-      refs.camera.position.y = 20;
+      // Inside initThree function:
+refs.camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  2000
+);
+// CHANGE: Was 100. Change to 400 to start much further back.
+refs.camera.position.z = 400; 
+refs.camera.position.y = 20;
 
       // Renderer
       refs.renderer = new THREE.WebGLRenderer({
@@ -580,10 +583,13 @@ export const Component = ({ onComplete }: ComponentProps) => {
       const sectionProgress = totalProgress % 1;
       
       const cameraPositions = [
-        { x: 0, y: 30, z: 300 },    // Section 0 - HORIZON
-        { x: 0, y: 40, z: -50 },     // Section 1 - COSMOS
-        { x: 0, y: 50, z: -700 }       // Section 2 - INFINITY
-      ];
+  // Section 0: Start further back (z: 400) so it matches the init state
+  { x: 0, y: 30, z: 400 },    
+  // Section 1: Fly into the cosmos, but keep some distance
+  { x: 0, y: 40, z: -50 },     
+  // Section 2: Deep space
+  { x: 0, y: 50, z: -700 }       
+];
       
       const currentPos = cameraPositions[newSection] || cameraPositions[0];
       const nextPos = cameraPositions[newSection + 1] || currentPos;
