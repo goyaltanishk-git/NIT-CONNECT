@@ -102,12 +102,11 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
 
   return (
     <>
-      {/* UPDATED: Added [&::-webkit-scrollbar]:hidden to make scrollbar transparent/hidden */}
       <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
         
         {/* Minimal "Likes You" Header */}
-        {/* UPDATED: pt-2 pb-2 to remove excessive empty space */}
-        <div className="px-4 pt-2 pb-2 flex items-center justify-between">
+        {/* UPDATED: Increased pb-2 to pb-6 for more gap */}
+        <div className="px-4 pt-2 pb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold gradient-text-animated">Likes You</h1>
           
           <Badge className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-3 py-1 rounded-full">

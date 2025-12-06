@@ -14,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-// Import Dialog components
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  ArrowLeft,
   Shield,
   Zap,
   Lock,
@@ -38,7 +36,6 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-// 🆕 Import the useUserProfile hook
 import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
 
 // Import sub-screens
@@ -53,40 +50,26 @@ import { useNavigate } from "react-router-dom";
 
 interface SettingsScreenProps {
   onBack: () => void;
-  // 🆕 Make props optional
   profile?: FullProfile | null;
   onIncognitoToggle?: (enabled: boolean) => Promise<void>;
 }
 
 export function SettingsScreen({
   onBack,
-  profile: propProfile, // Rename prop to avoid conflict
-  onIncognitoToggle: propOnToggle, // Rename prop
+  profile: propProfile,
+  onIncognitoToggle: propOnToggle,
 }: SettingsScreenProps) {
-  // ----------------------------------------------------------------
-  // 🆕 START: Internal Data Fetching
-  // ----------------------------------------------------------------
-
-  // Fetch profile data internally, in case it's not passed as a prop
+  
   const { profile: internalProfile, updateProfile } = useUserProfile();
-
-  // Use the profile passed as a prop, OR the one fetched internally
   const profile = propProfile || internalProfile;
 
-  // Create an internal toggle function that uses the hook's updateProfile
   const internalOnToggle = async (enabled: boolean) => {
-    if (!updateProfile) return; // Hook might still be loading
+    if (!updateProfile) return; 
     await updateProfile({ incognito_mode: enabled });
   };
   
-  // Use the toggle function passed as a prop, OR the internal one
   const onIncognitoToggle = propOnToggle || internalOnToggle;
   
-  // ----------------------------------------------------------------
-  // 🆕 END: Internal Data Fetching
-  // ----------------------------------------------------------------
-
-  // State for sub-screens
   const navigate = useNavigate();
   const [showPrivacyHub, setShowPrivacyHub] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -95,12 +78,10 @@ export function SettingsScreen({
   const [showTerms, setShowTerms] = useState(false);
   const [showSafetyCenter, setShowSafetyCenter] = useState(false);
 
-  // State for delete confirmation dialog
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // State for Incognito Toggle
   const [isIncognitoLoading, setIsIncognitoLoading] = useState(false);
   const [showIncognitoDialog, setShowIncognitoDialog] = useState(false); 
   const { toast } = useToast();
@@ -110,7 +91,6 @@ export function SettingsScreen({
     window.location.reload();
   };
 
-  // Wrapper handler for Incognito Toggle
   const handleIncognitoToggle = async (enabled: boolean) => {
     setIsIncognitoLoading(true);
     try {
@@ -201,7 +181,6 @@ export function SettingsScreen({
     }
   };
 
-  // Navigation Router
   if (showHelp) return <HelpScreen onBack={() => setShowHelp(false)} />;
   if (showReportConcern)
     return (
@@ -255,36 +234,25 @@ export function SettingsScreen({
       />
     );
 
-  // --- Main Settings Menu ---
   return (
     <>
-      {/* UPDATED: Added transparent scrollbar styling */}
       <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
         {/* Enhanced Header with Glassmorphism */}
         <div className="glass border-b border-white/10 sticky top-0 z-40">
           <div className="p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onBack}
-                className="glass-light hover:bg-white/10 interactive rounded-full p-2"
-              >
-                <ArrowLeft className="h-5 w-5 text-white" />
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
-                    <Settings className="h-6 w-6 text-pink-500" />
-                  </div>
-                  <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+            <div className="flex items-center gap-3">
+              {/* REMOVED: Back Button */}
+              
+              <div className="relative">
+                <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
+                  <Settings className="h-6 w-6 text-pink-500" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold gradient-text-animated">
-                    Settings
-                  </h1>
-                  {/* UPDATED: Removed "Manage your account and privacy" text */}
-                </div>
+                <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold gradient-text-animated">
+                  Settings
+                </h1>
               </div>
             </div>
           </div>
@@ -305,7 +273,6 @@ export function SettingsScreen({
                 onClick={() => setShowPrivacyHub(true)}
               >
                 <Shield className="h-5 w-5 mr-3 text-pink-400 flex-shrink-0" />
-                {/* UPDATED: Added whitespace-normal for multi-line text */}
                 <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Privacy & Safety</p>
                   <p className="text-sm text-gray-400">
