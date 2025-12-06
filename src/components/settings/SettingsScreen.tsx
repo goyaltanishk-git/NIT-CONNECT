@@ -258,7 +258,8 @@ export function SettingsScreen({
   // --- Main Settings Menu ---
   return (
     <>
-      <div className="h-full overflow-y-auto bg-black text-white">
+      {/* UPDATED: Added transparent scrollbar styling */}
+      <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
         {/* Enhanced Header with Glassmorphism */}
         <div className="glass border-b border-white/10 sticky top-0 z-40">
           <div className="p-6">
@@ -282,9 +283,7 @@ export function SettingsScreen({
                   <h1 className="text-2xl font-bold gradient-text-animated">
                     Settings
                   </h1>
-                  <p className="text-sm text-gray-400">
-                    Manage your account and privacy
-                  </p>
+                  {/* UPDATED: Removed "Manage your account and privacy" text */}
                 </div>
               </div>
             </div>
@@ -305,8 +304,9 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowPrivacyHub(true)}
               >
-                <Shield className="h-5 w-5 mr-3 text-pink-400" />
-                <div className="text-left">
+                <Shield className="h-5 w-5 mr-3 text-pink-400 flex-shrink-0" />
+                {/* UPDATED: Added whitespace-normal for multi-line text */}
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Privacy & Safety</p>
                   <p className="text-sm text-gray-400">
                     Control your privacy settings
@@ -319,8 +319,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowHelp(true)}
               >
-                <Zap className="h-5 w-5 mr-3 text-blue-400" />
-                <div className="text-left">
+                <Zap className="h-5 w-5 mr-3 text-blue-400 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Help & Support</p>
                   <p className="text-sm text-gray-400">
                     Get help and contact support
@@ -335,13 +335,13 @@ export function SettingsScreen({
                   onClick={() => setShowIncognitoDialog(true)}
                 >
                   {profile.incognito_mode ? (
-                    <EyeOff className="h-5 w-5 mr-3 text-purple-400" />
+                    <EyeOff className="h-5 w-5 mr-3 text-purple-400 flex-shrink-0" />
                   ) : (
-                    <Eye className="h-5 w-5 mr-3 text-gray-400" />
+                    <Eye className="h-5 w-5 mr-3 text-gray-400 flex-shrink-0" />
                   )}
-                  <div className="text-left">
+                  <div className="text-left whitespace-normal break-words">
                     <p className="font-medium">Incognito Mode</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-gray-400 leading-tight">
                       {profile.incognito_mode ? "Active" : "Inactive"} -
                       Browse anonymously
                     </p>
@@ -354,8 +354,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowSafetyCenter(true)}
               >
-                <Eye className="h-5 w-5 mr-3 text-green-400" />
-                <div className="text-left">
+                <Eye className="h-5 w-5 mr-3 text-green-400 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Safety Center</p>
                   <p className="text-sm text-gray-400">
                     Learn about safety features
@@ -370,8 +370,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-red-500/30 hover:bg-red-500/20 text-red-400 hover:text-red-300 interactive rounded-xl p-4 h-auto"
                 onClick={handleLogout}
               >
-                <LogOut className="h-5 w-5 mr-3" />
-                <div className="text-left">
+                <LogOut className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Logout</p>
                   <p className="text-sm text-red-400/70">
                     Sign out of your account
@@ -384,8 +384,8 @@ export function SettingsScreen({
                 className="w-full justify-start glass-light border border-red-500/30 hover:bg-red-500/20 text-red-400 hover:text-red-300 interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                <AlertTriangle className="h-5 w-5 mr-3" />
-                <div className="text-left">
+                <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
                   <p className="font-medium">Delete Account</p>
                   <p className="text-sm text-red-400/70">
                     Permanently delete your account

@@ -68,7 +68,7 @@ export function MainLayout() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
 
         {/* Enhanced Glassmorphism Header */}
-        {/* UPDATED LOGIC: Hide header if activeTab is 'profile' so it can scroll inside the screen instead */}
+        {/* UPDATED: Only hide on 'profile'. Shows on 'likes' now. */}
         {activeTab !== 'profile' && (
           <div className="sticky top-0 z-50 glass border-b border-white/10 py-2 px-4">
             <div className="flex items-center justify-center">
@@ -183,21 +183,6 @@ export function MainLayout() {
               animationDuration: `${2 + Math.random() * 2}s`,
             }}
           ></div>
-        ))}
-      </div>
-
-      <div className="fixed inset-0 -z-15 overflow-hidden pointer-events-none">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Heart
-            key={i}
-            className="absolute w-4 h-4 text-pink-500/10 animate-float"
-            style={{
-              left: `${20 + Math.random() * 60}%`,
-              top: `${20 + Math.random() * 60}%`,
-              animationDelay: `${Math.random() * 4}s`,
-              animationDuration: `${4 + Math.random() * 2}s`,
-            }}
-          />
         ))}
       </div>
     </div>
