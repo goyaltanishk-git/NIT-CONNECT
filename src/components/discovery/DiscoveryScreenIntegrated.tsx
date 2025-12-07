@@ -150,7 +150,7 @@ export function DiscoveryScreenIntegrated() {
 
   if (loading || limitsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex items-center justify-center h-full bg-black">
         <div className="text-center space-y-8 animate-fade-in">
           <div className="relative">
             <div className="loading-heart mx-auto"></div>
@@ -194,7 +194,7 @@ export function DiscoveryScreenIntegrated() {
 
   if (profiles.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex items-center justify-center h-full  bg-black">
         <div className="text-center space-y-8 animate-fade-in">
           <div className="relative">
             <Heart className="h-20 w-20 text-gray-600 mx-auto" />

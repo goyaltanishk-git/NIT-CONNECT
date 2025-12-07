@@ -97,7 +97,7 @@ export function UserProfileDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] p-0 overflow-hidden border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
+      <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] p-0 overflow-auto-y border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
         
         <VisuallyHidden>
           <DialogHeader>
@@ -108,11 +108,11 @@ export function UserProfileDialog({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-50 bg-pink-500/20 hover:bg-pink-500/40 border border-pink-500/30 rounded-full p-2 transition-all duration-200 backdrop-blur-sm"
+          className="absolute top-3 right-3 z-[999] bg-pink-500/20 hover:bg-pink-500/40 border border-pink-500/30 rounded-full p-2 transition-all duration-200 backdrop-blur-sm"
         >
           <X className="w-4 h-4 text-white" />
         </button>
-
+        <div className="overflow-y-auto h-full">
         {/* --- TOP SECTION: IMAGE --- */}
         <div className="relative w-full h-[60%] shrink-0 bg-black/20">
           
@@ -145,7 +145,7 @@ export function UserProfileDialog({
             src={profilePhotos[currentPhotoIndex]?.photo_url}
             alt={profileName}
             onLoad={handleImageLoad}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${
+            className={`w-full h-full object-cover rounded-lg transition-opacity duration-300 ${
               isImageLoading ? 'opacity-0' : 'opacity-100'
             }`}
           />
@@ -178,7 +178,7 @@ export function UserProfileDialog({
         </div>
 
         {/* --- BOTTOM SECTION: DETAILS --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1  p-4 space-y-4">
           
           {/* Name and Basic Info - UPDATED SIZE (Reduced) */}
           <div>
@@ -319,7 +319,7 @@ export function UserProfileDialog({
               </Button>
             )}
           </div>
-        )}
+        )}</div>
       </DialogContent>
     </Dialog>
   );

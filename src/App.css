@@ -7,19 +7,6 @@
   padding: 2rem;
   text-align: center;
 }
-#root, .app {
-  min-height: 100vh;
-  height: 100%;
-}
-
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background: #000; /* optional */
-  overflow-x: hidden;
-}
-
 .backface-hidden {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -338,4 +325,47 @@ a:hover {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.neon-border {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.neon-border::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  z-index: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from 0deg,
+    #ec4899,
+    #f472b6,
+    #ec4899,
+    #f472b6
+  );
+  animation: spin 2s linear infinite;
+}
+
+.neon-border::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: #111; /* inner content background */
 }

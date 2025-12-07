@@ -349,7 +349,7 @@ function DiscoveryScreenDemo() {
   // ✅ Enhanced Loading State
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-background via-primary/5 to-secondary/10 relative overflow-hidden">
+      <div className="flex items-center justify-center h-[99%] bg-gradient-to-br from-background via-primary/5 to-secondary/10 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 animate-pulse"></div>
         <div className="text-center space-y-6 p-8 relative z-10">
           <div className="relative">

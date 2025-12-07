@@ -11,6 +11,7 @@ import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 
+
 type Profile = Tables<"profiles">;
 
 export function MainLayout() {
@@ -18,6 +19,7 @@ export function MainLayout() {
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const[ischatopen,setischatopen]=useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -67,17 +69,20 @@ export function MainLayout() {
     <div className="min-h-screen bg-red text-white overflow-hidden ">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
 
-        {/* Enhanced Glassmorphism Header - Sign Out Button Removed */}
-        <div className="sticky top-0 z-50 glass border-b border-white/10 p-4">
+        {/* Enhanced Glassmorphism Header */}
+        {(activeTab!="settings")&&(activeTab!="profile")&&(ischatopen==false)&&
+       (<div className="sticky top-0 z-50 glass border-b border-white/10 p-4">
           <div className="flex items-center justify-center">
             <div className="flex items-center space-x-4 animate-slide-in-left">
               <div className="relative">
                 <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
                 <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
               </div>
-              <h1 className="text-4xl font-bold gradient-text-animated">
+              
+              <h1 className="text-2xl md:text-3xl font-bold gradient-text-animated whitespace-nowrap">
                 NIT Connect
               </h1>
+              
               <div className="flex space-x-1">
                 <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
                 <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
@@ -85,11 +90,12 @@ export function MainLayout() {
               </div>
             </div>
           </div>
-        </div>
-
+        </div>)
+}
         {/* Main Content with enhanced smooth transitions */}
-        <div className="flex-1 overflow-hidden relative bg-black">
-          <TabsContent value="discovery" className="h-full animate-fade-in">
+        <div className="flex-1 overflow-hidden relative bg-black ">
+          <TabsContent value="discovery" className="h-full animate-fade-in ">
+             
             <DiscoveryScreenIntegrated />
           </TabsContent>
 
@@ -98,7 +104,7 @@ export function MainLayout() {
           </TabsContent>
 
           <TabsContent value="chat" className="h-full animate-fade-in">
-            <ChatScreen />
+            <ChatScreen  setischatopen={setischatopen}/>
           </TabsContent>
 
           <TabsContent value="profile" className="h-full animate-fade-in">
@@ -110,8 +116,8 @@ export function MainLayout() {
           </TabsContent>
         </div>
 
-        {/* Enhanced Bottom Navigation with Premium Animations */}
-        <div className="sticky  z-50 glass border-t border-white/10 p-4 ">
+        {/* Enhanced Bottom Navigation */}
+       { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 p-2">
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
               { tab: "discovery", icon: Heart, label: "Discover", gradient: "from-pink-400 to-pink-600" },
@@ -124,50 +130,51 @@ export function MainLayout() {
                 key={tab}
                 variant="ghost"
                 onClick={() => setActiveTab(tab)}
-                className={`flex flex-col items-center px-4 py-3 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden ${
+                /* UPDATED LAYOUT: 
+                   - gap-1.5: increased space between icon and text
+                   - pb-2: pushes the text up further
+                   - pt-3: ensures icons aren't too high
+                */
+                className={`flex flex-col items-center justify-center pt-3 pb-2 px-3 gap-1.5 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden ${
                   activeTab === tab
                     ? `bg-gradient-to-r ${gradient} shadow-lg scale-110 animate-pulse-glow`
                     : "hover:bg-white/10 hover:scale-105"
                 } animate-bounce-in stagger-${index + 1}`}
               >
-                {/* Enhanced background glow effect for active tab */}
+                {/* Active Tab Glow */}
                 {activeTab === tab && (
                   <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-30 blur-xl animate-pulse`}></div>
                 )}
                 
-                {/* Shimmer effect on hover */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                 </div>
                 
-                <Icon className={`h-6 w-6 mb-1 relative z-10 transition-all duration-300 ${
+                <Icon className={`h-5 w-5 relative z-10 transition-all duration-300 ${
                   activeTab === tab ? "animate-heartbeat text-white" : "text-white/70 group-hover:text-white group-hover:scale-110"
                 }`} />
-                <span className={`text-xs font-medium relative z-10 transition-all duration-300 ${
+                
+                <span className={`text-[10px] font-medium leading-none relative z-10 transition-all duration-300 ${
                   activeTab === tab ? "text-white" : "text-white/70 group-hover:text-white"
                 }`}>
                   {label}
                 </span>
 
-                {/* Enhanced active indicator with pulse */}
                 {activeTab === tab && (
                   <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse">
                     <div className="absolute inset-0 bg-white rounded-full animate-ping"></div>
                   </div>
                 )}
 
-                {/* Ripple effect on click */}
                 <div className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 bg-white/20 animate-ping"></div>
               </Button>
             ))}
           </div>
-        </div>
+        </div>)}
       </Tabs>
 
-      {/* Enhanced background gradient overlay with animation */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-black via-gray-900/50 to-black pointer-events-none animate-gradient-shift"></div>
       
-      {/* Enhanced animated background particles */}
       <div className="fixed inset-0 -z-20 overflow-hidden pointer-events-none">
         {Array.from({ length: 30 }).map((_, i) => (
           <div
@@ -185,7 +192,6 @@ export function MainLayout() {
         ))}
       </div>
 
-      {/* Floating hearts animation */}
       <div className="fixed inset-0 -z-15 overflow-hidden pointer-events-none">
         {Array.from({ length: 5 }).map((_, i) => (
           <Heart

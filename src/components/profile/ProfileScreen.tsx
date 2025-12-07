@@ -178,7 +178,28 @@ export function ProfileScreen() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <>
+      <div className="sticky top-0 z-50 glass border-b border-white/10 p-4">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center space-x-4 animate-slide-in-left">
+              <div className="relative">
+                <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
+                <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
+              </div>
+              
+              <h1 className="text-2xl md:text-3xl font-bold gradient-text-animated whitespace-nowrap">
+                NIT Connect
+              </h1>
+              
+              <div className="flex space-x-1">
+                <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
+                <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
+                <Sparkles className="h-5 w-5 text-blue-400 animate-pulse stagger-3" />
+              </div>
+            </div>
+          </div>
+        </div>
+      <div className="flex items-center justify-center h-full bg-black">
         <div className="text-center space-y-6 animate-fade-in">
           <div className="relative">
             <div className="loading-heart mx-auto"></div>
@@ -191,7 +212,7 @@ export function ProfileScreen() {
             <p className="text-gray-400">Getting your information ready</p>
           </div>
         </div>
-      </div>
+      </div></>
     );
   }
 

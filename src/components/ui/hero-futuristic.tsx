@@ -22,19 +22,6 @@ interface ComponentProps {
   onComplete?: () => void;
 }
 
-// --- HELPER: Aggressive Size Calculation ---
-const getCompensatedSize = () => {
-  if (typeof window === 'undefined') return { width: 1920, height: 1080 };
-  
-  // @ts-ignore
-  const zoom = parseFloat(getComputedStyle(document.body).zoom) || 1;
-  
-  return {
-    width: (window.innerWidth / zoom) * 1.05, 
-    height: (window.innerHeight / zoom) * 1.05
-  };
-};
-
 export const Component = ({ onComplete }: ComponentProps) => {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -75,7 +62,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
     if (profile && profile.first_name) {
       setUserName(profile.first_name.toUpperCase());
     } else {
-      setUserName("RISHUL"); // Default fallback
+      setUserName("RISHUL"); 
     }
   }, [profile, profileLoading]);
 
@@ -83,13 +70,17 @@ export const Component = ({ onComplete }: ComponentProps) => {
   useEffect(() => {
     const initThree = () => {
       const { current: refs } = threeRefs;
-      const size = getCompensatedSize();
+      
+      // --- FIX: Use standard window size ---
+      // Since we removed CSS Zoom, we don't need complicated math anymore.
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
       refs.scene = new THREE.Scene();
       refs.scene.fog = new THREE.FogExp2(0x000000, 0.0003); 
       refs.scene.background = new THREE.Color(0x000000);
 
-      refs.camera = new THREE.PerspectiveCamera(75, size.width / size.height, 0.1, 3000);
+      refs.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 3000);
       refs.camera.position.z = 400; 
       refs.camera.position.y = 20;
 
@@ -99,19 +90,19 @@ export const Component = ({ onComplete }: ComponentProps) => {
         alpha: false 
       });
       
-      refs.renderer.setSize(size.width, size.height);
+      refs.renderer.setSize(width, height);
       refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       refs.renderer.toneMapping = THREE.ACESFilmicToneMapping;
       refs.renderer.toneMappingExposure = 0.4; 
 
       refs.composer = new EffectComposer(refs.renderer);
-      refs.composer.setSize(size.width, size.height);
+      refs.composer.setSize(width, height);
 
       const renderPass = new RenderPass(refs.scene, refs.camera);
       refs.composer.addPass(renderPass);
 
       const bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(size.width, size.height),
+        new THREE.Vector2(width, height),
         0.5,
         0.4,
         0.9
@@ -380,13 +371,15 @@ export const Component = ({ onComplete }: ComponentProps) => {
     const handleResize = () => {
       const { current: refs } = threeRefs;
       if (refs.camera && refs.renderer && refs.composer) {
-        const size = getCompensatedSize();
+        // --- FIX: Standard resize logic ---
+        const width = window.innerWidth;
+        const height = window.innerHeight;
         
-        refs.camera.aspect = size.width / size.height;
+        refs.camera.aspect = width / height;
         refs.camera.updateProjectionMatrix();
         
-        refs.renderer.setSize(size.width, size.height);
-        refs.composer.setSize(size.width, size.height);
+        refs.renderer.setSize(width, height);
+        refs.composer.setSize(width, height);
       }
     };
 
@@ -442,9 +435,9 @@ export const Component = ({ onComplete }: ComponentProps) => {
     const handleScroll = () => {
       const scrollY = window.scrollY;
       const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
+      const documentHeight = document.body.scrollHeight;
       const maxScroll = documentHeight - windowHeight;
-      const progress = Math.min(scrollY / maxScroll, 1);
+      const progress = Math.min(Math.max(scrollY / maxScroll, 0), 1);
       
       setScrollProgress(progress);
       const newSection = Math.floor(progress * totalSections);
@@ -509,7 +502,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
 
       {/* --- SECTION 1: WELCOME [NAME] --- */}
       <div className="hero-content cosmos-content">
-        {/* Added marginTop to push the title DOWN as requested */}
         <h1 
           ref={titleRef} 
           className="hero-title title-container" 
@@ -518,7 +510,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
             display: 'flex', 
             flexDirection: 'column', 
             gap: '0.2em', 
-            marginTop: '15vh' // Pushes title lower
+            marginTop: '15vh'
           }}
         >
           <div className="block">
@@ -566,7 +558,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
           const titles = { 1: 'Discover People', 2: 'Make Connections' };
           
           const subtitles = {
-            1: { line1: 'Scroll to explore profiles', line2: 'from right here at NIT Kurukshetra.' }, // Reverted to original
+            1: { line1: 'Scroll to explore profiles', line2: 'from right here at NIT Kurukshetra.' },
             2: { line1: 'Genuine connections', line2: 'are just a swipe away.' }
           };
           
@@ -575,7 +567,14 @@ export const Component = ({ onComplete }: ComponentProps) => {
           return (
             <section key={i} className="content-section">
               <h1 className={`hero-title ${isMakeConnections ? 'make-connections-title' : ''}`}>
-                {titles[i+1] || 'DEFAULT'}
+                {isMakeConnections ? (
+                  <>
+                    <div className="block">MAKE</div>
+                    <div className="block">CONNECTIONS</div>
+                  </>
+                ) : (
+                  titles[i+1] || 'DEFAULT'
+                )}
               </h1>
               <div className="hero-subtitle cosmos-subtitle">
                 <p className="subtitle-line">{subtitles[i+1].line1}</p>

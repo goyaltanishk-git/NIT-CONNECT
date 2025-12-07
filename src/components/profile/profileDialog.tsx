@@ -68,7 +68,7 @@ export function ProfileDialog({ user, isOpen, onClose }: ProfileDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-0 border-0 bg-gradient-to-br from-background via-background to-primary/5 overflow-hidden">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] p-0 border-0 bg-gradient-to-br from-background via-background to-primary/5 overflow-y-auto">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
             {user.name}'s Profile

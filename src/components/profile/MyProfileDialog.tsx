@@ -90,7 +90,10 @@ export function MyProfileDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] p-0 overflow-hidden border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
+         
+    
+
+      <DialogContent className=" w-[95vw] max-w-[95vw] h-[90vh] p-0  overflow-y-auto border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
         
         <VisuallyHidden>
           <DialogHeader>
@@ -99,15 +102,18 @@ export function MyProfileDialog({
         </VisuallyHidden>
 
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-50 bg-pink-500/20 hover:bg-pink-500/40 border border-pink-500/30 rounded-full p-2 transition-all duration-200 backdrop-blur-sm"
-        >
-          <X className="w-4 h-4 text-white" />
-        </button>
-
+    
+         <button
+  onClick={onClose}
+  className="absolute  right-3 top-2  h-10 w-10   z-[999] bg-pink-500/20 hover:bg-pink-500/40 
+             border border-pink-500/30 rounded-full p-2 backdrop-blur-sm
+             transition-all duration-200"
+>
+  <X className="w-6 h-6 text-white" />
+</button>
+ <div className="overflow-y-auto h-full ">
         {/* --- TOP SECTION: IMAGE (60% Height) --- */}
-        <div className="relative w-full h-[60%] shrink-0 bg-black/20">
+        <div className="relative w-full h-[60%] shrink-0 bg-black/20  ">
           
           {/* NAVIGATION ARROWS (Smaller & Thinner) */}
           {profilePhotos.length > 1 && (
@@ -141,7 +147,7 @@ export function MyProfileDialog({
             src={profilePhotos[currentPhotoIndex]?.photo_url}
             alt={profileName}
             onLoad={handleImageLoad}
-            className={`w-full h-full object-cover transition-opacity duration-300 ${
+            className={`w-full h-full object-cover  transition-opacity rounded-lg duration-300 ${
               isImageLoading ? 'opacity-0' : 'opacity-100'
             }`}
           />
@@ -174,7 +180,7 @@ export function MyProfileDialog({
         </div>
 
         {/* --- BOTTOM SECTION: DETAILS (Compact Scale) --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1  p-4 space-y-4">
           
           {/* Name and Basic Info */}
           <div>
@@ -292,7 +298,7 @@ export function MyProfileDialog({
               </CardContent>
             </Card>
           )}
-        </div>
+        </div></div>
       </DialogContent>
     </Dialog>
   );

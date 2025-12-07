@@ -11,11 +11,13 @@ import { useAuth } from "@/hooks/useAuth";
 // even though we aren't using the button anymore.
 interface ChatScreenProps {
   onNavigateToDiscovery?: () => void; 
+    setischatopen: (value: boolean) => void;
 }
 
-export function ChatScreen({ onNavigateToDiscovery }: ChatScreenProps) {
+export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenProps) {
   const [selectedConversation, setSelectedConversation] = useState<ChatConversation | null>(null);
   const { user: currentUser } = useAuth();
+  
   const { 
     conversations, 
     messages, 
@@ -64,7 +66,7 @@ export function ChatScreen({ onNavigateToDiscovery }: ChatScreenProps) {
         user={chatUser}
         messages={messages}
         currentUser={currentUser}
-        onBack={() => setSelectedConversation(null)}
+        onBack={()=> {setSelectedConversation(null);setischatopen(false)}}
         onSendMessage={handleSendMessage}
         onUnmatch={handleUnmatch}
       />
@@ -141,7 +143,7 @@ export function ChatScreen({ onNavigateToDiscovery }: ChatScreenProps) {
           <Card 
             key={conversation.id} 
             className={`glass-light border-white/10 transition-all duration-500 hover:scale-[1.02] card-hover animate-fade-in interactive stagger-${index + 1}`}
-            onClick={() => setSelectedConversation(conversation)}
+            onClick={()=>{setSelectedConversation(conversation);setischatopen(true)}}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-5">

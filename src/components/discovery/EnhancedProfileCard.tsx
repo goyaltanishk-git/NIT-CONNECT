@@ -30,7 +30,7 @@ const getFirstName = (fullName: string) => fullName.split(" ")[0];
 export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [showArrows, setShowArrows] = useState(false);
+  const [showArrows, setShowArrows] = useState(true);
   const touchStartX = useRef<number | null>(null);
   const directionRef = useRef<number>(1);
   const [burst, setBurst] = useState(false);
@@ -38,19 +38,19 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
   const toggleFlip = () => setIsFlipped((prev) => !prev);
 
   const nextPhoto = () => {
-    if (isFlipped || profile.photos.length <= 1) return;
+    if (profile.photos.length <= 1) return;
     directionRef.current = 1;
     setCurrentPhotoIndex((p) => (p + 1) % profile.photos.length);
   };
 
   const prevPhoto = () => {
-    if (isFlipped || profile.photos.length <= 1) return;
+    if ( profile.photos.length <= 1) return;
     directionRef.current = -1;
     setCurrentPhotoIndex((p) => (p - 1 + profile.photos.length) % profile.photos.length);
   };
 
   const handleMouseEnter = () => setShowArrows(true);
-  const handleMouseLeave = () => setShowArrows(false);
+  
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isFlipped) return;
@@ -106,6 +106,9 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
     flex flex-col justify-center items-center
     perspective-[1000px]
     animate-scale-in
+    mt-[4%]
+     
+  
   "
   style={{ transformStyle: "preserve-3d" }}
 >
@@ -113,24 +116,25 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
 
         {/* FRONT FACE */}
         <motion.div
-          className="
-            absolute inset-0 
+          className={`
+           w-full
             h-[99%]
-            border-2 border-pink-300 rounded-3xl overflow-hidden 
+             rounded-3xl overflow-hidden 
             shadow-2xl 
             bg-gradient-to-br from-pink-500/40 to-purple-600/40 
             backdrop-blur-3xl
             cursor-pointer 
             card-hover
-          "
+              ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
+          
           initial={false}
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.6, type: "spring", stiffness: 120, damping: 20 }}
           style={{ backfaceVisibility: "hidden" }}
           onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+          
+          onTouchStart={!isFlipped&&handleTouchStart}
+          onTouchEnd={!isFlipped&&handleTouchEnd}
           onClick={toggleFlip}
         >
 
@@ -175,8 +179,9 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
     relative 
     w-full 
     h-[37%] 
-    bg-black
-    backdrop-blur-xl">
+    bg-black backdrop-blur-2xl rounded-2xl shadow-lg
+    
+    ">
 
      
 
@@ -247,7 +252,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
 
         {/* BACK FACE */}
         <motion.div
-          className="
+          className={`
             absolute inset-0 w-full h-full 
             rounded-3xl overflow-hidden
             bg-black/90 backdrop-blur-1xl
@@ -255,7 +260,8 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             shadow-2xl
             h-[99%]
             cursor-pointer
-          "
+             ${isFlipped ? "pointer-events-auto" : "pointer-events-none"}`}
+          
           initial={false}
           animate={{ rotateY: isFlipped ? 0 : -180 }}
           transition={{ duration: 0.6, type: "spring", stiffness: 120, damping: 20 }}
@@ -282,6 +288,8 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             </button>
 
             {/* SMALL PREVIEW IMAGE */}
+            
+
             <div className="relative w-full p-2 animate-shimmer">
               <div className="
                 relative w-full h-60 rounded-3xl overflow-hidden
@@ -289,12 +297,37 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
                 border border-white/10
                 shadow-[0_8px_30px_rgba(0,0,0,0.5)]
               ">
-                <img
-                  src={profile.photos[currentPhotoIndex]?.url}
-                  className="w-full h-full object-cover"
-                />
+                 <AnimatePresence mode="wait" initial={false}>
+              <img
+                key={currentPhotoIndex}
+                src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/800/1000"}
+                alt={profile.full_name}
+                className={`
+                  absolute inset-0 w-full h-full object-cover object-center
+                  ${directionRef.current === 1 ? "animate-slide-in-right" : "animate-slide-in-left"}
+                `}
+                draggable={false}
+              />
+            </AnimatePresence>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               </div>
+                {showArrows && profile.photos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
+                  className="interactive absolute left-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
+                >
+                  <ChevronLeft className="w-8 h-8 text-white" />
+                </button>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
+                  className="interactive absolute right-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
+                >
+                  <ChevronRight className="w-8 h-8 text-white" />
+                </button>
+              </>
+            )}
             </div>
 
             {/* CONTENT */}
@@ -308,12 +341,12 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
 
               {/* TAGS */}
               <div className="flex flex-wrap gap-3 mt-4 mb-10">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm gradient-text-animated">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <GraduationCap className="w-3 h-3" />
                   {profile.branch} Engg.
                 </div>
 
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm gradient-text-animated">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <Calendar className="w-3 h-3" />
                   B.Tech {profile.year} Year
                 </div>
@@ -330,7 +363,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
               <h3 className="text-lg font-semibold text-pink-300 mb-4">Details</h3>
 
               <div className="grid grid-cols-2 gap-4">
-                {["height", "hometown", "looking_for"].map((key) =>
+                {["height", "hometown"  ].map((key) =>
                   (profile as any)[key] && (
                     <div
                       key={key}

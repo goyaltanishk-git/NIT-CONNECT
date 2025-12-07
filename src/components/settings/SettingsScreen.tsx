@@ -4,6 +4,7 @@ import { AuthService } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Heart,Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -236,9 +237,54 @@ export function SettingsScreen({
 
   return (
     <>
+     
       <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
+<div className=" top-0 z-50 glass border-b border-white/10 p-4">
+          <div className="flex items-center justify-center">
+            <div className="flex items-center space-x-4 animate-slide-in-left">
+              <div className="relative">
+                <Heart className="h-10 w-10 text-pink-500 animate-heartbeat" />
+                <div className="absolute inset-0 h-10 w-10 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
+              </div>
+              
+              <h1 className="text-2xl md:text-3xl font-bold gradient-text-animated whitespace-nowrap">
+                NIT Connect
+              </h1>
+              
+              <div className="flex space-x-1">
+                <Sparkles className="h-6 w-6 text-purple-400 animate-pulse stagger-1" />
+                <Sparkles className="h-4 w-4 text-pink-400 animate-pulse stagger-2" />
+                <Sparkles className="h-5 w-5 text-blue-400 animate-pulse stagger-3" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         {/* Enhanced Header with Glassmorphism */}
-        <div className="glass border-b border-white/10 sticky top-0 z-40">
+        <div className="glass border-b border-white/10  top-0 z-40">
           <div className="p-6">
             <div className="flex items-center gap-3">
               {/* REMOVED: Back Button */}
