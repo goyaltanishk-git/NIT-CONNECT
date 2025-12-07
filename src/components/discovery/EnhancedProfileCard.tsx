@@ -33,6 +33,9 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
   const [showArrows, setShowArrows] = useState(true);
   const touchStartX = useRef<number | null>(null);
   const directionRef = useRef<number>(1);
+  const backTouchStart = useRef<number | null>(null);
+const backTouchEnd = useRef<number | null>(null);
+
   const [burst, setBurst] = useState(false);
 
   const toggleFlip = () => setIsFlipped((prev) => !prev);
@@ -73,6 +76,24 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
     setBurst(true);
     setTimeout(() => setBurst(false), 400);
   };
+  const handleBackTouchStart = (e: React.TouchEvent) => {
+  backTouchStart.current = e.changedTouches[0].screenX;
+};
+
+const handleBackTouchEnd = (e: React.TouchEvent) => {
+  if (backTouchStart.current == null) return;
+  backTouchEnd.current = e.changedTouches[0].screenX;
+
+  const dx = backTouchStart.current - backTouchEnd.current;
+
+  // Horizontal swipe threshold
+  if (dx > 60) nextPhoto();
+  if (dx < -60) prevPhoto();
+
+  backTouchStart.current = null;
+  backTouchEnd.current = null;
+};
+
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -86,7 +107,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
 
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.y > 100 || info.velocity.y > 800) {
-      setIsFlipped(false);
+      setIsFlipped(true);
     }
   };
 
@@ -256,7 +277,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             absolute inset-0 w-full h-full 
             rounded-3xl overflow-hidden
             bg-black/90 backdrop-blur-1xl
-            border-2 border-pink-300
+            
             shadow-2xl
             h-[99%]
             cursor-pointer
@@ -269,14 +290,15 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
           onClick={toggleFlip}
         >
           <motion.div
-            drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
-            onDragEnd={handleDragEnd}
-            dragElastic={0.5}
+           
             className="
               h-full overflow-y-auto hide-scrollbar
               bg-gradient-to-b from-black/30 via-black/40 to-black/60
             "
+             onTouchStart={handleBackTouchStart}
+  onTouchEnd={handleBackTouchEnd}
+  
+
           >
 
             {/* TOP LIKE BUTTON */}
