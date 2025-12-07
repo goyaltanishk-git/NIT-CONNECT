@@ -73,19 +73,6 @@ body {
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
-@layer base {
-  html, body {
-    @apply h-full overflow-x-hidden bg-black;
-  }
-}
-html{
-  height:auto;
-}
-body{
-  height:100vh;
-  overflow-x: hidden;
-  zoom:1;
-}
 
 /* Animations & Glass Effects (Kept exactly the same) */
 @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
@@ -116,51 +103,3 @@ body{
 .interactive { transition: all 0.2s ease; cursor: pointer; }
 .interactive:hover { transform: scale(1.02); }
 .interactive:active { transform: scale(0.98); }
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.neon-border {
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.neon-border::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  z-index: 0;
-  border-radius: inherit;
-  padding: 2px;
-  background: conic-gradient(
-    from 0deg,
-    #ec4899,
-    #f472b6,
-    #ec4899,
-    #f472b6
-  );
-  animation: spin 2s linear infinite;
-}
-
-.neon-border::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  background: #111; /* inner content background */
-}
-
-
-
-
-/* Reusable glow border class */
