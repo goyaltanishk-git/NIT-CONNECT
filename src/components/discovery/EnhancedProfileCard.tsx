@@ -34,8 +34,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
   const touchStartX = useRef<number | null>(null);
   const directionRef = useRef<number>(1);
   const backTouchStart = useRef<number | null>(null);
-const backTouchEnd = useRef<number | null>(null);
-
+  const backTouchEnd = useRef<number | null>(null);
   const [burst, setBurst] = useState(false);
 
   const toggleFlip = () => setIsFlipped((prev) => !prev);
@@ -47,13 +46,12 @@ const backTouchEnd = useRef<number | null>(null);
   };
 
   const prevPhoto = () => {
-    if ( profile.photos.length <= 1) return;
+    if (profile.photos.length <= 1) return;
     directionRef.current = -1;
     setCurrentPhotoIndex((p) => (p - 1 + profile.photos.length) % profile.photos.length);
   };
 
   const handleMouseEnter = () => setShowArrows(true);
-  
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isFlipped) return;
@@ -76,24 +74,20 @@ const backTouchEnd = useRef<number | null>(null);
     setBurst(true);
     setTimeout(() => setBurst(false), 400);
   };
+
   const handleBackTouchStart = (e: React.TouchEvent) => {
-  backTouchStart.current = e.changedTouches[0].screenX;
-};
+    backTouchStart.current = e.changedTouches[0].screenX;
+  };
 
-const handleBackTouchEnd = (e: React.TouchEvent) => {
-  if (backTouchStart.current == null) return;
-  backTouchEnd.current = e.changedTouches[0].screenX;
-
-  const dx = backTouchStart.current - backTouchEnd.current;
-
-  // Horizontal swipe threshold
-  if (dx > 60) nextPhoto();
-  if (dx < -60) prevPhoto();
-
-  backTouchStart.current = null;
-  backTouchEnd.current = null;
-};
-
+  const handleBackTouchEnd = (e: React.TouchEvent) => {
+    if (backTouchStart.current == null) return;
+    backTouchEnd.current = e.changedTouches[0].screenX;
+    const dx = backTouchStart.current - backTouchEnd.current;
+    if (dx > 60) nextPhoto();
+    if (dx < -60) prevPhoto();
+    backTouchStart.current = null;
+    backTouchEnd.current = null;
+  };
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -105,60 +99,42 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [profile.photos, isFlipped]);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    if (info.offset.y > 100 || info.velocity.y > 800) {
-      setIsFlipped(true);
-    }
-  };
-
   return (
-    <div className="relative flex flex-col items-center">
-      
-      {/* CARD WRAPPER WITH SCALE-IN ANIMATION */}
-     
-        <motion.div
-  className="
-    relative 
-    w-[90%]
-    max-w-[420px]
-    h-[78vh]
-    aspect-[3/4]
-    mx-auto
-    flex flex-col justify-center items-center
-    perspective-[1000px]
-    animate-scale-in
-    mt-[4%]
-     
-  
-  "
-  style={{ transformStyle: "preserve-3d" }}
->
-
-
+    <div className="relative flex flex-col items-center w-full h-full">
+      <motion.div
+        className="
+          relative 
+          w-full
+          h-full
+          mx-auto
+          flex flex-col justify-center items-center
+          perspective-[1000px]
+          animate-scale-in
+        "
+        style={{ transformStyle: "preserve-3d" }}
+      >
         {/* FRONT FACE */}
         <motion.div
           className={`
-           w-full
-            h-[99%]
-             rounded-3xl overflow-hidden 
+            w-full
+            h-full
+            rounded-3xl overflow-hidden 
             shadow-2xl 
             bg-gradient-to-br from-pink-500/40 to-purple-600/40 
             backdrop-blur-3xl
             cursor-pointer 
             card-hover
-              ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
-          
+            /* BORDER REMOVED HERE */
+            ${isFlipped ? "pointer-events-none" : "pointer-events-auto"}`}
           initial={false}
           animate={{ rotateY: isFlipped ? 180 : 0 }}
           transition={{ duration: 0.6, type: "spring", stiffness: 120, damping: 20 }}
           style={{ backfaceVisibility: "hidden" }}
           onMouseEnter={handleMouseEnter}
-          
-          onTouchStart={!isFlipped&&handleTouchStart}
-          onTouchEnd={!isFlipped&&handleTouchEnd}
+          onTouchStart={!isFlipped ? handleTouchStart : undefined}
+          onTouchEnd={!isFlipped ? handleTouchEnd : undefined}
           onClick={toggleFlip}
         >
-
           {/* PHOTO SECTION */}
           <div className="relative w-full h-[63%] overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>
@@ -174,7 +150,6 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
               />
             </AnimatePresence>
 
-            {/* ARROWS */}
             {showArrows && profile.photos.length > 1 && (
               <>
                 <button
@@ -183,7 +158,6 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
                 >
                   <ChevronLeft className="w-8 h-8 text-white" />
                 </button>
-
                 <button
                   onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
                   className="interactive absolute right-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
@@ -195,19 +169,7 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
           </div>
 
           {/* INFO SECTION */}
-          <div
-  className="
-    relative 
-    w-full 
-    h-[37%] 
-    bg-black backdrop-blur-2xl rounded-2xl shadow-lg
-    
-    ">
-
-     
-
-            
-            {/* NAME + AGE WITH HEARTBEAT */}
+          <div className="relative w-full h-[37%] bg-black backdrop-blur-2xl rounded-2xl shadow-lg">
             <div className="flex items-baseline gap-2 mb-2">
               <h2 className="text-4xl my-2 ms-5 font-bold text-pink-500 animate-heartbeat">
                 {getFirstName(profile.full_name)},
@@ -215,20 +177,17 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
               <span className="text-2xl text-pink-100/90">{profile.age}</span>
             </div>
 
-            {/* TAGS */}
             <div className="flex flex-wrap ms-3 text-xs text-pink-100 mb-4">
-              <div className="flex w-full items-center gap-1  px-2 py-1 rounded-full ">
+              <div className="flex w-full items-center gap-1 px-2 py-1 rounded-full">
                 <GraduationCap className="w-3 h-3" />
                 {profile.branch} Engineering
               </div>
-
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full ">
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full">
                 <Calendar className="w-3 h-3" />
                 B.Tech {profile.year} Year
               </div>
             </div>
 
-            {/* BUTTONS */}
             <div className="flex justify-evenly">
               <motion.button
                 whileTap={{ scale: 0.8 }}
@@ -239,14 +198,10 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
                 <X className="w-8 h-8 text-rose-300" />
               </motion.button>
 
-              {/* LIKE BUTTON WITH PULSE + EXPLOSION */}
               <motion.button
                 whileHover={{ scale: 1.12 }}
                 whileTap={{ scale: 0.88 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  triggerBurst(e);
-                }}
+                onClick={(e) => { e.stopPropagation(); triggerBurst(e); }}
                 className="
                    w-20 h-20 rounded-full overflow-hidden interactive
                   bg-gradient-to-br from-pink-700 to-purple-400
@@ -256,19 +211,15 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
                   transition-all duration-300
                   animate-pulse-glow
                   -mt-5
-                
-                  
                 "
               >
                 {burst && (
                   <span className="absolute inset-0 animate-like-explosion bg-pink-300/60 rounded-full"></span>
                 )}
-
                 <Heart className="w-12 h-12 text-white drop-shadow-xl z-10" />
               </motion.button>
             </div>
           </div>
-          
         </motion.div>
 
         {/* BACK FACE */}
@@ -277,40 +228,32 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
             absolute inset-0 w-full h-full 
             rounded-3xl overflow-hidden
             bg-black/90 backdrop-blur-1xl
-            
             shadow-2xl
-            h-[99%]
             cursor-pointer
-             ${isFlipped ? "pointer-events-auto" : "pointer-events-none"}`}
-          
+            /* BORDER REMOVED HERE */
+            ${isFlipped ? "pointer-events-auto" : "pointer-events-none"}`}
           initial={false}
           animate={{ rotateY: isFlipped ? 0 : -180 }}
           transition={{ duration: 0.6, type: "spring", stiffness: 120, damping: 20 }}
           style={{ backfaceVisibility: "hidden" }}
           onClick={toggleFlip}
         >
+          {/* SCROLL CONTAINER WITH HIDDEN SCROLLBAR */}
           <motion.div
-           
             className="
-              h-full overflow-y-auto hide-scrollbar
+              h-full overflow-y-auto 
               bg-gradient-to-b from-black/30 via-black/40 to-black/60
+              [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]
             "
-             onTouchStart={handleBackTouchStart}
-  onTouchEnd={handleBackTouchEnd}
-  
-
+            onTouchStart={handleBackTouchStart}
+            onTouchEnd={handleBackTouchEnd}
           >
-
-            {/* TOP LIKE BUTTON */}
             <button
               onClick={(e) => { e.stopPropagation(); onLike(); }}
               className="interactive absolute top-4 right-4 z-10 w-10 h-10 rounded-full hover-glow bg-gradient-to-br from-pink-700 to-purple-400 shadow-[0_0_25px_rgba(255,120,170,0.55)] border border-pink-300/100 flex items-center justify-center text-white"
             >
               <Heart className="w-6 h-6" />
             </button>
-
-            {/* SMALL PREVIEW IMAGE */}
-            
 
             <div className="relative w-full p-2 animate-shimmer">
               <div className="
@@ -320,72 +263,46 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
                 shadow-[0_8px_30px_rgba(0,0,0,0.5)]
               ">
                  <AnimatePresence mode="wait" initial={false}>
-              <img
-                key={currentPhotoIndex}
-                src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/800/1000"}
-                alt={profile.full_name}
-                className={`
-                  absolute inset-0 w-full h-full object-cover object-center
-                  ${directionRef.current === 1 ? "animate-slide-in-right" : "animate-slide-in-left"}
-                `}
-                draggable={false}
-              />
-            </AnimatePresence>
+                  <img
+                    key={currentPhotoIndex}
+                    src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/800/1000"}
+                    alt={profile.full_name}
+                    className={`
+                      absolute inset-0 w-full h-full object-cover object-center
+                      ${directionRef.current === 1 ? "animate-slide-in-right" : "animate-slide-in-left"}
+                    `}
+                    draggable={false}
+                  />
+                </AnimatePresence>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
               </div>
-                {showArrows && profile.photos.length > 1 && (
-              <>
-                <button
-                  onClick={(e) => { e.stopPropagation(); prevPhoto(); }}
-                  className="interactive absolute left-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
-                >
-                  <ChevronLeft className="w-8 h-8 text-white" />
-                </button>
-
-                <button
-                  onClick={(e) => { e.stopPropagation(); nextPhoto(); }}
-                  className="interactive absolute right-3 top-1/2 -translate-y-1/2 z-30 opacity-80"
-                >
-                  <ChevronRight className="w-8 h-8 text-white" />
-                </button>
-              </>
-            )}
             </div>
 
-            {/* CONTENT */}
             <div className="px-6 pb-20">
-
-              {/* NAME */}
               <h2 className="text-4xl font-bold text-pink-500 mb-1 mt-4 animate-heartbeat">
                 {getFirstName(profile.full_name)}
                 <span className="text-2xl text-white/60">, {profile.age}</span>
               </h2>
 
-              {/* TAGS */}
               <div className="flex flex-wrap gap-3 mt-4 mb-10">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <GraduationCap className="w-3 h-3" />
                   {profile.branch} Engg.
                 </div>
-
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <Calendar className="w-3 h-3" />
                   B.Tech {profile.year} Year
                 </div>
               </div>
 
-              {/* ABOUT */}
               <h3 className="text-lg font-semibold text-pink-300 mb-2">About Me</h3>
               <p className="text-white/80">{profile.bio}</p>
 
-              {/* DIVIDER */}
               <div className="my-6 border-t border-pink-500/40" />
-
-              {/* DETAILS */}
               <h3 className="text-lg font-semibold text-pink-300 mb-4">Details</h3>
 
               <div className="grid grid-cols-2 gap-4">
-                {["height", "hometown"  ].map((key) =>
+                {["height", "hometown"].map((key) =>
                   (profile as any)[key] && (
                     <div
                       key={key}
@@ -407,14 +324,8 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
                 )}
               </div>
 
-              {/* DIVIDER */}
               <div className="my-10 border-t border-pink-500/40" />
-
-              {/* INTERESTS */}
-              <h3 className="text-lg font-semibold text-pink-300 mb-3">
-                Interests
-              </h3>
-
+              <h3 className="text-lg font-semibold text-pink-300 mb-3">Interests</h3>
               <div className="flex flex-wrap gap-3">
                 {profile.interests.map((i) => (
                   <span
@@ -429,11 +340,9 @@ const handleBackTouchEnd = (e: React.TouchEvent) => {
                   </span>
                 ))}
               </div>
-
             </div>
           </motion.div>
         </motion.div>
-        
       </motion.div>
     </div>
   );
