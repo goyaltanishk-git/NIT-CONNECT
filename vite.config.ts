@@ -5,6 +5,13 @@ import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   server: {
+     proxy: {
+      "/api": {
+        target: "https://portfoliotrial-omega.vercel.app",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
     host: "::",
     port: 8080,
   },
@@ -32,3 +39,7 @@ export default defineConfig(({ mode }) => ({
     ],
   },
 }));
+
+
+
+
