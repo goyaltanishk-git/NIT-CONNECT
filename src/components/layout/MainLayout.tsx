@@ -40,7 +40,7 @@ export function MainLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black">
+      <div className="flex h-dvh items-center justify-center bg-black">
         <div className="text-center space-y-8 p-8 animate-fade-in">
           <div className="relative">
             {/* Custom heart loading animation */}
@@ -66,8 +66,8 @@ export function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-red text-white overflow-hidden ">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
+    <div className=" h-dvh bg-red text-white">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-dvh">
 
         {/* Enhanced Glassmorphism Header */}
         {(activeTab!="settings")&&(activeTab!="profile")&&(ischatopen==false)&&
@@ -94,7 +94,7 @@ export function MainLayout() {
 }
         {/* Main Content with enhanced smooth transitions */}
         <div className="flex-1 overflow-hidden relative bg-black ">
-          <TabsContent value="discovery" className="h-full animate-fade-in ">
+          <TabsContent value="discovery" className="h-full animate-fade-in  ">
              
             <DiscoveryScreenIntegrated />
           </TabsContent>

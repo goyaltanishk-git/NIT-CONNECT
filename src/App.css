@@ -1,6 +1,5 @@
 @import './styles/animations.css';
 
-
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -325,47 +324,4 @@ a:hover {
   transform: translateZ(0);
   backface-visibility: hidden;
   perspective: 1000px;
-}
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.neon-border {
-  position: relative;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.neon-border::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  z-index: 0;
-  border-radius: inherit;
-  padding: 2px;
-  background: conic-gradient(
-    from 0deg,
-    #ec4899,
-    #f472b6,
-    #ec4899,
-    #f472b6
-  );
-  animation: spin 2s linear infinite;
-}
-
-.neon-border::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  background: #111; /* inner content background */
 }

@@ -11,7 +11,9 @@ import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useToast } from "@/hooks/use-toast";
 import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
-import {encryptedStorage} from "@/utils/encryptedStorage";
+import { encryptedStorage } from "@/utils/encryptedStorage";
+// 1. IMPORT GLOWCARD
+import { GlowCard } from "@/components/ui/GlowCard";
 
 export function DiscoveryScreenIntegrated() {
   console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
@@ -22,14 +24,12 @@ export function DiscoveryScreenIntegrated() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Get current user email for daily limits
   const currentUserData = encryptedStorage.get('current-user');
   const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
   const userEmail = currentUser?.email || user?.email;
 
   console.log("📧 Passing this email to useDailyLimits:", userEmail);
 
-  // Use daily limits hook
   const {
     dailyLikes,
     canLike,
@@ -37,7 +37,6 @@ export function DiscoveryScreenIntegrated() {
     incrementLikes
   } = useDailyLimits(userEmail);
 
-  // Add debugging
   useEffect(() => {
     console.log("DiscoveryScreenIntegrated state:", {
       profiles: profiles.length,
@@ -54,7 +53,6 @@ export function DiscoveryScreenIntegrated() {
 
     const profile = profiles[currentIndex];
     
-    // 🆕 Check daily limits and show popup if out of likes
     if (action === 'like' && !canLike) {
       toast({
         title: "Daily Limit Reached 🚫",
@@ -64,11 +62,9 @@ export function DiscoveryScreenIntegrated() {
       return;
     }
 
-    // Set animation
     setSwipeAnimation(action === 'like' ? 'right' : 'left');
 
     try {
-      // Increment daily limits for likes
       if (action === 'like') {
         const success = await incrementLikes();
         if (!success) {
@@ -77,28 +73,20 @@ export function DiscoveryScreenIntegrated() {
         }
       }
 
-      // Record interaction in database
       if (userEmail) {
         const { error } = await supabase.from('user_interactions').insert({
           user_id: userEmail,
           target_user_id: profile.email,
           interaction_type: action
         });
-
-        if (error) {
-          console.error("Error recording interaction:", error);
-        } else {
-          console.log("Interaction recorded successfully");
-        }
+        if (error) console.error("Error recording interaction:", error);
       }
       
-      // Move to next profile after animation
       setTimeout(() => {
         setCurrentIndex(prev => prev + 1);
         setSwipeAnimation(null);
       }, 300);
 
-      // Show feedback with enhanced styling
       if (action === 'like') {
         toast({
           title: "Like sent! 💖",
@@ -113,10 +101,9 @@ export function DiscoveryScreenIntegrated() {
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
     console.log("🔄 Transforming profile:", profile.first_name, profile.email);
-    
     return {
-      id: profile.email, // Use email as ID since it's now primary key
-      user_id: profile.email, // For compatibility with ProfileCard
+      id: profile.email,
+      user_id: profile.email,
       full_name: `${profile.first_name} ${profile.last_name}`,
       age: calculateAge(profile.date_of_birth),
       bio: profile.bio || 'No bio available',
@@ -125,12 +112,11 @@ export function DiscoveryScreenIntegrated() {
       hometown: profile.hometown || 'Not specified',
       interests: profile.interests || [],
       photos: profile.photos?.map(p => ({ url: p.url, order: p.order })) || [
-        // Fallback photo if none available
         { url: '/placeholder-profile.jpg', order: 1 }
       ],
       height: profile.height ? `${Math.floor(profile.height / 12)}'${profile.height % 12}"` : 'Not specified',
       looking_for: profile.interested_in || 'Anyone',
-      elo_rating: 1000, // Default rating
+      elo_rating: 1000,
       last_active: "Active now",
       verified: profile.is_verified || false
     };
@@ -141,7 +127,6 @@ export function DiscoveryScreenIntegrated() {
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
@@ -159,24 +144,13 @@ export function DiscoveryScreenIntegrated() {
             </div>
           </div>
           <div className="space-y-4">
-            <h3 className="text-2xl font-bold gradient-text-animated">
-              Finding amazing people for you...
-            </h3>
+            <h3 className="text-2xl font-bold gradient-text-animated">Finding amazing people...</h3>
             <p className="text-gray-400">Preparing your perfect matches</p>
           </div>
         </div>
       </div>
     );
   }
-
-  // Debug: Show what we have
-  console.log("📊 Final render state:", {
-    profilesCount: profiles.length,
-    currentIndex,
-    currentProfile: profiles[currentIndex]?.first_name,
-    dailyLikes,
-    canLike
-  });
 
   if (!user && !currentUser) {
     return (
@@ -194,7 +168,7 @@ export function DiscoveryScreenIntegrated() {
 
   if (profiles.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full  bg-black">
+      <div className="flex items-center justify-center h-full bg-black">
         <div className="text-center space-y-8 animate-fade-in">
           <div className="relative">
             <Heart className="h-20 w-20 text-gray-600 mx-auto" />
@@ -204,9 +178,7 @@ export function DiscoveryScreenIntegrated() {
           </div>
           <div className="space-y-4">
             <h2 className="text-3xl font-bold text-white">No profiles available</h2>
-            <p className="text-gray-400 text-lg">
-              Check back later for new people to connect with.
-            </p>
+            <p className="text-gray-400 text-lg">Check back later for new people to connect with.</p>
           </div>
         </div>
       </div>
@@ -223,9 +195,7 @@ export function DiscoveryScreenIntegrated() {
           </div>
           <div className="space-y-4">
             <h2 className="text-3xl font-bold gradient-text">No more profiles available</h2>
-            <p className="text-gray-400 text-lg">
-              Check back later for new people to connect with.
-            </p>
+            <p className="text-gray-400 text-lg">Check back later for new people to connect with.</p>
           </div>
         </div>
       </div>
@@ -235,22 +205,20 @@ export function DiscoveryScreenIntegrated() {
   const currentProfile = transformProfileForCard(profiles[currentIndex]);
 
   return (
-
-  <div className="min-h-dvh bg-black text-white">
+    <div className="min-h-dvh bg-black text-white">
       <div className="p-0 m-0 w-full">
 
-        {/* Enhanced Profile Stack with Better UI */}
-       <div className="relative w-full max-w-[420px] mx-auto p-0 profile-stack overflow-visible">
+       {/* SIZING IS HERE: Applied to the main stack container */}
+       <div className="relative w-[90%] max-w-[420px] h-[78vh] mx-auto mt-[4%] profile-stack overflow-visible">
 
-
-          {/* Profile Stack Background Cards */}
+          {/* Background Card */}
           {profiles[currentIndex + 2] && (
             <div className="absolute inset-0 -z-20 scale-90 opacity-20 rotate-1 transform">
-              <Card className="h-full aspect-[3/4] glass-light rounded-3xl border-white/10" />
+              <Card className="h-full w-full glass-light rounded-3xl border-white/10" />
             </div>
           )}
           
-          {/* Next profile preview */}
+          {/* Next Profile Preview */}
           {profiles[currentIndex + 1] && (
             <div className="absolute inset-0 -z-10 scale-95 opacity-60 transform -rotate-1">
               <EnhancedProfileCard
@@ -262,13 +230,13 @@ export function DiscoveryScreenIntegrated() {
             </div>
           )}
 
-          {/* Current Profile with Enhanced Animations */}
-          <div className={`relative transition-all duration-300 ${
+          {/* Current Active Profile with GlowCard */}
+          <div className={`relative w-full h-full transition-all duration-300 ${
             swipeAnimation === 'left' ? 'swipe-left' :
             swipeAnimation === 'right' ? 'swipe-right' :
             ''
           }`}>
-            {/* Swipe Indicators with Enhanced Styling */}
+            {/* Swipe Indicators */}
             <div className={`absolute inset-0 rounded-3xl border-4 transition-all duration-200 z-10 pointer-events-none ${
               swipeAnimation === 'right' ? 'border-green-500 bg-green-500/20 animate-pulse-glow' :
               swipeAnimation === 'left' ? 'border-red-500 bg-red-500/20 animate-pulse-glow' :
@@ -290,17 +258,23 @@ export function DiscoveryScreenIntegrated() {
               )}
             </div>
 
-            <EnhancedProfileCard
-              profile={currentProfile}
-              onLike={() => handleSwipe('like')}
-              onPass={() => handleSwipe('pass')}
-              onSuperLike={() => {}}
-            />
+            {/* GLOW CARD USED HERE - Fills the sized stack container */}
+            <GlowCard 
+              customSize={true} 
+              className="w-full h-full block" 
+              glowColor="purple"
+            >
+              <EnhancedProfileCard
+                profile={currentProfile}
+                onLike={() => handleSwipe('like')}
+                onPass={() => handleSwipe('pass')}
+                onSuperLike={() => {}}
+              />
+            </GlowCard>
           </div>
         </div>
       </div>
 
-      {/* Background effects */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>

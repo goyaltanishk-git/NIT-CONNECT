@@ -162,7 +162,7 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
+    <div className="h-dvh flex items-center justify-center bg-black p-4 relative overflow-hidden">
       {/* Animated background particles */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         {Array.from({ length: 30 }).map((_, i) => (

@@ -5,8 +5,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 const Index = () => {
   return (
     <AuthGuard>
-      
-      <MainLayout />
+            <MainLayout />
     
     </AuthGuard>
   );
