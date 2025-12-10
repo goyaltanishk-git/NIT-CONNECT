@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,14 +12,20 @@ import { useToast } from "@/hooks/use-toast";
 import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
-// 1. IMPORT GLOWCARD
 import { GlowCard } from "@/components/ui/GlowCard";
+
+// ⭐ CHANGE: Import the new alert component
+import { DailyLimitAlert } from "./DailyLimitAlert";
 
 export function DiscoveryScreenIntegrated() {
   console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
+  
+  // ⭐ CHANGE: Add state to control the dialog visibility
+  const [showLimitAlert, setShowLimitAlert] = useState(false);
+
   const { profiles, loading } = useProfiles();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -28,14 +34,24 @@ export function DiscoveryScreenIntegrated() {
   const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
   const userEmail = currentUser?.email || user?.email;
 
-  console.log("📧 Passing this email to useDailyLimits:", userEmail);
-
   const {
     dailyLikes,
     canLike,
     loading: limitsLoading,
     incrementLikes
   } = useDailyLimits(userEmail);
+
+  // ⭐ CHANGE: Ref to track previous canLike state to detect the exact moment it flips to false
+  const prevCanLikeRef = useRef(canLike);
+
+  // ⭐ CHANGE: Effect to automatically show alert when likes run out
+  useEffect(() => {
+    // If we COULD like before, but CANNOT now -> Show Alert
+    if (prevCanLikeRef.current === true && canLike === false) {
+       setShowLimitAlert(true);
+    }
+    prevCanLikeRef.current = canLike;
+  }, [canLike]);
 
   useEffect(() => {
     console.log("DiscoveryScreenIntegrated state:", {
@@ -53,12 +69,9 @@ export function DiscoveryScreenIntegrated() {
 
     const profile = profiles[currentIndex];
     
+    // ⭐ CHANGE: If action is like and user can't like, show ALERT instead of toast
     if (action === 'like' && !canLike) {
-      toast({
-        title: "Daily Limit Reached 🚫",
-        description: "You have ran out of likes for today. Please come back tomorrow!",
-        variant: "destructive",
-      });
+      setShowLimitAlert(true);
       return;
     }
 
@@ -68,7 +81,9 @@ export function DiscoveryScreenIntegrated() {
       if (action === 'like') {
         const success = await incrementLikes();
         if (!success) {
+          // ⭐ CHANGE: If increment fails (limit hit just now), stop animation and show ALERT
           setSwipeAnimation(null);
+          setShowLimitAlert(true);
           return;
         }
       }
@@ -100,7 +115,6 @@ export function DiscoveryScreenIntegrated() {
   };
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
-    console.log("🔄 Transforming profile:", profile.first_name, profile.email);
     return {
       id: profile.email,
       user_id: profile.email,
@@ -116,9 +130,9 @@ export function DiscoveryScreenIntegrated() {
       ],
       height: profile.height ? `${Math.floor(profile.height / 12)}'${profile.height % 12}"` : 'Not specified',
       looking_for: profile.interested_in || 'Anyone',
-      elo_rating: 1000,
-      last_active: "Active now",
-      verified: profile.is_verified || false
+      verified: profile.is_verified || false,
+      lives_in: profile.hometown || '',
+      distance_from_you: 'Nearby'
     };
   };
 
@@ -205,10 +219,15 @@ export function DiscoveryScreenIntegrated() {
   const currentProfile = transformProfileForCard(profiles[currentIndex]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="p-0 m-0 w-full">
+    <div className="min-h-dvh bg-black text-white">
+      
+      {/* ⭐ CHANGE: Mount the Alert Dialog here */}
+      <DailyLimitAlert 
+        isOpen={showLimitAlert} 
+        onClose={() => setShowLimitAlert(false)} 
+      />
 
-       {/* SIZING IS HERE: Applied to the main stack container */}
+      <div className="p-0 m-0 w-full">
        <div className="relative w-[90%] max-w-[420px] h-[78vh] mx-auto mt-[4%] profile-stack overflow-visible">
 
           {/* Background Card */}
@@ -225,7 +244,6 @@ export function DiscoveryScreenIntegrated() {
                 profile={transformProfileForCard(profiles[currentIndex + 1])}
                 onLike={() => {handleSwipe('like')}}
                 onPass={() => {handleSwipe('pass')}}
-                onSuperLike={() => {}}
               />
             </div>
           )}
@@ -258,7 +276,6 @@ export function DiscoveryScreenIntegrated() {
               )}
             </div>
 
-            {/* GLOW CARD USED HERE - Fills the sized stack container */}
             <GlowCard 
               customSize={true} 
               className="w-full h-full block" 
@@ -268,7 +285,6 @@ export function DiscoveryScreenIntegrated() {
                 profile={currentProfile}
                 onLike={() => handleSwipe('like')}
                 onPass={() => handleSwipe('pass')}
-                onSuperLike={() => {}}
               />
             </GlowCard>
           </div>

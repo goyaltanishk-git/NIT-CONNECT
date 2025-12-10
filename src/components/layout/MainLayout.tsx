@@ -66,7 +66,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-red text-white overflow-hidden ">
+    <div className="min-h-dvh bg-red text-white overflow-hidden ">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-screen">
 
         {/* Enhanced Glassmorphism Header */}
