@@ -2,19 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, X, Settings2, TrendingUp, Zap, Filter, RotateCcw, Sparkles, MapPin, Clock, Shield, Users, Star } from "lucide-react";
+import { Heart, X, Sparkles } from "lucide-react";
 import { EnhancedProfileCard } from "./EnhancedProfileCard";
 import { ActionButtonsWithLimits } from "./ActionButtonWithLimits";
 import { useProfiles, DatabaseProfile } from "@/hooks/useProfiles";
 import { useAuth } from "@/hooks/useAuth";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useToast } from "@/hooks/use-toast";
-import { DisabledStoriesCarousel } from "../stories/DisabledStories";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { GlowCard } from "@/components/ui/GlowCard";
-
-// ⭐ CHANGE: Import the new alert component
 import { DailyLimitAlert } from "./DailyLimitAlert";
 
 export function DiscoveryScreenIntegrated() {
@@ -23,8 +20,11 @@ export function DiscoveryScreenIntegrated() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
   
-  // ⭐ CHANGE: Add state to control the dialog visibility
+  // State for alert dialog
   const [showLimitAlert, setShowLimitAlert] = useState(false);
+  
+  // ⭐ NEW: Track if user has interacted to prevent popup on reload
+  const hasUserInteracted = useRef(false);
 
   const { profiles, loading } = useProfiles();
   const { user } = useAuth();
@@ -41,35 +41,27 @@ export function DiscoveryScreenIntegrated() {
     incrementLikes
   } = useDailyLimits(userEmail);
 
-  // ⭐ CHANGE: Ref to track previous canLike state to detect the exact moment it flips to false
+  // Ref to track previous state
   const prevCanLikeRef = useRef(canLike);
 
-  // ⭐ CHANGE: Effect to automatically show alert when likes run out
+  // ⭐ UPDATED EFFECT: Only trigger if user has interacted
   useEffect(() => {
-    // If we COULD like before, but CANNOT now -> Show Alert
-    if (prevCanLikeRef.current === true && canLike === false) {
+    // If we transition from Can Like -> Cannot Like AND user has been using the app
+    if (hasUserInteracted.current && prevCanLikeRef.current === true && canLike === false) {
        setShowLimitAlert(true);
     }
     prevCanLikeRef.current = canLike;
   }, [canLike]);
 
-  useEffect(() => {
-    console.log("DiscoveryScreenIntegrated state:", {
-      profiles: profiles.length,
-      loading,
-      user: user?.email,
-      currentUser: currentUser?.email,
-      dailyLikes,
-      canLike
-    });
-  }, [profiles, loading, user, dailyLikes, canLike]);
-
   const handleSwipe = async (action: 'like' | 'pass') => {
     if (currentIndex >= profiles.length) return;
 
+    // ⭐ Set interaction flag to true on first click
+    hasUserInteracted.current = true;
+
     const profile = profiles[currentIndex];
     
-    // ⭐ CHANGE: If action is like and user can't like, show ALERT instead of toast
+    // Check if blocked - Show Alert
     if (action === 'like' && !canLike) {
       setShowLimitAlert(true);
       return;
@@ -81,7 +73,7 @@ export function DiscoveryScreenIntegrated() {
       if (action === 'like') {
         const success = await incrementLikes();
         if (!success) {
-          // ⭐ CHANGE: If increment fails (limit hit just now), stop animation and show ALERT
+          // If backend rejects (limit hit instantly), stop and show alert
           setSwipeAnimation(null);
           setShowLimitAlert(true);
           return;
@@ -219,9 +211,9 @@ export function DiscoveryScreenIntegrated() {
   const currentProfile = transformProfileForCard(profiles[currentIndex]);
 
   return (
-    <div className="min-h-dvh bg-black text-white">
+    <div className="min-h-screen bg-black text-white">
       
-      {/* ⭐ CHANGE: Mount the Alert Dialog here */}
+      {/* Alert Dialog */}
       <DailyLimitAlert 
         isOpen={showLimitAlert} 
         onClose={() => setShowLimitAlert(false)} 
