@@ -584,7 +584,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
 
       <div className="scroll-sections">
        {[...Array(2)].map((_, i) => {
-          const titles = { 1: 'Discover People', 2: 'Make Connections' };
+          const titles = { 1: 'Discover People', 2: 'Make Connections' }; 
           
           const subtitles = {
             1: { line1: 'Scroll to explore profiles', line2: 'from right here at NIT Kurukshetra.' },
