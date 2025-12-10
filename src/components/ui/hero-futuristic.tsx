@@ -57,6 +57,23 @@ export const Component = ({ onComplete }: ComponentProps) => {
     locations: [] as number[],
   });
 
+  // --- SCROLL MANAGEMENT EFFECT ---
+  useEffect(() => {
+    // 1. Unlock scrolling when Hero mounts
+    document.body.classList.add('enable-scroll');
+    document.documentElement.classList.add('enable-scroll');
+    
+    // 2. Refresh ScrollTrigger to ensure animations map correctly to the new page height
+    ScrollTrigger.refresh();
+
+    // 3. Lock scrolling back up when Hero unmounts (cleanup)
+    return () => {
+      document.body.classList.remove('enable-scroll');
+      document.documentElement.classList.remove('enable-scroll');
+    };
+  }, []);
+
+  // --- DATA LOADING ---
   useEffect(() => {
     if (profileLoading) return;
     if (profile && profile.first_name) {
@@ -71,8 +88,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
     const initThree = () => {
       const { current: refs } = threeRefs;
       
-      // --- FIX: Use standard window size ---
-      // Since we removed CSS Zoom, we don't need complicated math anymore.
       const width = window.innerWidth;
       const height = window.innerHeight;
 
@@ -371,7 +386,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
     const handleResize = () => {
       const { current: refs } = threeRefs;
       if (refs.camera && refs.renderer && refs.composer) {
-        // --- FIX: Standard resize logic ---
         const width = window.innerWidth;
         const height = window.innerHeight;
         
@@ -500,7 +514,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
         <div className="vertical-text">SPACE</div>
       </div>
 
-      {/* --- SECTION 1: WELCOME [NAME] --- */}
       <div className="hero-content cosmos-content">
         <h1 
           ref={titleRef} 
@@ -526,7 +539,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
         </div>
       </div>
 
-      {/* CTA Button */}
       {showCTAButton && (
         <div ref={ctaButtonRef} className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50" style={{ visibility: 'hidden' }}>
           <Button
@@ -541,7 +553,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
         </div>
       )}
 
-      {/* Scroll Progress */}
       <div ref={scrollProgressRef} className="scroll-progress" style={{ visibility: 'hidden' }}>
         <div className="scroll-text">SCROLL</div>
         <div className="progress-track">
@@ -552,7 +563,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
         </div>
       </div>
 
-      {/* Scroll Sections */}
       <div className="scroll-sections">
        {[...Array(2)].map((_, i) => {
           const titles = { 1: 'Discover People', 2: 'Make Connections' };

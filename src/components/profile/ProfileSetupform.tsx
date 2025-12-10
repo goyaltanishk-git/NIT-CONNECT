@@ -66,7 +66,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   // Refs for inputs and scrolling
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // ⭐ Refs for Auto-Scrolling
+  // Refs for Auto-Scrolling
   const photosSectionRef = useRef<HTMLDivElement>(null);
   const interestsSectionRef = useRef<HTMLDivElement>(null);
   const dobSectionRef = useRef<HTMLDivElement>(null);
@@ -76,6 +76,21 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   // State for Custom Error Dialog
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [dialogErrorMsg, setDialogErrorMsg] = useState('');
+
+  // --- SCROLL MANAGEMENT EFFECT (ADDED) ---
+  useEffect(() => {
+    // Unlock scrolling when this component mounts
+    document.body.classList.add('enable-scroll');
+    document.documentElement.classList.add('enable-scroll');
+
+    window.scrollTo(0, 0);
+
+    // Lock scrolling back up when this component unmounts
+    return () => {
+      document.body.classList.remove('enable-scroll');
+      document.documentElement.classList.remove('enable-scroll');
+    };
+  }, []);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -175,7 +190,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     setInterests(interests.filter(interest => interest !== interestToRemove));
   };
 
-  // ⭐ Updated Validation with Scrolling Logic
+  // Updated Validation with Scrolling Logic
   const validateForm = (): boolean => {
     let errorMessage = '';
     let scrollTarget: React.RefObject<HTMLDivElement> | null = null;
@@ -224,7 +239,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     if (errorMessage) {
       triggerError(errorMessage);
       
-      // ⭐ Perform the Scroll
+      // Perform the Scroll
       if (scrollTarget && scrollTarget.current) {
         scrollTarget.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
@@ -323,7 +338,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         <DialogContent className="sm:max-w-md bg-black/95 border-pink-500/20 backdrop-blur-xl text-white shadow-[0_0_50px_rgba(236,72,153,0.3)]">
           <div className="flex flex-col items-center justify-center space-y-4 py-4">
             <div className="w-16 h-16 rounded-full bg-pink-500/10 border border-pink-500/30 flex items-center justify-center mb-2">
-              {/* ⭐ Changed text-pink-500 to text-white for the Icon */}
               <AlertCircle className="w-8 h-8 text-white" />
             </div>
             
@@ -392,7 +406,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
               </UIAlert>
             )}
 
-            {/* Photos Section - ⭐ Attached Ref */}
+            {/* Photos Section - Attached Ref */}
             <div className="space-y-4" ref={photosSectionRef}>
               <div className="flex items-center space-x-2">
                 <Camera className="w-5 h-5 text-pink-400" />
@@ -461,7 +475,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
               </div>
             </div>
 
-            {/* Date of Birth - ⭐ Attached Ref */}
+            {/* Date of Birth - Attached Ref */}
             <div className="space-y-3" ref={dobSectionRef}>
               <div className="flex items-center space-x-2">
                 <Calendar className="w-5 h-5 text-pink-400" />
@@ -492,7 +506,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
               />
             </div>
 
-            {/* Interests Section - ⭐ Attached Ref */}
+            {/* Interests Section - Attached Ref */}
             <div className="space-y-4" ref={interestsSectionRef}>
               <div className="flex items-center space-x-2">
                 <Heart className="w-5 h-5 text-pink-400" />

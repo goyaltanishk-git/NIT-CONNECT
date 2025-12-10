@@ -16,30 +16,10 @@
   box-sizing: border-box;
 }
 
-html {
-  background: #000000;
-  width: 100%;
-  overscroll-behavior: none; 
-}
-
-body {
-  font-family: var(--font-primary);
-  color: var(--color-text);
-  background: #000000;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  width: 100%;
-  /* Ensure height is auto so it can scroll */
-  height: auto; 
-  min-height: 100vh;
-  
-  touch-action: pan-y; 
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
+/* NOTE: We removed html { ... } and body { ... } from here.
+   Global scrolling logic is now handled by index.css 
+   and toggled via class '.enable-scroll' in React.
+*/
 
 /* Ensure Canvas doesn't block scroll */
 .hero-canvas {
@@ -49,13 +29,12 @@ body {
   width: 100%;
   height: 100%;
   z-index: 1;
-  /* Important: Lets events pass through so you can scroll on mobile/desktop */
   pointer-events: none; 
 }
 
 .hero-content,
 .content-section {
-  height: 100dvh; 
+  height: 100vh; 
   width: 100%;
   display: flex;
   flex-direction: column;
