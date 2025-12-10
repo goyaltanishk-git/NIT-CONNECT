@@ -10,7 +10,7 @@ html {
   background: #000;
   
   /* ALLOW SCROLLING AGAIN */
-  overflow-y: auto; 
+  overflow-y: hidden; 
   overflow-x: hidden; 
   scroll-behavior: smooth;
 }
