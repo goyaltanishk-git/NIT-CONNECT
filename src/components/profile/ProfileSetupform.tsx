@@ -4,9 +4,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert as UIAlert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { X, Camera, Heart, Sparkles, User, Calendar, MapPin, Phone, Instagram } from 'lucide-react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription, 
+  DialogFooter 
+} from "@/components/ui/dialog";
+import { X, Camera, Heart, Sparkles, User, Calendar, MapPin, Phone, Instagram, GraduationCap, BookOpen, AlertCircle } from 'lucide-react';
 import { AuthService, Profile } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
@@ -40,7 +48,7 @@ interface PhotoFile {
   order: number;
 }
 
-const MAX_PHOTOS = 3; // Set max photos constant
+const MAX_PHOTOS = 3; 
 
 export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProps) {
   const [formData, setFormData] = useState<FormData>({
@@ -54,10 +62,20 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  
+  // Refs for inputs and scrolling
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // 🆕 State for phone number validation
+  // ⭐ Refs for Auto-Scrolling
+  const photosSectionRef = useRef<HTMLDivElement>(null);
+  const interestsSectionRef = useRef<HTMLDivElement>(null);
+  const dobSectionRef = useRef<HTMLDivElement>(null);
+  
   const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  // State for Custom Error Dialog
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [dialogErrorMsg, setDialogErrorMsg] = useState('');
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -71,7 +89,13 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     loadUserProfile();
   }, [userEmail]);
 
-  // Helper functions
+  // Helper to trigger the custom dialog
+  const triggerError = (msg: string) => {
+    setDialogErrorMsg(msg);
+    setShowErrorDialog(true);
+    setError(msg); 
+  };
+
   const getMinDate = () => {
     const today = new Date();
     const minDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
@@ -83,30 +107,29 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     setError('');
   };
 
-  // 🆕 Phone number validation handler
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only numbers
     const numericValue = value.replace(/[^0-9]/g, '');
     
     setFormData(prev => ({ ...prev, phone_number: numericValue }));
 
     if (numericValue === '') {
-      setPhoneError(null); // No error if empty
+      setPhoneError(null);
     } else if (numericValue.length !== 10) {
       setPhoneError('Phone number must be exactly 10 digits.');
     } else {
-      setPhoneError(null); // Valid
+      setPhoneError(null);
     }
-    setError(''); // Clear global error
+    setError('');
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     
     if (photos.length + files.length > MAX_PHOTOS) {
-      setError(`You can only upload a maximum of ${MAX_PHOTOS} photos.`);
-      if (fileInputRef.current) fileInputRef.current.value = ''; // Clear input
+      const msg = `You can only upload a maximum of ${MAX_PHOTOS} photos.`;
+      triggerError(msg); 
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -152,35 +175,60 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     setInterests(interests.filter(interest => interest !== interestToRemove));
   };
 
+  // ⭐ Updated Validation with Scrolling Logic
   const validateForm = (): boolean => {
+    let errorMessage = '';
+    let scrollTarget: React.RefObject<HTMLDivElement> | null = null;
+
     // Required fields
-    if (photos.length === 0) { setError('At least one photo is required'); return false; }
-    if (!formData.date_of_birth) { setError('Date of birth is required'); return false; }
-    if (interests.length < 3) { setError('Please add at least 3 interests'); return false; }
-    
-    if (!formData.hometown.trim()) { setError('Hometown is required'); return false; }
-    if (!formData.height) { setError('Height is required'); return false; }
+    if (photos.length === 0) {
+      errorMessage = 'At least one photo is required.';
+      scrollTarget = photosSectionRef;
+    } else if (!formData.date_of_birth) {
+      errorMessage = 'Date of birth is required.';
+      scrollTarget = dobSectionRef;
+    } else if (interests.length < 3) {
+      errorMessage = 'Please add at least 3 interests.';
+      scrollTarget = interestsSectionRef;
+    } else if (!formData.hometown.trim()) {
+      errorMessage = 'Hometown is required.';
+    } else if (!formData.height) {
+      errorMessage = 'Height is required.';
+    }
 
     // Date of Birth validation
-    const birthDate = new Date(formData.date_of_birth);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (age < 16 || (age === 16 && monthDiff < 0) || (age === 16 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      setError('You must be at least 16 years old');
-      return false;
+    if (!errorMessage && formData.date_of_birth) {
+      const birthDate = new Date(formData.date_of_birth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (age < 16 || (age === 16 && monthDiff < 0) || (age === 16 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        errorMessage = 'You must be at least 16 years old.';
+        scrollTarget = dobSectionRef;
+      }
     }
 
     // Height range validation
-    const height = parseInt(formData.height);
-    if (height < 120 || height > 250) {
-      setError('Height must be between 120 and 250 cm');
-      return false;
+    if (!errorMessage && formData.height) {
+      const height = parseInt(formData.height);
+      if (height < 120 || height > 250) {
+        errorMessage = 'Height must be between 120 and 250 cm.';
+      }
     }
     
-    // 🆕 Check for phone error
-    if (phoneError) {
-      setError(phoneError);
+    // Check for phone error
+    if (!errorMessage && phoneError) {
+      errorMessage = phoneError;
+    }
+
+    if (errorMessage) {
+      triggerError(errorMessage);
+      
+      // ⭐ Perform the Scroll
+      if (scrollTarget && scrollTarget.current) {
+        scrollTarget.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
       return false;
     }
 
@@ -197,7 +245,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     const uploadedPhotoPaths: string[] = [];
     
     try {
-      // Stage 1: Upload photos to storage
       const photoUploadPromises = photos.map(async (photo) => {
         const file = photo.file;
         const fileExt = file.name.split('.').pop();
@@ -213,7 +260,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
       
       const uploadedPhotos = await Promise.all(photoUploadPromises);
 
-      // Stage 2: Prepare all database records
       const profileUpdatePayload = {
         date_of_birth: formData.date_of_birth,
         bio: formData.bio.trim(),
@@ -232,7 +278,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         is_verified: false,
       }));
 
-      // Stage 3: Execute all database operations
       await supabase.from('user_photos').delete().eq('user_email', userEmail);
       
       const { error: profileError } = await supabase.from('profiles').update(profileUpdatePayload).eq('email', userEmail);
@@ -243,13 +288,13 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
 
       await InterestsService.updateUserInterests(userEmail, interests);
 
-      // Success
       const finalProfile = await AuthService.getUserProfile(userEmail);
       onComplete(finalProfile!);
 
     } catch (error: any) {
       console.error('Error completing profile setup:', error);
-      setError(error.message || 'Failed to save profile. Please try again.');
+      const msg = error.message || 'Failed to save profile. Please try again.';
+      triggerError(msg); 
 
       if (uploadedPhotoPaths.length > 0) {
         console.log('An error occurred. Cleaning up orphaned photos from storage...');
@@ -260,9 +305,50 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     }
   };
 
+  // Helper logic for Year Display to avoid double "Year"
+  const getFormattedYear = () => {
+    if (!userProfile?.year_of_study) return 'N/A';
+    const yearStr = String(userProfile.year_of_study);
+    if (yearStr.toLowerCase().includes('year')) {
+      return yearStr;
+    }
+    return `${yearStr} Year`;
+  };
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background particles */}
+      
+      {/* Custom Error Dialog Component */}
+      <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <DialogContent className="sm:max-w-md bg-black/95 border-pink-500/20 backdrop-blur-xl text-white shadow-[0_0_50px_rgba(236,72,153,0.3)]">
+          <div className="flex flex-col items-center justify-center space-y-4 py-4">
+            <div className="w-16 h-16 rounded-full bg-pink-500/10 border border-pink-500/30 flex items-center justify-center mb-2">
+              {/* ⭐ Changed text-pink-500 to text-white for the Icon */}
+              <AlertCircle className="w-8 h-8 text-white" />
+            </div>
+            
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-2xl font-bold text-pink-500">
+                Action Required
+              </DialogTitle>
+              <DialogDescription className="text-gray-300 text-lg pt-2 text-center">
+                {dialogErrorMsg}
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="w-full mt-6">
+              <Button 
+                onClick={() => setShowErrorDialog(false)}
+                className="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold text-lg rounded-xl py-6"
+              >
+                OK
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* End Custom Dialog */}
+
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         {Array.from({ length: 25 }).map((_, i) => (
           <div
@@ -278,7 +364,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         ))}
       </div>
 
-      {/* Background gradient overlay */}
       <div className="fixed inset-0 -z-20 bg-gradient-to-br from-black via-gray-900/50 to-black pointer-events-none"></div>
 
       <Card className="w-full max-w-2xl glass border-white/10 shadow-2xl animate-fade-in">
@@ -302,13 +387,13 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         <CardContent className="space-y-8">
           <form onSubmit={handleSubmit} className="space-y-8">
             {error && (
-              <Alert variant="destructive" className="glass-light border-red-500/30 bg-red-500/10">
+              <UIAlert variant="destructive" className="glass-light border-red-500/30 bg-red-500/10">
                 <AlertDescription className="text-red-300">{error}</AlertDescription>
-              </Alert>
+              </UIAlert>
             )}
 
-            {/* Photos Section */}
-            <div className="space-y-4">
+            {/* Photos Section - ⭐ Attached Ref */}
+            <div className="space-y-4" ref={photosSectionRef}>
               <div className="flex items-center space-x-2">
                 <Camera className="w-5 h-5 text-pink-400" />
                 <Label className="text-lg font-semibold text-white">Photos *</Label>
@@ -350,8 +435,34 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
               <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
             </div>
 
-            {/* Date of Birth */}
-            <div className="space-y-3">
+            {/* BRANCH AND YEAR (Read Only) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <GraduationCap className="w-5 h-5 text-pink-400" />
+                  <Label className="text-white font-medium">Branch</Label>
+                </div>
+                <Input 
+                  value={userProfile?.branch || 'N/A'} 
+                  disabled 
+                  className="glass-light border-white/20 text-gray-400 cursor-not-allowed focus:border-white/20"
+                />
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="w-5 h-5 text-pink-400" />
+                  <Label className="text-white font-medium">Year of Study</Label>
+                </div>
+                <Input 
+                  value={getFormattedYear()} 
+                  disabled 
+                  className="glass-light border-white/20 text-gray-400 cursor-not-allowed focus:border-white/20"
+                />
+              </div>
+            </div>
+
+            {/* Date of Birth - ⭐ Attached Ref */}
+            <div className="space-y-3" ref={dobSectionRef}>
               <div className="flex items-center space-x-2">
                 <Calendar className="w-5 h-5 text-pink-400" />
                 <Label htmlFor="date_of_birth" className="text-white font-medium">Date of Birth *</Label>
@@ -381,8 +492,8 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
               />
             </div>
 
-            {/* Interests Section */}
-            <div className="space-y-4">
+            {/* Interests Section - ⭐ Attached Ref */}
+            <div className="space-y-4" ref={interestsSectionRef}>
               <div className="flex items-center space-x-2">
                 <Heart className="w-5 h-5 text-pink-400" />
                 <Label htmlFor="interests" className="text-lg font-semibold text-white">Interests *</Label>
@@ -494,12 +605,11 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
                     id="phone_number" 
                     type="tel" 
                     value={formData.phone_number} 
-                    onChange={handlePhoneChange} // 🆕 Use new handler
+                    onChange={handlePhoneChange} 
                     placeholder="10 digit phone number" 
-                    maxLength={10} // 🆕 Add maxLength
+                    maxLength={10}
                     className="glass-light border-white/20 text-white placeholder:text-gray-400 focus:border-pink-500 focus:ring-pink-500/20 transition-all duration-300"
                   />
-                  {/* 🆕 Show error message if it exists */}
                   {phoneError && <p className="text-xs text-red-400 mt-1">{phoneError}</p>}
                 </div>
                 <div className="space-y-3">
@@ -520,7 +630,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
 
             <Button 
               type="submit" 
-              disabled={loading || !!phoneError} // 🆕 Disable button if phone error
+              disabled={loading || !!phoneError}
               className="w-full h-14 bg-gradient-to-r from-pink-500 via-pink-600 to-pink-700 hover:from-pink-400 hover:via-pink-500 hover:to-pink-600 text-white font-semibold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-pulse-glow interactive"
             >
               {loading ? (
