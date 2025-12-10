@@ -94,7 +94,7 @@ export function MainLayout() {
 }
         {/* Main Content with enhanced smooth transitions */}
         <div className="flex-1 overflow-hidden relative bg-black ">
-          <TabsContent value="discovery" className="h-full animate-fade-in ">
+          <TabsContent value="discovery" className="h-full animate-fade-in  ">
              
             <DiscoveryScreenIntegrated />
           </TabsContent>

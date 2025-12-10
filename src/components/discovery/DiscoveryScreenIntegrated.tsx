@@ -193,7 +193,7 @@ export function DiscoveryScreenIntegrated() {
 
   if (currentIndex >= profiles.length) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex items-center justify-center min-h-dvh bg-black">
         <div className="text-center space-y-8 animate-fade-in">
           <div className="relative">
             <Sparkles className="h-20 w-20 text-pink-500 mx-auto animate-heartbeat" />
@@ -211,7 +211,7 @@ export function DiscoveryScreenIntegrated() {
   const currentProfile = transformProfileForCard(profiles[currentIndex]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="h-dvh bg-black text-white">
       
       {/* Alert Dialog */}
       <DailyLimitAlert 
@@ -220,7 +220,7 @@ export function DiscoveryScreenIntegrated() {
       />
 
       <div className="p-0 m-0 w-full">
-       <div className="relative w-[90%] max-w-[420px] h-[78vh] mx-auto mt-[4%] profile-stack overflow-visible">
+       <div className="relative w-[90%] max-w-[420px]  h-[78vh] mx-auto mt-[3%]  profile-stack overflow-visible">
 
           {/* Background Card */}
           {profiles[currentIndex + 2] && (
@@ -268,17 +268,13 @@ export function DiscoveryScreenIntegrated() {
               )}
             </div>
 
-            <GlowCard 
-              customSize={true} 
-              className="w-full h-full block" 
-              glowColor="purple"
-            >
+           
               <EnhancedProfileCard
                 profile={currentProfile}
                 onLike={() => handleSwipe('like')}
                 onPass={() => handleSwipe('pass')}
               />
-            </GlowCard>
+          
           </div>
         </div>
       </div>

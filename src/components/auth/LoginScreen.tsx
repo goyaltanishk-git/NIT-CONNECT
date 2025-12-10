@@ -42,7 +42,7 @@ export function LoginScreen() {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       await AuthService.generateOtp(email, generatedOtp, expiresAt);
       try {
-        await fetch("https://portfoliotrial-omega.vercel.app/api/send-otp", {
+        await fetch("/api/send-otp", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, otp: generatedOtp }),
@@ -162,7 +162,7 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-4 relative overflow-hidden">
+    <div className="h-dvh flex items-center justify-center bg-black p-4 relative overflow-hidden">
       {/* Animated background particles */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         {Array.from({ length: 30 }).map((_, i) => (

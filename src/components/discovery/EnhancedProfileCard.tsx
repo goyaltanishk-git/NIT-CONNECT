@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Heart, X, ChevronLeft, ChevronRight, GraduationCap, Calendar } from "lucide-react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { GlowCard } from "@/components/ui/GlowCard";
 
 interface Photo { url: string; order?: number }
 interface Profile {
@@ -105,8 +106,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
         className="
           relative 
           w-full
-          h-full
-          mx-auto
+          h-full          mx-auto
           flex flex-col justify-center items-center
           perspective-[1000px]
           animate-scale-in
@@ -114,6 +114,9 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
         style={{ transformStyle: "preserve-3d" }}
       >
         {/* FRONT FACE */}
+        <GlowCard customSize={true} 
+              className="w-full h-full block" 
+              glowColor="purple">
         <motion.div
           className={`
             w-full
@@ -169,7 +172,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
           </div>
 
           {/* INFO SECTION */}
-          <div className="relative w-full h-[37%] bg-black backdrop-blur-2xl rounded-2xl shadow-lg">
+          <div className="relative w-full h-[37%] bg-black backdrop-blur-2xl  shadow-lg">
             <div className="flex items-baseline gap-2 mb-2">
               <h2 className="text-4xl my-2 ms-5 font-bold text-pink-500 animate-heartbeat">
                 {getFirstName(profile.full_name)},
@@ -221,7 +224,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             </div>
           </div>
         </motion.div>
-
+</GlowCard>
         {/* BACK FACE */}
         <motion.div
           className={`
@@ -229,6 +232,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             rounded-3xl overflow-hidden
             bg-black/90 backdrop-blur-1xl
             shadow-2xl
+            border border-black/90 border-8
             cursor-pointer
             /* BORDER REMOVED HERE */
             ${isFlipped ? "pointer-events-auto" : "pointer-events-none"}`}
