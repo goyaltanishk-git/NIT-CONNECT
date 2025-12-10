@@ -39,6 +39,11 @@ export const Component = ({ onComplete }: ComponentProps) => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentSection, setCurrentSection] = useState(0);
   const [isReady, setIsReady] = useState(false);
+  
+  // States to manage the "Jump" prevention
+  const [isScrollReady, setIsScrollReady] = useState(false);
+  const [isDataReady, setIsDataReady] = useState(false);
+  
   const [showCTAButton, setShowCTAButton] = useState(false);
   const totalSections = 2;
 
@@ -57,33 +62,44 @@ export const Component = ({ onComplete }: ComponentProps) => {
     locations: [] as number[],
   });
 
-  // --- SCROLL MANAGEMENT EFFECT ---
+  // --- 1. SCROLL MANAGEMENT & INITIAL POSITIONING ---
   useEffect(() => {
-    // 1. Unlock scrolling when Hero mounts
     document.body.classList.add('enable-scroll');
     document.documentElement.classList.add('enable-scroll');
     
-    // 2. Refresh ScrollTrigger to ensure animations map correctly to the new page height
-    ScrollTrigger.refresh();
+    // Wait for DOM to stabilize
+    setTimeout(() => {
+      const totalHeight = document.body.scrollHeight;
+      const position9Percent = totalHeight * 0.09; 
+      
+      // Instant jump so the user never sees the movement
+      window.scrollTo({ top: position9Percent, behavior: 'instant' });
+      
+      ScrollTrigger.refresh();
+      setIsScrollReady(true); // Allow fade-in only after scroll is done
+    }, 100);
 
-    // 3. Lock scrolling back up when Hero unmounts (cleanup)
     return () => {
       document.body.classList.remove('enable-scroll');
       document.documentElement.classList.remove('enable-scroll');
     };
   }, []);
 
-  // --- DATA LOADING ---
+  // --- 2. DATA LOADING (Prevents "Welcome... Name" jump) ---
   useEffect(() => {
     if (profileLoading) return;
+    
     if (profile && profile.first_name) {
       setUserName(profile.first_name.toUpperCase());
     } else {
       setUserName("RISHUL"); 
     }
+    
+    // Only mark data as ready when we have the final name
+    setIsDataReady(true);
   }, [profile, profileLoading]);
 
-  // --- THREE.JS INIT ---
+  // --- 3. THREE.JS INIT ---
   useEffect(() => {
     const initThree = () => {
       const { current: refs } = threeRefs;
@@ -411,7 +427,9 @@ export const Component = ({ onComplete }: ComponentProps) => {
   }, []);
 
   useLayoutEffect(() => {
-    if (!isReady) return;
+    // CRITICAL: Don't run animations until scroll is set AND user data is ready
+    // This prevents the "Welcome... wait... Name" jump artifact.
+    if (!isReady || !isScrollReady || !isDataReady) return;
     
     gsap.set([menuRef.current, scrollProgressRef.current], { visibility: 'visible' });
     const titleChars = titleRef.current?.querySelectorAll('.title-char') ?? [];
@@ -436,7 +454,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
     }
 
     return () => { tl.kill(); };
-  }, [isReady, userName]); 
+  }, [isReady, isScrollReady, isDataReady, userName]); 
 
   useEffect(() => {
     if (ctaButtonRef.current && showCTAButton) {
@@ -506,7 +524,16 @@ export const Component = ({ onComplete }: ComponentProps) => {
   };
 
   return (
-    <div ref={containerRef} className="hero-container cosmos-style">
+    <div 
+      ref={containerRef} 
+      className="hero-container cosmos-style"
+      // FADE IN only when scroll is locked AND user name is ready.
+      // This eliminates the "Welcome... [jump] ...Name" artifact.
+      style={{ 
+        opacity: (isScrollReady && isDataReady) ? 1 : 0, 
+        transition: 'opacity 0.6s ease-out' 
+      }}
+    >
       <canvas ref={canvasRef} className="hero-canvas" />
       
       <div ref={menuRef} className="side-menu" style={{ visibility: 'hidden' }}>
@@ -523,7 +550,8 @@ export const Component = ({ onComplete }: ComponentProps) => {
             display: 'flex', 
             flexDirection: 'column', 
             gap: '0.2em', 
-            marginTop: '15vh'
+            // Positioned lower (42vh) to counter the 9% scroll offset
+            marginTop: '42vh' 
           }}
         >
           <div className="block">
