@@ -220,7 +220,7 @@ export function DiscoveryScreenIntegrated() {
       />
 
       <div className="p-0 m-0 w-full">
-       <div className="relative w-[90%] max-w-[420px]  h-[78vh] mx-auto mt-[3%]  profile-stack overflow-visible">
+       <div className="relative w-[90%] max-w-[420px]  h-[76vh] mx-auto mt-[3%]  profile-stack overflow-visible">
 
           {/* Background Card */}
           {profiles[currentIndex + 2] && (
