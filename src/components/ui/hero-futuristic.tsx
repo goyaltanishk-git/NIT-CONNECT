@@ -73,7 +73,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
       const position9Percent = totalHeight * 0.09; 
       
       // Instant jump so the user never sees the movement
-      window.scrollTo({ top: position9Percent, behavior: 'instant' });
+      window.scrollTo({ top: position9Percent, behavior: 'instant' }); 
       
       ScrollTrigger.refresh();
       setIsScrollReady(true); // Allow fade-in only after scroll is done
