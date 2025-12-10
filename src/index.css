@@ -2,42 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-/* --- FIX: RE-ENABLE SCROLLING --- */
-html {
+/* --- DEFAULT: APP IS LOCKED (No Scroll) --- */
+html, body {
   width: 100%;
-  /* Keep the "Zoomed Out" look via font scaling */
-  font-size: 85%; 
-  background: #000;
-  
-  /* ALLOW SCROLLING AGAIN */
-  overflow-y: hidden; 
-  overflow-x: hidden; 
-  scroll-behavior: smooth;
-}
-
-body {
-  width: 100%;
-  min-height: 100vh;
+  height: 100%; /* Force full height to prevent scrolling */
   margin: 0;
   padding: 0;
-  
-  /* Remove fixed height so body can grow/scroll */
-  height: auto; 
-  
-  /* Override any residual zoom issues */
-  zoom: 1 !important; 
-  -moz-transform: none !important;
-  
   background: #000;
   color: #fff;
-  overflow-x: hidden;
+  
+  /* LOCK SCROLLING GLOBALLY */
+  overflow: hidden; 
+  
+  /* Zoom/Scaling settings */
+  font-size: 85%; 
+  zoom: 1 !important; 
+  -moz-transform: none !important;
 }
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
 }
 
+/* --- EXCEPTION CLASS: Used by Hero Section --- */
+/* When this class is added to body, scrolling is allowed */
+body.enable-scroll {
+  height: auto !important; /* Allow body to grow */
+  overflow-y: auto !important; /* Enable vertical scroll */
+  overflow-x: hidden !important; /* Keep horizontal locked */
+}
+
+html.enable-scroll {
+  overflow-y: auto !important;
+  height: auto !important;
+}
 @layer base {
   :root {
     --background: 0 0% 0%;
