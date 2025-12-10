@@ -217,8 +217,8 @@ export function PhotoUpload({
         onChange={(e) => handleReplaceFile(e.target.files)}
         className="hidden"
         id="photo-replace-input"
-        onClick={(e) => (e.currentTarget.value = '')} 
-      /> 
-    </div>
+        onClick={(e) => (e.currentTarget.value = '')}  
+      />   
+    </div>   
   );
 } 
