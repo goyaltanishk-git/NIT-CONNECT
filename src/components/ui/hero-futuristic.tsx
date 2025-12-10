@@ -581,15 +581,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
         </div>
       )}
 
-      <div ref={scrollProgressRef} className="scroll-progress" style={{ visibility: 'hidden' }}>
-        <div className="scroll-text">SCROLL</div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${scrollProgress * 100}%` }} />
-        </div>
-        <div className="section-counter">
-          {String(currentSection).padStart(2, '0')} / {String(totalSections).padStart(2, '0')}
-        </div>
-      </div>
 
       <div className="scroll-sections">
        {[...Array(2)].map((_, i) => {
