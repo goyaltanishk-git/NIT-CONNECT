@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { PhotoService, UserPhoto } from '@/lib/photoservice';
-import { Upload, Star, Camera, RefreshCcw } from 'lucide-react';
+import { Camera, RefreshCcw } from 'lucide-react'; // Removed Star import
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -48,6 +47,8 @@ export function PhotoUpload({
     try {
       const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
       const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.photo_order)) + 1 : 1;
+      // We still mark the first photo as primary in the DB for data consistency, 
+      // even if the UI doesn't show the star.
       const isPrimary = photos.length === 0;
 
       await PhotoService.addUserPhoto(userEmail, photoUrl, nextOrder, isPrimary);
@@ -127,18 +128,6 @@ export function PhotoUpload({
     document.getElementById('photo-replace-input')?.click();
   };
 
-  const handleSetPrimary = useCallback(async (photoOrder: number) => {
-    try {
-      await PhotoService.setPrimaryPhoto(userEmail, photoOrder);
-      const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
-      onPhotosUpdate(updatedPhotos);
-      toast({ title: 'Primary photo updated' });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to set primary photo.';
-      toast({ title: 'Update failed', description: errorMessage, variant: 'destructive' });
-    }
-  }, [userEmail, onPhotosUpdate, toast]);
-
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
@@ -157,9 +146,6 @@ export function PhotoUpload({
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* ADDED: max-w-[280px] mx-auto 
-          This forces the grid to be narrower, making the individual photos smaller on screen 
-      */}
       <div className="grid grid-cols-2 gap-2 max-w-[280px] mx-auto">
         {photos.map((photo, index) => (
           <div 
@@ -174,32 +160,17 @@ export function PhotoUpload({
             />
             
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl flex items-center justify-center gap-2">
-              {!photo.is_primary && (
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => handleSetPrimary(photo.photo_order)}
-                  className="h-8 w-8 glass-light border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/20 hover:border-yellow-500 transition-all duration-300"
-                  title="Set as primary"
-                >
-                  <Star className="w-4 h-4" />
-                </Button>
-              )}
               
-              {photo.is_primary && (
-                <div className="absolute top-1 right-1 bg-yellow-500 text-white p-1 rounded-full shadow-lg">
-                  <Star className="w-3 h-3" />
-                </div>
-              )}
+              {/* Removed the Star Button and Indicator Logic Here */}
               
               <Button
                 size="icon"
                 variant="outline"
                 onClick={() => handleTriggerReplace(photo.photo_order)}
-                className="h-8 w-8 glass-light border-white/50 text-white hover:bg-white/20 hover:border-white transition-all duration-300"
+                className="h-10 w-10 glass-light border-white/50 text-white hover:bg-white/20 hover:border-white transition-all duration-300 rounded-full"
                 title="Replace photo"
               >
-                <RefreshCcw className="w-4 h-4" />
+                <RefreshCcw className="w-5 h-5" />
               </Button>
             </div>
 
@@ -246,8 +217,8 @@ export function PhotoUpload({
         onChange={(e) => handleReplaceFile(e.target.files)}
         className="hidden"
         id="photo-replace-input"
-        onClick={(e) => (e.currentTarget.value = '')} 
-      />
-    </div>
+        onClick={(e) => (e.currentTarget.value = '')}  
+      />   
+    </div>   
   );
-}
+} 

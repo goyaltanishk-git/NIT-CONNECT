@@ -66,7 +66,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className=" h-dvh bg-red text-white">
+    <div className="h-dvh bg-red text-white ">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-dvh">
 
         {/* Enhanced Glassmorphism Header */}
@@ -207,5 +207,4 @@ export function MainLayout() {
         ))}
       </div>
     </div>
-  );
-}
+  );}
