@@ -218,7 +218,7 @@ export function PhotoUpload({
         className="hidden"
         id="photo-replace-input"
         onClick={(e) => (e.currentTarget.value = '')} 
-      />
+      /> 
     </div>
   );
 } 
