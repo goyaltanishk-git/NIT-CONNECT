@@ -236,7 +236,7 @@ export function DiscoveryScreenIntegrated() {
 
   return (
 
-  <div className="min-h-screen bg-black text-white">
+  <div className="min-h-dvh bg-black text-white">
       <div className="p-0 m-0 w-full">
 
         {/* Enhanced Profile Stack with Better UI */}
