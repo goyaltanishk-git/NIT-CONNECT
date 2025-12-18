@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { GlowCard } from "@/components/ui/GlowCard";
 import { DailyLimitAlert } from "./DailyLimitAlert";
+import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldDisplayAnonymously } from "@/utils/incognitoUtils";
 
 export function DiscoveryScreenIntegrated() {
   console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
@@ -107,20 +108,33 @@ export function DiscoveryScreenIntegrated() {
   };
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
+
+           const displayDetails = getDisplayDetails(profile);
+            const displayName = getDisplayName(profile);
+            const displayBio = getDisplayBio(profile);
+            const displayPhotos = getDisplayPhotos(profile, profile.photos?.map(p => p.photo_url) || []);
+        console.log(displayPhotos);
+
+  
+
+
+
+
     return {
       id: profile.email,
       user_id: profile.email,
-      full_name: `${profile.first_name} ${profile.last_name}`,
+      full_name: displayName,
       age: calculateAge(profile.date_of_birth),
-      bio: profile.bio || 'No bio available',
+      bio: displayBio || 'No bio available',
       year: parseInt(profile.year_of_study || '1'),
-      branch: profile.branch || 'Not specified',
-      hometown: profile.hometown || 'Not specified',
+      branch: displayDetails.branch  || 'Not specified',
+      hometown: displayDetails.branch|| 'Not specified',
       interests: profile.interests || [],
-      photos: profile.photos?.map(p => ({ url: p.url, order: p.order })) || [
-        { url: '/placeholder-profile.jpg', order: 1 }
-      ],
-      height: profile.height ? `${Math.floor(profile.height / 12)}'${profile.height % 12}"` : 'Not specified',
+      photos:  (displayPhotos || []).map((url: string, index: number) => ({
+    url: url,
+    order: index,
+  })) ,
+      height: displayDetails.height || 'Not specified',
       looking_for: profile.interested_in || 'Anyone',
       verified: profile.is_verified || false,
       lives_in: profile.hometown || '',

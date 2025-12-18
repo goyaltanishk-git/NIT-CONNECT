@@ -124,6 +124,7 @@ export function getDisplayPhotos(profile: DatabaseProfile, photos: string[] = []
   if (shouldDisplayAnonymously(profile)) {
     const emoji = getRandomEmoji(profile.user_id || profile.email);
     return [emojiToDataUrl(emoji)];
+    
   }
   return photos.length > 0 ? photos : [];
 }
@@ -172,7 +173,7 @@ export function getDisplayDetails(profile: DatabaseProfile): {
 
   return {
     year: profile.year_of_study || "Unknown",
-    branch: profile.branch || "Unknown",
+    branch: profile.branch +' Engineering' || "Unknown",
     hometown: profile.hometown || "Unknown", 
     age,
     height: profile.height || undefined

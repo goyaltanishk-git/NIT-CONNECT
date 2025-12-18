@@ -123,7 +123,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             h-full
             rounded-3xl overflow-hidden 
             shadow-2xl 
-            bg-gradient-to-br from-pink-500/40 to-purple-600/40 
+            bg-white/20
             backdrop-blur-3xl
             cursor-pointer 
             card-hover
@@ -183,7 +183,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             <div className="flex flex-wrap ms-3 text-xs text-pink-100 mb-4">
               <div className="flex w-full items-center gap-1 px-2 py-1 rounded-full">
                 <GraduationCap className="w-3 h-3" />
-                {profile.branch} Engineering
+                {profile.branch}
               </div>
               <div className="flex items-center gap-1 px-2 py-1 rounded-full">
                 <Calendar className="w-3 h-3" />
@@ -291,7 +291,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
               <div className="flex flex-wrap gap-3 mt-4 mb-10">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <GraduationCap className="w-3 h-3" />
-                  {profile.branch} Engg.
+                  {profile.branch} 
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <Calendar className="w-3 h-3" />
