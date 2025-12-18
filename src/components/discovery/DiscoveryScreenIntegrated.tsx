@@ -112,7 +112,7 @@ export function DiscoveryScreenIntegrated() {
            const displayDetails = getDisplayDetails(profile);
             const displayName = getDisplayName(profile);
             const displayBio = getDisplayBio(profile);
-            const displayPhotos = getDisplayPhotos(profile, profile.photos?.map(p => p.photo_url) || []);
+            const displayPhotos = getDisplayPhotos(profile, profile.photos?.map(p => p.url) || []);
         console.log(displayPhotos);
 
   
