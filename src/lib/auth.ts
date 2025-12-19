@@ -1,8 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import {encryptedStorage} from '@/utils/encryptedStorage'
+import { encryptedStorage } from '@/utils/encryptedStorage';
 
-// Type aliases from your database
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
@@ -34,15 +33,9 @@ export class AuthService {
         .limit(1);
 
       if (error) throw error;
-
       const record = data?.[0];
       if (!record) throw new Error("Invalid OTP");
-      
-      if (new Date(record.expires_at) < new Date()) {
-        throw new Error("OTP expired");
-      }
-
-      // Clean up used OTP
+      if (new Date(record.expires_at) < new Date()) throw new Error("OTP expired");
       await supabase.from("email_otps").delete().eq("id", record.id);
       return true;
     } catch (error) {
@@ -53,30 +46,16 @@ export class AuthService {
 
   static async getUserProfile(email: string): Promise<Profile | null> {
     try {
-      console.log("🔍 Fetching profile for email:", email);
-      
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("email", email)
         .single();
-
       if (error) {
-        if (error.code === "PGRST116") {
-          console.log("❌ No profile found for:", email);
-          return null;
-        }
-        console.error("❌ Error fetching profile:", error);
+        if (error.code === "PGRST116") return null;
         throw error;
       }
-
-      if (data) {
-        console.log("✅ Profile found:", data);
-        encryptedStorage.set("current-user", JSON.stringify(data));
-        return data;
-      }
-
-      return null;
+      return data;
     } catch (error) {
       console.error("❌ Exception in getUserProfile:", error);
       throw error;
@@ -87,27 +66,21 @@ export class AuthService {
     try {
       return await this.getUserProfile(email);
     } catch (error) {
-      console.error("Error checking user exists:", error);
       return null;
     }
   }
 
   static async createNewUser(email: string, userId?: string): Promise<Profile> {
     try {
-      console.log("🆕 Creating new user for:", email);
-      
       const now = new Date().toISOString();
       const emailPrefix = email.split('@')[0];
       const parts = emailPrefix.split('.');
-      
       const firstName = parts[0] || 'User';
       const lastName = parts[1] || 'Name';
-      
-      // Generate user_id if not provided
       const generatedUserId = userId || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const userData: ProfileInsert = {
-        user_id: generatedUserId,  // ✅ Added the required user_id field
+        user_id: generatedUserId,
         email: email,
         first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
         last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
@@ -124,20 +97,10 @@ export class AuthService {
         last_active_at: now,
       };
 
-      const { data: newUserProfile, error: createError } = await supabase
-        .from('profiles')
-        .insert(userData)
-        .select()
-        .single();
-
-      if (createError) {
-        console.error("❌ Error creating user:", createError);
-        throw createError;
-      }
-
-      console.log("✅ User created successfully:", newUserProfile);
-      encryptedStorage.set('current-user', JSON.stringify(newUserProfile));
-      return newUserProfile;
+      const { data, error } = await supabase.from('profiles').insert(userData).select().single();
+      if (error) throw error;
+      encryptedStorage.set('current-user', JSON.stringify(data));
+      return data;
     } catch (error) {
       console.error("❌ Exception in createNewUser:", error);
       throw error;
@@ -147,28 +110,31 @@ export class AuthService {
   static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
     try {
       const existingUser = await this.checkUserExists(email);
-      
       if (existingUser) {
-        console.log("✅ User exists, updating last active time");
-        // Update last active time
+        // Reactivate the account if it was deleted, but keep all existing data
+        const updates: any = { last_active_at: new Date().toISOString() };
+        
+        if (existingUser.is_active === false) {
+          updates.is_active = true;
+        }
+
         const { data: updatedUser, error } = await supabase
           .from('profiles')
-          .update({ 
-            last_active_at: new Date().toISOString(),
-          })
-          .eq('email', email)
+          .update(updates)
+          .eq("email", email)
           .select()
           .single();
 
-        if (error) {
-          console.error("❌ Error updating user:", error);
-          throw error;
-        }
+        if (error) throw error;
 
-        encryptedStorage.set('current-user', JSON.stringify(updatedUser));
+        // If it was previously deleted, flag it for the AuthGuard to show the Hero screen
+        const storageData = existingUser.is_active === false 
+          ? { ...updatedUser, needsSetup: true } 
+          : updatedUser;
+
+        encryptedStorage.set('current-user', JSON.stringify(storageData));
         return updatedUser;
       } else {
-        console.log("🆕 User doesn't exist, creating new user");
         return await this.createNewUser(email, authUserId);
       }
     } catch (error) {
@@ -179,54 +145,31 @@ export class AuthService {
 
   static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
     try {
-      console.log("📝 Updating profile for:", email, updates);
-      
       const { data, error } = await supabase
         .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('email', email)
         .select()
         .single();
-
-      if (error) {
-        console.error("❌ Error updating profile:", error);
-        throw error;
-      }
-
-      console.log("✅ Profile updated successfully:", data);
+      if (error) throw error;
       encryptedStorage.set('current-user', JSON.stringify(data));
       return data;
     } catch (error) {
-      console.error("❌ Exception in updateProfile:", error);
       throw error;
     }
   }
 
   static async updateLastActive(email: string): Promise<void> {
     try {
-      await supabase
-        .from('profiles')
-        .update({ last_active_at: new Date().toISOString() })
-        .eq('email', email);
+      await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('email', email);
     } catch (error) {
       console.error("Error updating last active:", error);
     }
   }
 
   static getCurrentUser(): Profile | null {
-    try {
-      const storedUser = encryptedStorage.get('current-user');
-      if (storedUser) {
-        return JSON.parse(storedUser);
-      }
-      return null;
-    } catch (error) {
-      console.error("Error getting current user:", error);
-      return null;
-    }
+    const storedUser = encryptedStorage.get('current-user');
+    return storedUser ? JSON.parse(storedUser) : null;
   }
 
   static clearCurrentUser(): void {
