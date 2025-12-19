@@ -218,7 +218,7 @@ export function DiscoveryScreenIntegrated() {
             <p className="text-gray-400 text-lg">Check back later for new people to connect with.</p>
           </div>
         </div>
-      </div>  
+      </div>   
     );  
   }
 
