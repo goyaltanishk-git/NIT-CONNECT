@@ -219,7 +219,7 @@ export function DiscoveryScreenIntegrated() {
           </div>
         </div>
       </div>  
-    );
+    );  
   }
 
   const currentProfile = transformProfileForCard(profiles[currentIndex]); 
