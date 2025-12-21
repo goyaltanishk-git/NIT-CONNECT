@@ -299,27 +299,27 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
         </div>
 
         {/* Updated key to use index */}
-        {messages.map((message, index) => {
-          const isFromMe = message.sender === currentUser.email;
+        {messages.map((message) => {
+  const isFromMe = message.sender === currentUser.email;
+  
+  // Create a unique key string based on your Primary Key (sender + reciever + created_at)
+  const compositeKey = `${message.sender}-${message.reciever}-${message.created_at}`;
 
-          return (
-             <div key={index}>
-              <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
-                <div className={cn(
-                  "max-w-[80%] rounded-xl",
-                  // Increased padding
-                  "px-4 py-1 ", 
-                  isFromMe 
-                    ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground" 
-                    : "bg-card border"
-                )}>
-                  {/* Increased font size */}
-                  <p className="text-l">{message.content}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+  return (
+    <div key={compositeKey}>
+      <div className={cn("flex", isFromMe ? "justify-end" : "justify-start")}>
+        <div className={cn(
+          "max-w-[80%] rounded-xl px-4 py-1", 
+          isFromMe 
+            ? "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground" 
+            : "bg-card border"
+        )}>
+          <p className="text-l">{message.content}</p>
+        </div>
+      </div>
+    </div>
+  );
+})}
         
         <div ref={messagesEndRef} />
       </div>

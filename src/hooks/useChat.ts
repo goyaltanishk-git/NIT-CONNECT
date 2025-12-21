@@ -259,71 +259,9 @@ export function useChat(user: Profile | null) {
     }
   }, [user, toast]);
 
-  const fetchMessages = useCallback(async (matchId: string, limit: number = 100000, offset: number = 0) => {
-    try {
-      setError(null);
-      
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      // Extract the other user ID from matchId
-      const userIds = matchId.split('_');
-      if (userIds.length !== 2) {
-        throw new Error('Invalid match ID format');
-      }
-      
-      const otherUserId = userIds.find( id => id !== user.email) || userIds[0];
-      
-      console.log('Fetching messages between:', user.email, 'and', otherUserId);
-      
-      // Fixed: Query using sender and receiver instead of user1_id and user2_id
-      const { data: messagesData, error } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`and(sender.eq.${user.email},reciever.eq.${otherUserId}),and(sender.eq.${otherUserId},reciever.eq.${user.email})`)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+  // Inside useChat.ts
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-        setError('Failed to load messages');
-        return;
-      }
 
-      // Transform the data to match our ChatMessage interface
-      const transformedMessages: ChatMessage[] = (messagesData || []).map(msg => ({
-     // id: msg.id,
-        content: msg.content,
-        sender: msg.sender,
-        reciever: msg.reciever,
-        created_at: msg.created_at || '',
-        is_read: msg.is_read || false,
-        read_at: msg.read_at,
-        type: msg.type || 'text',
-        attachment_url: msg.attachment_url
-      }));
-
-      const reversedMessages = transformedMessages.reverse();
-      
-      if (offset === 0) {
-        setMessages(reversedMessages);
-      } else {
-        setMessages(prev => [...reversedMessages, ...prev]);
-      }
-
-      setCurrentMatchId(matchId);
-      
-      // Mark messages as read
-      if (user) {
-        await markMessagesAsRead(otherUserId, user.email);
-      }
-      
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      setError('Failed to load messages');
-    }
-  }, [user]);
 
   const markMessagesAsRead = useCallback(async (otherUserId: string, currentUserId: string) => {
     try {
@@ -356,6 +294,54 @@ export function useChat(user: Profile | null) {
     }
   }, []);
 
+  const fetchMessages = useCallback(async (matchId: string, limit: number = 50, offset: number = 0) => {
+  try {
+    setError(null);
+    if (!user) throw new Error('User not authenticated');
+
+    const userIds = matchId.split('_');
+    const otherUserId = userIds.find(id => id !== user.email) || userIds[0];
+
+    // 1. Fetch with DESCENDING order to get the "Latest" messages first from the DB
+    const { data: messagesData, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`and(sender.eq.${user.email},reciever.eq.${otherUserId}),and(sender.eq.${otherUserId},reciever.eq.${user.email})`)
+      .order('created_at', { ascending: false }) // Get newest first
+      .range(offset, offset + limit - 1);        // Select the top 'limit' newest records
+
+    if (error) {
+      console.error('Error fetching messages:', error);
+      setError('Failed to load messages');
+      return;
+    }
+    console.log("Fetched messages raw data:", messagesData);
+
+    const transformedMessages: ChatMessage[] = (messagesData || []).map(msg => ({
+      content: msg.content,
+      sender: msg.sender,
+      reciever: msg.reciever,
+      created_at: msg.created_at || '',
+      is_read: msg.is_read || false,
+      type: msg.type || 'text'
+    }));
+
+    // 2. CRITICAL: Reverse the array so the UI displays them Chronologically 
+    // (Oldest at the top, Newest at the bottom)
+    const chronologicalMessages = transformedMessages.reverse();
+    
+   if (offset === 0) {
+      setMessages(chronologicalMessages); // Show only the latest 100
+    } else {
+      setMessages(prev => [...chronologicalMessages, ...prev]);
+    }
+
+    setCurrentMatchId(matchId);
+    await markMessagesAsRead(otherUserId, user.email);
+  } catch (error) {
+    console.error('Fetch error:', error);
+  }
+}, [user, markMessagesAsRead]);
   const sendMessage = useCallback(async (matchId: string, content: string) => {
     if (!content.trim()) {
       return { success: false, error: 'Message cannot be empty' };
@@ -415,7 +401,7 @@ export function useChat(user: Profile | null) {
 
       // Add message to local state immediately for better UX
       if (currentMatchId === matchId) {
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => [...prev, newMessage].slice(-100));
       }
 
       // Update conversations to reflect the new last message
@@ -496,13 +482,13 @@ export function useChat(user: Profile | null) {
     }
   }, [toast]);
 
-  useEffect(() => {
+   useEffect(() => {
     let isMounted = true;
     
     const setupSubscriptions = async () => {
       if (!user || !isMounted) return;
 
-      // Clean up existing subscriptions
+      // Clean up existing subscriptions before creating new ones
       if (messageSubscription) {
         messageSubscription.unsubscribe();
       }
@@ -514,25 +500,35 @@ export function useChat(user: Profile | null) {
       const msgSub = subscribeToMessages(user.email, (newMessage: ChatMessage) => {
         if (isMounted) {
           setMessages(prev => {
-            // Avoid duplicates
-            if (prev.some(msg =>
-    msg.sender === newMessage.sender &&
-    msg.created_at === newMessage.created_at &&
-    msg.content === newMessage.content
-)) {
-  return prev;
-}
+            // 1. DEDUPLICATION: Use the full composite primary key (sender, receiver, created_at)
+            // to accurately identify if the message is already in the local state.
+            const isDuplicate = prev.some(msg =>
+              msg.sender === newMessage.sender &&
+              msg.reciever === newMessage.reciever &&
+              msg.created_at === newMessage.created_at
+            );
+
+            if (isDuplicate) return prev;
+
+            // 2. CONTEXT FILTER: Only append the message to the active view if it 
+            // belongs to the chat currently opened by the user.
+            const sortedIds = [newMessage.sender, newMessage.reciever].sort();
+            const incomingMatchId = sortedIds.join('_');
+
+            if (incomingMatchId !== currentMatchId) return prev;
+
             return [...prev, newMessage];
           });
 
-          // Update conversations
+          // 3. CONVERSATION LIST UPDATE: Update the preview/unread count for 
+          // whichever conversation received the new message.
           const otherUserId = newMessage.sender === user.email ? newMessage.reciever : newMessage.sender;
           const sortedUserIds = [user.email, otherUserId].sort();
-          const matchId = sortedUserIds.join('_');
+          const targetMatchId = sortedUserIds.join('_');
 
           setConversations(prev =>
             prev.map(conv => {
-              if (conv.match_id === matchId) {
+              if (conv.match_id === targetMatchId) {
                 return {
                   ...conv,
                   lastMessage: {
@@ -540,6 +536,7 @@ export function useChat(user: Profile | null) {
                     created_at: newMessage.created_at,
                     sender: newMessage.sender
                   },
+                  // Only increment the unread count if the current user is the receiver.
                   unreadCount: newMessage.sender === user.email ? conv.unreadCount : conv.unreadCount + 1
                 };
               }
@@ -567,14 +564,12 @@ export function useChat(user: Profile | null) {
 
     return () => {
       isMounted = false;
-      if (messageSubscription) {
-        messageSubscription.unsubscribe();
-      }
-      if (matchSubscription) {
-        matchSubscription.unsubscribe();
-      }
+      // Use direct unsubscribe calls here for cleanup to ensure they fire on unmount
+      if (messageSubscription) messageSubscription.unsubscribe();
+      if (matchSubscription) matchSubscription.unsubscribe();
     };
-  }, [fetchConversations, user]);
+    // Added currentMatchId to dependencies so the subscription correctly handles context switching.
+  }, [fetchConversations, user, currentMatchId]);
 
   useEffect(() => {
     // Only try to fetch conversations if a valid user object exists
