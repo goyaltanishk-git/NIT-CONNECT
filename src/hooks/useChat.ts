@@ -483,93 +483,100 @@ export function useChat(user: Profile | null) {
   }, [toast]);
 
    useEffect(() => {
-    let isMounted = true;
+  let isMounted = true;
+  // Local variables to track the channels for this specific effect run
+  let msgChannel: any = null;
+  let matchChannel: any = null;
+
+  const setupSubscriptions = () => {
+    if (!user || !isMounted) return;
+
+    // 1. Setup Messages Channel
+    msgChannel = supabase.channel(`messages:${user.email}`);
     
-    const setupSubscriptions = async () => {
-      if (!user || !isMounted) return;
+    msgChannel
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `sender=eq.${user.email}` },
+        (payload: any) => handleIncomingMessage(payload.new as ChatMessage)
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `reciever=eq.${user.email}` },
+        (payload: any) => handleIncomingMessage(payload.new as ChatMessage)
+      )
+      .subscribe();
 
-      // Clean up existing subscriptions before creating new ones
-      if (messageSubscription) {
-        messageSubscription.unsubscribe();
-      }
-      if (matchSubscription) {
-        matchSubscription.unsubscribe();
-      }
-
-      // Subscribe to new messages for current user
-      const msgSub = subscribeToMessages(user.email, (newMessage: ChatMessage) => {
-        if (isMounted) {
-          setMessages(prev => {
-            // 1. DEDUPLICATION: Use the full composite primary key (sender, receiver, created_at)
-            // to accurately identify if the message is already in the local state.
-            const isDuplicate = prev.some(msg =>
-              msg.sender === newMessage.sender &&
-              msg.reciever === newMessage.reciever &&
-              msg.created_at === newMessage.created_at
-            );
-
-            if (isDuplicate) return prev;
-
-            // 2. CONTEXT FILTER: Only append the message to the active view if it 
-            // belongs to the chat currently opened by the user.
-            const sortedIds = [newMessage.sender, newMessage.reciever].sort();
-            const incomingMatchId = sortedIds.join('_');
-
-            if (incomingMatchId !== currentMatchId) return prev;
-
-            return [...prev, newMessage];
-          });
-
-          // 3. CONVERSATION LIST UPDATE: Update the preview/unread count for 
-          // whichever conversation received the new message.
-          const otherUserId = newMessage.sender === user.email ? newMessage.reciever : newMessage.sender;
-          const sortedUserIds = [user.email, otherUserId].sort();
-          const targetMatchId = sortedUserIds.join('_');
-
-          setConversations(prev =>
-            prev.map(conv => {
-              if (conv.match_id === targetMatchId) {
-                return {
-                  ...conv,
-                  lastMessage: {
-                    content: newMessage.content,
-                    created_at: newMessage.created_at,
-                    sender: newMessage.sender
-                  },
-                  // Only increment the unread count if the current user is the receiver.
-                  unreadCount: newMessage.sender === user.email ? conv.unreadCount : conv.unreadCount + 1
-                };
-              }
-              return conv;
-            }).sort((a, b) => {
-              const aTime = a.lastMessage?.created_at || a.created_at;
-              const bTime = b.lastMessage?.created_at || b.created_at;
-              return new Date(bTime).getTime() - new Date(aTime).getTime();
-            })
-          );
+    // 2. Setup Matches Channel
+    matchChannel = supabase.channel(`matches:${user.email}`);
+    matchChannel
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "matches" },
+        (payload: any) => {
+          const match = payload.new;
+          if (match.user1_id === user.email || match.user2_id === user.email) {
+            fetchConversations();
+          }
         }
-      });
-      setMessageSubscription(msgSub);
+      )
+      .subscribe();
+  };
 
-      // Subscribe to match updates
-      const matchSub = subscribeToMatches(user.email, () => {
-        if (isMounted) {
-          fetchConversations();
+  // Helper function to keep the logic clean
+  const handleIncomingMessage = (newMessage: ChatMessage) => {
+    if (!isMounted) return;
+
+    const sortedIds = [newMessage.sender, newMessage.reciever].sort();
+    const incomingMatchId = sortedIds.join('_');
+
+    // CONTEXT FILTER: Only add to messages if it's the current chat
+    if (incomingMatchId === currentMatchId) {
+      setMessages(prev => {
+        const isDup = prev.some(m => m.created_at === newMessage.created_at && m.sender === newMessage.sender);
+        if (isDup) return prev;
+        return [...prev, newMessage].slice(-100);
+      });
+
+      if (newMessage.reciever === user.email) {
+        markMessagesAsRead(newMessage.sender, user.email);
+      }
+    }
+
+    // Always update the sidebar
+    setConversations(prev =>
+      prev.map(conv => {
+        if (conv.match_id === incomingMatchId) {
+          return {
+            ...conv,
+            lastMessage: {
+              content: newMessage.content,
+              created_at: newMessage.created_at,
+              sender: newMessage.sender
+            },
+            unreadCount: (newMessage.sender !== user.email && incomingMatchId !== currentMatchId) 
+              ? conv.unreadCount + 1 
+              : conv.unreadCount
+          };
         }
-      });
-      setMatchSubscription(matchSub);
-    };
+        return conv;
+      }).sort((a, b) => {
+        const aTime = a.lastMessage?.created_at || a.created_at;
+        const bTime = b.lastMessage?.created_at || b.created_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      })
+    );
+  };
 
-    setupSubscriptions();
+  setupSubscriptions();
 
-    return () => {
-      isMounted = false;
-      // Use direct unsubscribe calls here for cleanup to ensure they fire on unmount
-      if (messageSubscription) messageSubscription.unsubscribe();
-      if (matchSubscription) matchSubscription.unsubscribe();
-    };
-    // Added currentMatchId to dependencies so the subscription correctly handles context switching.
-  }, [fetchConversations, user, currentMatchId]);
+  return () => {
+    isMounted = false;
+    // Cleanup: Only remove if they exist to avoid the WebSocket error
+    if (msgChannel) supabase.removeChannel(msgChannel);
+    if (matchChannel) supabase.removeChannel(matchChannel);
+  };
+}, [user?.email, currentMatchId, fetchConversations, markMessagesAsRead]);
 
   useEffect(() => {
     // Only try to fetch conversations if a valid user object exists
