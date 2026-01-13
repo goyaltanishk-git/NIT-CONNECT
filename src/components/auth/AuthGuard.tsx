@@ -80,12 +80,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
     
     // 1. Hard Delete Check: If the row is actually gone
     if (!liveStatus) {
-      AuthService.clearCurrentUser();
+      AuthService.clearCurrentUser();    
       setUserEmail(null);
       setProfile(null);
       return;
     }
-
+ 
     // 2. Setup Completion Sync: 
     // If Device A finishes setup, Device B moves from Setup Form -> Main App
     if (liveStatus.is_active === true && showProfileSetup) {
