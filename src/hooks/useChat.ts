@@ -542,7 +542,7 @@ export function useChat(user: Profile | null) {
         markMessagesAsRead(newMessage.sender, user.email);
       }
     }
-
+ 
     // Always update the sidebar
     setConversations(prev =>
       prev.map(conv => {

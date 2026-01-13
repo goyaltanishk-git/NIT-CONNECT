@@ -329,13 +329,13 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
       <div className="border-t border-border p-4 pb-8 bg-card backdrop-blur-sm">
         <div className="flex gap-3">
           <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={`Message ${user.name}...`}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            // Increased size, padding, and text size
-            className="flex-1 bg-background border-border rounded-full px-4 h-8 text-m focus:ring-2 focus:ring-primary/20"
-          />
+  value={newMessage}
+  onChange={(e) => setNewMessage(e.target.value)}
+  placeholder={`Message ${user.name}...`}
+  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+  // Update text-m to text-base (which is 16px)
+  className="flex-1 bg-background border-border rounded-full px-4 h-10 text-base focus:ring-2 focus:ring-primary/20"
+/>
           <Button 
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}

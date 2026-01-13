@@ -30,22 +30,30 @@ export function AuthGuard({ children }: AuthGuardProps) {
           const liveProfile = await AuthService.getUserProfile(emailToCheck);
 
           if (mounted) {
-            // STRICT CHECK: If account is deleted (is_active: false), kick to Login Screen
-            if (!liveProfile || liveProfile.is_active === false) {
+            // If the profile doesn't exist at all, clear session
+            if (!liveProfile) {
               AuthService.clearCurrentUser();
               setUserEmail(null);
               setProfile(null);
-            } else {
+            } 
+            // 🛠️ NEW LOGIC: If account is inactive (is_active: false), allow setup instead of kicking
+            else if (liveProfile.is_active === false) {
               setUserEmail(liveProfile.email);
               setProfile(liveProfile);
-
-              // Check if this is a reactivated session needing setup
+              
+              // Only show Hero if specifically flagged, otherwise straight to setup
               const isReactivating = (localUser as any)?.needsSetup;
               if (isReactivating) {
                 setShowHeroScreen(true);
               } else {
-                await AuthService.updateLastActive(liveProfile.email);
+                setShowProfileSetup(true);
               }
+            } 
+            else {
+              // Standard active user flow
+              setUserEmail(liveProfile.email);
+              setProfile(liveProfile);
+              await AuthService.updateLastActive(liveProfile.email);
             }
           }
         } else {
@@ -63,22 +71,45 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return () => { mounted = false; };
   }, []);
 
-  // HEARTBEAT: Sync Check to catch deletions in other tabs immediately
+  // HEARTBEAT: Sync Check to catch setup completion or deletions in other tabs
   useEffect(() => {
-    if (!userEmail || showHeroScreen || showProfileSetup) return;
+  if (!userEmail) return;
 
-    const syncInterval = setInterval(async () => {
-      const liveStatus = await AuthService.getUserProfile(userEmail);
-      // If deleted elsewhere, clear session and force Login Screen
-      if (!liveStatus || liveStatus.is_active === false) {
-        AuthService.clearCurrentUser();
-        setUserEmail(null);
-        setProfile(null);
-      }
-    }, 5000); 
+  const syncInterval = setInterval(async () => {
+    const liveStatus = await AuthService.getUserProfile(userEmail);
+    
+    // 1. Hard Delete Check: If the row is actually gone
+    if (!liveStatus) {
+      AuthService.clearCurrentUser();
+      setUserEmail(null);
+      setProfile(null);
+      return;
+    }
 
-    return () => clearInterval(syncInterval);
-  }, [userEmail, showHeroScreen, showProfileSetup]);
+    // 2. Setup Completion Sync: 
+    // If Device A finishes setup, Device B moves from Setup Form -> Main App
+    if (liveStatus.is_active === true && showProfileSetup) {
+      setProfile(liveStatus);
+      setShowProfileSetup(false);
+      setShowHeroScreen(false);
+    }
+    
+    // 3. 🛠️ THE FIX: Deactivation/Soft-Delete Sync
+    // If the user is currently IN the main app (!showProfileSetup) 
+    // but the database now says is_active is false, they were "deleted" elsewhere.
+    if (liveStatus.is_active === false && !showProfileSetup && !showHeroScreen) {
+       // Clear session and kick to Login Screen immediately
+       AuthService.clearCurrentUser();
+       setUserEmail(null);
+       setProfile(null);
+       // Ensure setup states are reset so they don't get stuck in setup form
+       setShowProfileSetup(false); 
+       setShowHeroScreen(false);
+    }
+  }, 5000); 
+
+  return () => clearInterval(syncInterval);
+}, [userEmail, showHeroScreen, showProfileSetup]);
 
   const handleHeroComplete = () => {
     setShowHeroScreen(false);
@@ -96,21 +127,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-pink-500/20 rounded-full animate-pulse"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${2 + Math.random() * 2}s`,
-              }}
-            />
-          ))}
-        </div>
-        <div className="fixed inset-0 -z-20 bg-gradient-to-br from-black via-gray-900/50 to-black pointer-events-none"></div>
+        {/* Loading Spinner Content */}
         <div className="text-center space-y-8 p-8 animate-fade-in">
           <div className="relative">
             <div className="loading-heart mx-auto"></div>
@@ -129,7 +146,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // If no email or account is inactive, always return to LoginScreen
   if (!userEmail) return <LoginScreen />;
 
   if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
