@@ -173,7 +173,7 @@ export function getDisplayDetails(profile: DatabaseProfile): {
 
   return {
     year: profile.year_of_study || "Unknown",
-    branch: profile.branch +' Engineering' || "Unknown",
+    branch: profile.branch || "Unknown",
     hometown: profile.hometown || "Unknown", 
     age,
     height: profile.height || undefined

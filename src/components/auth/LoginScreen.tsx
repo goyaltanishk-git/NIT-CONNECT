@@ -237,24 +237,8 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
                   "Send OTP"
                 )}
               </Button>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-white/20" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-black px-4 text-gray-400 font-medium">Or</span>
-                </div>
-              </div>
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="w-full h-12 glass-light border-white/20 text-white hover:bg-white/10 hover:border-pink-500/50 rounded-xl transition-all duration-300 hover:scale-105 interactive" 
-                onClick={handleDemoMode} 
-                disabled={loading}
-              >
-                <User className="w-5 h-5 mr-3 text-pink-400" />
-                Try Demo Mode
-              </Button>
+          
+             
             </form>
           ) : (
             <form onSubmit={handleOtpSubmit} className="space-y-6">

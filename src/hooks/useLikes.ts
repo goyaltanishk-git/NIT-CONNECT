@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
+import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
 // --- ADDED: Import Database types ---
 import { Database } from '@/integrations/supabase/types';
 import { encryptedStorage } from "@/utils/encryptedStorage";
@@ -107,6 +107,11 @@ export function useLikes() {
          // Be aware this might hide the real data you just fetched
          profileData.first_name=getDisplayName(profileData);
          profileData.year_of_study=getDisplayDetails(profileData).year;
+         profileData.branch=getDisplayDetails(profileData).branch;
+         profileData.height=getDisplayDetails(profileData).height;
+          profileData.hometown=getDisplayDetails(profileData).hometown;
+          profileData.bio=getDisplayBio(profileData);
+
          const photoUrls=getDisplayPhotos(profileData, photos?.map(p=>(p.photo_url)) || []);
          // --- End of incognito logic ---
 

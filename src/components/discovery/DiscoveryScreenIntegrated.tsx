@@ -128,7 +128,7 @@ export function DiscoveryScreenIntegrated() {
       bio: displayBio || 'No bio available',
       year: parseInt(profile.year_of_study || '1'),
       branch: displayDetails.branch  || 'Not specified',
-      hometown: displayDetails.branch|| 'Not specified',
+      hometown: displayDetails.hometown|| 'Not specified',
       interests: profile.interests || [],
       photos:  (displayPhotos || []).map((url: string, index: number) => ({
     url: url,
@@ -197,8 +197,8 @@ export function DiscoveryScreenIntegrated() {
             </div>
           </div>
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-white">No profiles available</h2>
-            <p className="text-gray-400 text-lg">Check back later for new people to connect with.</p>
+            <h2 className="text-3xl font-bold text-white">We’re a new app</h2>
+            <p className="text-gray-400 text-lg">New users are joining soon .</p>
           </div>
         </div>
       </div>
@@ -214,8 +214,8 @@ export function DiscoveryScreenIntegrated() {
             <div className="absolute inset-0 bg-pink-500/20 rounded-full animate-pulse-glow"></div>
           </div>
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold gradient-text">No more profiles available</h2>
-            <p className="text-gray-400 text-lg">Check back later for new people to connect with.</p>
+            <h2 className="text-3xl font-bold gradient-text">We’re a new app</h2>
+            <p className="text-gray-400 text-lg">New users are joining soon .</p>
           </div>
         </div>
       </div>   

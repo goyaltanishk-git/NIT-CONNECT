@@ -123,10 +123,12 @@ export function UserProfileDialog({
   const profileAge = calculateAge(profile.date_of_birth);
   const profilePhotos = profile.photos || [];
   const profileActionId = profile.user_id;
+  console.log(profile);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] p-0 overflow-y-auto border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
+      <DialogContent className="   w-full
+   h-[90vh] p-0 overflow-y-auto border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
         
         <VisuallyHidden>
           <DialogHeader>
@@ -201,7 +203,7 @@ export function UserProfileDialog({
                 }}
                 onLoad={handleImageLoad}
                 alt={profileName}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain bg-black"
               />
             </AnimatePresence>
 
