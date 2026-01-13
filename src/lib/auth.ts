@@ -89,7 +89,7 @@ export class AuthService {
         interested_in: 'female',
         verification_status: 'pending',
         is_verified: false,
-        is_active: true,
+        is_active: false,
         incognito_mode: false,
         hide_year_branch: false,
         created_at: now,
@@ -99,7 +99,8 @@ export class AuthService {
 
       const { data, error } = await supabase.from('profiles').insert(userData).select().single();
       if (error) throw error;
-      encryptedStorage.set('current-user', JSON.stringify(data));
+      const storageData = { ...data, needsSetup: true }; 
+    encryptedStorage.set('current-user', JSON.stringify(storageData));
       return data;
     } catch (error) {
       console.error("❌ Exception in createNewUser:", error);
@@ -107,41 +108,46 @@ export class AuthService {
     }
   }
 
-  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
-    try {
-      const existingUser = await this.checkUserExists(email);
-      if (existingUser) {
-        // Reactivate the account if it was deleted, but keep all existing data
-        const updates: any = { last_active_at: new Date().toISOString() };
-        
-        if (existingUser.is_active === false) {
-          updates.is_active = true;
-        }
+  // src/lib/auth.ts -> Replace getOrCreateUserProfile method
 
+static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
+  try {
+    const existingUser = await this.checkUserExists(email);
+    
+    if (existingUser) {
+      // If the account was deactivated (is_active is false)
+      if (existingUser.is_active === false) {
+        // We keep is_active as FALSE in the database so the AuthGuard forces setup
+        // But we update the last_active_at to show they are trying to return
         const { data: updatedUser, error } = await supabase
           .from('profiles')
-          .update(updates)
+          .update({ last_active_at: new Date().toISOString() })
           .eq("email", email)
           .select()
           .single();
 
         if (error) throw error;
 
-        // If it was previously deleted, flag it for the AuthGuard to show the Hero screen
-        const storageData = existingUser.is_active === false 
-          ? { ...updatedUser, needsSetup: true } 
-          : updatedUser;
-
+        // CRITICAL: Flag as needing setup so the Guard shows the Hero screen
+        const storageData = { ...updatedUser, needsSetup: true };
         encryptedStorage.set('current-user', JSON.stringify(storageData));
+        
         return updatedUser;
-      } else {
-        return await this.createNewUser(email, authUserId);
       }
-    } catch (error) {
-      console.error("❌ Error in getOrCreateUserProfile:", error);
-      throw error;
+
+      // Normal login for an already active user
+      await this.updateLastActive(email);
+      encryptedStorage.set('current-user', JSON.stringify(existingUser));
+      return existingUser;
+    } else {
+      // Completely new user flow
+      return await this.createNewUser(email, authUserId);
     }
+  } catch (error) {
+    console.error("❌ Error in getOrCreateUserProfile:", error);
+    throw error;
   }
+}
 
   static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
     try {
