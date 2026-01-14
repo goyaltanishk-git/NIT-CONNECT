@@ -39,7 +39,7 @@ export function IncognitoModeToggle({ isIncognito, userGender, onToggle }: Incog
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); 
     }
   };
 
