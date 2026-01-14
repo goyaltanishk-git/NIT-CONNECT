@@ -41,7 +41,7 @@ function DiscoveryScreenDemo() {
   const { updateRating, getUserRating, getRatingTier } = useEloRating();
 
   // Daily limits constants
-  const DAILY_LIKE_LIMIT = 1;
+  const DAILY_LIKE_LIMIT = 2;
 
   // ✅ initialize user data first
   useEffect(() => {
