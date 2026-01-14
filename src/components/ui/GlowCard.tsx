@@ -10,22 +10,25 @@ interface GlowCardProps {
   customSize?: boolean;
 }
 
+// We keep the base at 330 (Pink) for all keys to ensure 
+// no matter what prop is passed, the cycle stays Pink & White.
 const glowColorMap = {
-  blue: { base: 330, spread: 0 },   // Changed to pink
-  purple: { base: 330, spread: 0 }, // Changed to pink
-  green: { base: 330, spread: 0 },  // Changed to pink
-  red: { base: 330, spread: 0 },    // Changed to pink
-  orange: { base: 330, spread: 0 }  // Changed to pink
+  blue: { base: 330, spread: 0 },
+  purple: { base: 330, spread: 0 },
+  green: { base: 330, spread: 0 },
+  red: { base: 330, spread: 0 },
+  orange: { base: 330, spread: 0 }
 };
+
 const sizeMap = {
   sm: 'w-48 h-64',
   md: 'w-64 h-80',
   lg: 'w-80 h-96'
-}; 
+};
 
-const GlowCard: React.FC<GlowCardProps> = ({ 
-  children, 
-  className = '', 
+const GlowCard: React.FC<GlowCardProps> = ({
+  children,
+  className = '',
   glowColor = 'purple',
   size = 'lg',
   width,
@@ -40,8 +43,7 @@ const GlowCard: React.FC<GlowCardProps> = ({
     if (!card) return;
 
     let startTime = performance.now();
-    // SPEED: Lower number = Slower revolution
-    const speed = 0.00055; 
+    const speed = 0.00055; // Adjust speed here
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -49,7 +51,6 @@ const GlowCard: React.FC<GlowCardProps> = ({
       const w = card.offsetWidth;
       const h = card.offsetHeight;
       
-      // Calculate center and radius for the path
       const cx = w / 2;
       const cy = h / 2;
       const rx = w / 2; 
@@ -57,15 +58,13 @@ const GlowCard: React.FC<GlowCardProps> = ({
       
       const angle = elapsed * speed;
       
-      // Calculate x and y on the ellipse
       const x = cx + Math.cos(angle) * rx;
       const y = cy + Math.sin(angle) * ry;
 
-      // Update CSS variables
       card.style.setProperty('--x', x.toFixed(2));
       card.style.setProperty('--y', y.toFixed(2));
       
-      // Update Hue/Color shift based on position
+      // xp goes 0 to 1 and back. We use this to transition color saturation.
       card.style.setProperty('--xp', ((Math.cos(angle) + 1) / 2).toFixed(2));
       card.style.setProperty('--yp', ((Math.sin(angle) + 1) / 2).toFixed(2));
 
@@ -98,17 +97,21 @@ const GlowCard: React.FC<GlowCardProps> = ({
       '--outer': '1',
       '--border-size': 'calc(var(--border, 2) * 1px)',
       '--spotlight-size': 'calc(var(--size, 150) * 1px)',
-      '--hue': 'calc(var(--base) + (var(--xp, 0) * var(--spread, 0)))',
+      
+      // DYNAMIC COLOR LOGIC
+      '--hue': '330', // Forced to Pink
+      '--saturation': 'calc(100 - (var(--xp, 0) * 100))', // Cycles 100% to 0% (White)
+      '--lightness': 'calc(70 + (var(--xp, 0) * 30))',   // Cycles 70% to 100% (White)
+      
       backgroundImage: `radial-gradient(
         var(--spotlight-size) var(--spotlight-size) at
         calc(var(--x, 0) * 1px)
         calc(var(--y, 0) * 1px),
-        hsl(var(--hue, 210) calc(var(--saturation, 100) * 1%) calc(var(--lightness, 70) * 1%) / var(--bg-spot-opacity, 0.1)), transparent
+        hsl(var(--hue) calc(var(--saturation) * 1%) calc(var(--lightness) * 1%) / var(--bg-spot-opacity, 0.1)), transparent
       )`,
       backgroundColor: 'transparent',
       backgroundSize: 'calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)))',
       backgroundPosition: '50% 50%',
-      // FIXED: Removed 'backgroundAttachment: fixed' so glow moves with the card, not the screen
       border: 'var(--border-size) solid var(--backup-border)',
       position: 'relative',
       touchAction: 'none',
@@ -133,7 +136,6 @@ const GlowCard: React.FC<GlowCardProps> = ({
       inset: calc(var(--border-size) * -1);
       border: var(--border-size) solid transparent;
       border-radius: calc(var(--radius) * 1px);
-      /* FIXED: Removed fixed attachment here too */
       background-size: calc(100% + (2 * var(--border-size))) calc(100% + (2 * var(--border-size)));
       background-repeat: no-repeat;
       background-position: 50% 50%;
@@ -147,9 +149,9 @@ const GlowCard: React.FC<GlowCardProps> = ({
         calc(var(--spotlight-size) * 0.75) calc(var(--spotlight-size) * 0.75) at
         calc(var(--x, 0) * 1px)
         calc(var(--y, 0) * 1px),
-        hsl(var(--hue, 210) calc(var(--saturation, 100) * 1%) calc(var(--lightness, 50) * 1%) / var(--border-spot-opacity, 1)), transparent 100%
+        hsl(var(--hue) calc(var(--saturation) * 1%) calc(var(--lightness) * 1%) / var(--border-spot-opacity, 1)), transparent 100%
       );
-      filter: brightness(2);
+      filter: brightness(1.8);
     }
     
     [data-glow]::after {
@@ -159,6 +161,8 @@ const GlowCard: React.FC<GlowCardProps> = ({
         calc(var(--y, 0) * 1px),
         hsl(0 100% 100% / var(--border-light-opacity, 1)), transparent 100%
       );
+      /* Extra brightness boost during the white phase */
+      opacity: var(--xp, 0.5);
     }
   `;
 
