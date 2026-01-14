@@ -119,7 +119,7 @@ export function MyProfileDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] p-0 overflow-y-auto border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
+      <DialogContent className="w-full max-w-[420px] h-[90vh] p-0 overflow-y-auto border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
         
         <VisuallyHidden>
           <DialogHeader>
@@ -137,10 +137,10 @@ export function MyProfileDialog({
           <X className="w-6 h-6 text-white" />
         </button>
 
-        <div className="overflow-y-auto h-full">
+        <div className="overflow-y-auto h-full  [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {/* --- TOP SECTION: IMAGE (60% Height) --- */}
           {/* ⭐ Added overflow-hidden to contain the slides */}
-          <div className="relative w-full h-[60%] shrink-0 bg-black/20 overflow-hidden">
+          <div className="relative w-full h-[60%] shrink-0 bg-black/20 overflow-hidden ">
             
             {/* NAVIGATION ARROWS */}
             {profilePhotos.length > 1 && (

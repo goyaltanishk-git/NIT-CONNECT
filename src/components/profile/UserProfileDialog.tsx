@@ -127,7 +127,7 @@ export function UserProfileDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="   w-full
+      <DialogContent className="    w-full max-w-[420px]
    h-[90vh] p-0 overflow-y-auto border-white/10 bg-gradient-to-br from-black via-gray-900/50 to-black glass backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col">
         
         <VisuallyHidden>
@@ -144,7 +144,7 @@ export function UserProfileDialog({
           <X className="w-4 h-4 text-white" />
         </button>
         
-        <div className="overflow-y-auto h-full">
+        <div className="overflow-y-auto h-full  [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {/* --- TOP SECTION: IMAGE --- */}
           {/* ⭐ Added overflow-hidden */}
           <div className="relative w-full h-[60%] shrink-0 bg-black/20 overflow-hidden">
@@ -203,7 +203,7 @@ export function UserProfileDialog({
                 }}
                 onLoad={handleImageLoad}
                 alt={profileName}
-                className="absolute inset-0 w-full h-full object-contain bg-black"
+                className="absolute inset-0 w-full h-full object-cover "
               />
             </AnimatePresence>
 
