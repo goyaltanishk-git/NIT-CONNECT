@@ -36,12 +36,10 @@ export function useDailyLimits(userEmail?: string): UseDailyLimitsReturn {
       if (data) {
         setDailyLikes(data.likes_used || 0);
       } else if (error && error.code !== 'PGRST116') {
-        console.error('Error loading daily limits:', error);
       } else {
         setDailyLikes(0);
       }
     } catch (error) {
-      console.error('An unexpected error in loadDailyLimits:', error);
     } finally {
       setLoading(false);
     }
@@ -66,7 +64,6 @@ export function useDailyLimits(userEmail?: string): UseDailyLimitsReturn {
       setDailyLikes(newLikesCount);
       return true;
     } catch (error) {
-      console.error('An unexpected error in incrementLikes:', error);
       return false;
     }
   };

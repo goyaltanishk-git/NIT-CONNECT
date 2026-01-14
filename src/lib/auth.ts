@@ -17,7 +17,6 @@ export class AuthService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error("Error generating OTP:", error);
       throw error;
     }
   }
@@ -39,7 +38,6 @@ export class AuthService {
       await supabase.from("email_otps").delete().eq("id", record.id);
       return true;
     } catch (error) {
-      console.error("Error verifying OTP:", error);
       throw error;
     }
   }
@@ -57,7 +55,6 @@ export class AuthService {
       }
       return data;
     } catch (error) {
-      console.error("❌ Exception in getUserProfile:", error);
       throw error;
     }
   }
@@ -103,7 +100,6 @@ export class AuthService {
     encryptedStorage.set('current-user', JSON.stringify(storageData));
       return data;
     } catch (error) {
-      console.error("❌ Exception in createNewUser:", error);
       throw error;
     }
   }
@@ -144,7 +140,6 @@ static async getOrCreateUserProfile(email: string, authUserId?: string): Promise
       return await this.createNewUser(email, authUserId);
     }
   } catch (error) {
-    console.error("❌ Error in getOrCreateUserProfile:", error);
     throw error;
   }
 }
@@ -169,7 +164,6 @@ static async getOrCreateUserProfile(email: string, authUserId?: string): Promise
     try {
       await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('email', email);
     } catch (error) {
-      console.error("Error updating last active:", error);
     }
   }
 

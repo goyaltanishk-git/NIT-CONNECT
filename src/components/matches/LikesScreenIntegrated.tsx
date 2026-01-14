@@ -33,7 +33,6 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
       setSelectedProfile(profile);
       setIsDialogOpen(true);
     } else {
-      console.error("Profile is undefined");
     }
   };
 

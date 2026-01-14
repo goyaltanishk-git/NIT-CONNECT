@@ -123,7 +123,6 @@ export function UserProfileDialog({
   const profileAge = calculateAge(profile.date_of_birth);
   const profilePhotos = profile.photos || [];
   const profileActionId = profile.user_id;
-  console.log(profile);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

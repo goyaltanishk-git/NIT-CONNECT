@@ -19,7 +19,6 @@ export function useUserProfile() {
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('🔄 Fetching user profile...');
 
       // First try to get authenticated user
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +26,6 @@ export function useUserProfile() {
 
       // If no authenticated user, check localStorage
       if (!userEmail) {
-        console.log('⚠️ No authenticated user, checking localStorage...');
         var storedUser = encryptedStorage.get('current-user');
         const tempUser = localStorage.getItem('temp-user');
 
@@ -35,34 +33,27 @@ export function useUserProfile() {
           try {
             const parsedUser = JSON.parse(storedUser);
             userEmail = parsedUser.email;
-            console.log('✅ Found user in current-user:', userEmail);
           } catch (e) {
-            console.warn('Error parsing stored user:', e);
           }
         } else if (tempUser) {
           try {
             const parsedTempUser = JSON.parse(tempUser);
             userEmail = parsedTempUser.email;
-            console.log('✅ Found user in temp-user:', userEmail);
           } catch (e) {
-            console.warn('Error parsing temp user:', e);
           }
         }
       }
 
       if (!userEmail) {
-        console.log('❌ No user email found');
         setLoading(false);
         return;
       }
 
-      console.log('🔍 Fetching profile for:', userEmail);
 
       // Fetch the main profile data from Supabase
       const userProfile = await AuthService.getUserProfile(userEmail);
 
       if (userProfile) {
-        console.log('✅ Profile fetched successfully:', userProfile);
 
         // Fetch associated photos from user_photos table
         let photos: string[] = [];
@@ -74,22 +65,17 @@ export function useUserProfile() {
             .order('photo_order', { ascending: true });
 
           if (photosError) {
-            console.warn("⚠️ Error fetching user photos:", photosError);
           } else if (photosData) {
             photos = photosData.map(p => p.photo_url);
-            console.log('📸 Photos fetched:', photos.length, 'photos');
           }
         } catch (photosError) {
-          console.warn("⚠️ Exception fetching photos:", photosError);
         }
 
         // Fetch interests from interests table
         let interests: string[] = [];
         try {
           interests = await InterestsService.getUserInterests(userProfile.email);
-          console.log('🎯 Interests fetched:', interests.length, 'interests');
         } catch (interestsError) {
-          console.warn("⚠️ Exception fetching interests:", interestsError);
         }
 
         // Combine profile data, photos, and interests
@@ -100,13 +86,10 @@ export function useUserProfile() {
         };
 
         setProfile(fullProfile);
-        console.log('✅ Full profile set with photos and interests');
       } else {
-        console.log('❌ No profile found for:', userEmail);
         setProfile(null);
       }
     } catch (error) {
-      console.error('❌ Error fetching user profile:', error);
       setProfile(null);
       toast({
         title: 'Error',
@@ -130,7 +113,6 @@ export function useUserProfile() {
 
     setLoading(true);
     try {
-      console.log('📝 Updating profile with:', updates);
       await AuthService.updateProfile(profile.email, updates);
 
       // Refetch the full profile to get the latest data
@@ -140,9 +122,7 @@ export function useUserProfile() {
         title: 'Profile Updated!',
         description: 'Your changes have been saved successfully.',
       });
-      console.log('✅ Profile updated successfully');
     } catch (error) {
-      console.error('❌ Error updating profile:', error);
       toast({
         title: 'Update Failed',
         description: 'Could not save your changes. Please try again.',

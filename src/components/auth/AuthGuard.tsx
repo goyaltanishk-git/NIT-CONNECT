@@ -62,7 +62,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         if (mounted) setLoading(false);
       } catch (error) {
-        console.error("Auth initialization error:", error);
         if (mounted) setLoading(false);
       }
     };

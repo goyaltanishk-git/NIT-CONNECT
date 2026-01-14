@@ -64,7 +64,6 @@ export default function Onboarding() {
       // Navigate to dashboard
       navigate('/dashboard');
     } catch (error) {
-      console.error('Error updating profile:', error);
     } finally {
       setIsSubmitting(false);
     }

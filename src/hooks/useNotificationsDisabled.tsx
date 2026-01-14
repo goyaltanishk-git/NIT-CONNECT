@@ -16,11 +16,9 @@ export function useNotifications(userId: string) {
   const [loading] = useState(false);
 
   const markAsRead = async (notificationId: string) => {
-    console.log('Notifications disabled - markAsRead:', notificationId);
   };
 
   const markAllAsRead = async () => {
-    console.log('Notifications disabled - markAllAsRead');
   };
 
   const createNotification = async (
@@ -30,7 +28,6 @@ export function useNotifications(userId: string) {
     message: string,
     data: Record<string, unknown> = {}
   ) => {
-    console.log('Notifications disabled - createNotification:', { targetUserId, type, title, message, data });
   };
 
   const requestNotificationPermission = async () => {
@@ -38,7 +35,6 @@ export function useNotifications(userId: string) {
   };
 
   const refresh = async () => {
-    console.log('Notifications disabled - refresh');
   };
 
   return {

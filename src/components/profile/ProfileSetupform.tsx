@@ -98,7 +98,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         const profile = await AuthService.getUserProfile(userEmail);
         if (profile) setUserProfile(profile);
       } catch (error) {
-        console.error('Error loading user profile:', error);
       }
     };
     loadUserProfile();
@@ -307,12 +306,10 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
       onComplete(finalProfile!);
 
     } catch (error: any) {
-      console.error('Error completing profile setup:', error);
       const msg = error.message || 'Failed to save profile. Please try again.';
       triggerError(msg); 
 
       if (uploadedPhotoPaths.length > 0) {
-        console.log('An error occurred. Cleaning up orphaned photos from storage...');
         await supabase.storage.from('user-photos').remove(uploadedPhotoPaths);
       }
     } finally {

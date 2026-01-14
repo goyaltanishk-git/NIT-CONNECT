@@ -11,7 +11,6 @@ export  const  encryptedStorage= {
       ).toString();
       localStorage.setItem(key, encrypted);
     } catch (err) {
-      console.error("Encryption error:", err);
     }
   },
 
@@ -22,7 +21,6 @@ export  const  encryptedStorage= {
       const bytes = CryptoJS.AES.decrypt(encrypted, SECRET);
       return (bytes.toString(CryptoJS.enc.Utf8));
     } catch (err) {
-      console.error("Decryption error:", err);
       return null;
     }
   }

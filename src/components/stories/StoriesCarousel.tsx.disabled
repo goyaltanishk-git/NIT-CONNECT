@@ -126,7 +126,6 @@ export function StoriesCarousel({ currentUserId }: StoriesCarouselProps) {
       setStories(sortedStories);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading stories:', error);
       setLoading(false);
     }
   };
@@ -148,7 +147,6 @@ export function StoriesCarousel({ currentUserId }: StoriesCarouselProps) {
         )
       );
     } catch (error) {
-      console.error('Error recording story view:', error);
     }
   };
 

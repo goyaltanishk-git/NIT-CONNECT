@@ -22,7 +22,6 @@ export function useAuth(): UseAuthReturn {
 
   const fetchCurrentUser = useCallback(async () => {
     try {
-      console.log('🔄 Fetching current user...');
       setLoading(true);
       setError(null);
 
@@ -30,7 +29,6 @@ export function useAuth(): UseAuthReturn {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       
       if (authUser?.email) {
-        console.log('✅ Found auth user:', authUser.email);
         const profile = await AuthService.getUserProfile(authUser.email);
         setUser(profile);
         return;
@@ -39,7 +37,6 @@ export function useAuth(): UseAuthReturn {
       // Fallback to localStorage
       const currentUser = AuthService.getCurrentUser();
       if (currentUser) {
-        console.log('✅ Found user in localStorage:', currentUser.email);
         setUser(currentUser);
         return;
       }
@@ -49,20 +46,16 @@ export function useAuth(): UseAuthReturn {
       if (tempUser) {
         try {
           const parsedTempUser = JSON.parse(tempUser);
-          console.log('✅ Found temp user:', parsedTempUser.email);
           const profile = await AuthService.getOrCreateUserProfile(parsedTempUser.email);
           setUser(profile);
           return;
         } catch (e) {
-          console.warn('Error parsing temp user:', e);
           localStorage.removeItem('temp-user');
         }
       }
 
-      console.log('❌ No user found');
       setUser(null);
     } catch (err) {
-      console.error('❌ Error fetching user:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch user');
       setUser(null);
     } finally {
@@ -75,7 +68,6 @@ export function useAuth(): UseAuthReturn {
       setLoading(true);
       setError(null);
       
-      console.log('🔐 Attempting login for:', email);
       
       // Verify OTP
       await AuthService.verifyOtp(email, otp);
@@ -85,14 +77,12 @@ export function useAuth(): UseAuthReturn {
       
       setUser(profile);
       
-      console.log('✅ Login successful');
       toast({
         title: 'Welcome!',
         description: 'Successfully logged in.',
       });
       
     } catch (err) {
-      console.error('❌ Login error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
       
@@ -109,7 +99,6 @@ export function useAuth(): UseAuthReturn {
   }, [toast]);
 
   const logout = useCallback(() => {
-    console.log('🔓 Logging out...');
     AuthService.clearCurrentUser();
     setUser(null);
     setError(null);
@@ -131,19 +120,16 @@ export function useAuth(): UseAuthReturn {
     try {
       setLoading(true);
       
-      console.log('📝 Updating profile:', updates);
       
       const updatedProfile = await AuthService.updateProfile(user.email, updates);
       setUser(updatedProfile);
       
-      console.log('✅ Profile updated');
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been saved successfully.',
       });
       
     } catch (err) {
-      console.error('❌ Update profile error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
       setError(errorMessage);
       
@@ -171,7 +157,6 @@ export function useAuth(): UseAuthReturn {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state changed:', event);
         
         if (event === 'SIGNED_IN' && session?.user?.email) {
           const profile = await AuthService.getUserProfile(session.user.email);

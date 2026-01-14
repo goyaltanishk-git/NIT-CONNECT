@@ -86,9 +86,6 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
  
  const handleReport = async (finalReason: string) => {
   setLoading(true);
-  console.log('DONE');
-  console.log(currentUser.email);
-  console.log(user.id);
 
   try {
     await supabase.from("reports").insert(
@@ -109,7 +106,6 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
     setReason("");
     setCustomReason("");
   } catch (err) {
-    console.log(err);
     toast({ title: "Failed to submit report", variant: "destructive" });
   } finally {
     setLoading(false);

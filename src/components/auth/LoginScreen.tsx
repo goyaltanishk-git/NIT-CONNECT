@@ -143,7 +143,6 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
 
       window.location.reload();
     } catch (error) {
-      console.error("Demo mode error:", error);
       // Fallback to local storage if DB operations fail
       const fakeUser = {
         id: "temp-user-" + Date.now(),

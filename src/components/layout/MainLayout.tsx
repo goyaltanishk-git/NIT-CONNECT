@@ -32,7 +32,6 @@ export function MainLayout() {
         setUserProfile(user);
       }
     } catch (error) {
-      console.error("Error in loadUserProfile:", error);
     } finally {
       setLoading(false);
     }

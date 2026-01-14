@@ -109,7 +109,6 @@ export function useEloRating() {
       };
 
     } catch (error) {
-      console.error('Error updating ELO ratings:', error);
       return null;
     }
   }, [calculateEloChange]);
@@ -123,7 +122,6 @@ export function useEloRating() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching user rating:', error);
         return null;
       }
 
@@ -148,7 +146,6 @@ export function useEloRating() {
 
       return data;
     } catch (error) {
-      console.error('Error in getUserRating:', error);
       return null;
     }
   }, []);

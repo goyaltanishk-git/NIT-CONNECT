@@ -37,7 +37,6 @@ export function MatchesScreen() {
         matchedAt={selectedMatch.created_at}
         onBack={() => setSelectedMatch(null)}
         onMessage={() => {
-          console.log("Navigate to chat for match:", selectedMatch.match_id);
           setSelectedMatch(null);
         }}
       />

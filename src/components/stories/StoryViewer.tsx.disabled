@@ -113,7 +113,6 @@ export function StoryViewer({
   const handleSendMessage = () => {
     if (message.trim()) {
       // Here you would send the message to the story owner
-      console.log('Sending message:', message, 'to user:', currentStory.user_id);
       setMessage("");
       // You could show a toast or some feedback here
     }

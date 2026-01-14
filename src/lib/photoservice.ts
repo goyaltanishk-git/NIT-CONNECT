@@ -16,7 +16,6 @@ export class PhotoService {
       const fileExt = file.name.split('.').pop();
       const fileName = `${userEmail}/${uuidv4()}.${fileExt}`;
       
-      console.log('📤 Uploading photo:', fileName);
       
       const { data, error } = await supabase.storage
         .from('user-photos') // Changed from 'user_photos' to match your bucket name
@@ -26,7 +25,6 @@ export class PhotoService {
         });
 
       if (error) {
-        console.error('❌ Upload error:', error);
         throw error;
       }
 
@@ -35,10 +33,8 @@ export class PhotoService {
         .from('user-photos')
         .getPublicUrl(fileName);
         
-      console.log('✅ Photo uploaded successfully:', publicUrl);
       return publicUrl;
     } catch (error) {
-      console.error('❌ Photo upload failed:', error);
       throw error;
     }
   }
@@ -51,7 +47,6 @@ export class PhotoService {
     isPrimary: boolean = false
   ): Promise<UserPhoto> {
     try {
-      console.log('💾 Adding photo to database (public mode):', { userEmail, photoUrl, photoOrder, isPrimary });
       
       const insertData: any = {
         user_email: userEmail,
@@ -68,14 +63,11 @@ export class PhotoService {
         .single();
 
       if (error) {
-        console.error('❌ Database insert error:', error);
         throw error;
       }
 
-      console.log('✅ Photo added to database:', data);
       return data as UserPhoto;
     } catch (error) {
-      console.error('❌ Failed to add photo to database:', error);
       throw error;
     }
   }
@@ -95,7 +87,6 @@ export class PhotoService {
   // Delete photo with RLS compliance
   static async deletePhoto(userEmail: string, photoOrder: number): Promise<void> {
     try {
-      console.log('🗑️ Deleting photo (public mode):', { userEmail, photoOrder });
       
       const { error } = await supabase
         .from('user_photos')
@@ -104,13 +95,10 @@ export class PhotoService {
         .eq('photo_order', photoOrder);
 
       if (error) {
-        console.error('❌ Error deleting photo:', error);
         throw error;
       }
 
-      console.log('✅ Photo deleted successfully');
     } catch (error) {
-      console.error('❌ Failed to delete photo:', error);
       throw error;
     }
   }
@@ -118,7 +106,6 @@ export class PhotoService {
   // Set primary photo with RLS compliance
   static async setPrimaryPhoto(userEmail: string, photoOrder: number): Promise<void> {
     try {
-      console.log('⭐ Setting primary photo (public mode):', { userEmail, photoOrder });
       
       // First, remove primary flag from all user's photos
       await supabase
@@ -134,13 +121,10 @@ export class PhotoService {
         .eq('photo_order', photoOrder);
 
       if (error) {
-        console.error('❌ Error setting primary photo:', error);
         throw error;
       }
 
-      console.log('✅ Primary photo set successfully');
     } catch (error) {
-      console.error('❌ Failed to set primary photo:', error);
       throw error;
     }
   }
