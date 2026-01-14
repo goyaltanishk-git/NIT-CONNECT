@@ -72,6 +72,24 @@ export function useProfiles(): UseProfilesReturn {
 
     return age;
   };
+  function seededRandom(seed: number) {
+  return function () {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+}
+
+function shuffleWithSeed<T>(array: T[], seed: number): T[] {
+  const rand = seededRandom(seed);
+  const result = [...array];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
@@ -111,12 +129,18 @@ export function useProfiles(): UseProfilesReturn {
       if (!baseProfiles || baseProfiles.length === 0) {
         setHasMore(false);
         return;
-      }
+      } 
+  const userSeed = user.email
+  .split("")
+  .reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
 
+  const pageProfiles = shuffleWithSeed(baseProfiles, userSeed);
+
+        
 
       // Step 2: Enhance each profile with photos and interests
       const extendedProfiles: ExtendedProfile[] = await Promise.all(
-        baseProfiles.map(async (profile: DatabaseProfile) => {
+        pageProfiles.map(async (profile: DatabaseProfile) => {
 
           // Get photos if user_photos table exists
           let photos: Array<{ url: string; order: number }> = [];
