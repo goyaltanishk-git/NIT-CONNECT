@@ -1,4 +1,3 @@
-console.log("Imported SAMPLE_PROFILES:", SAMPLE_PROFILES);
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -134,7 +133,6 @@ function DiscoveryScreenDemo() {
         }
       }
     } catch (error) {
-      console.error('Error initializing user data:', error);
     }
   };
 
@@ -144,7 +142,6 @@ function DiscoveryScreenDemo() {
       const filteredProfiles = SAMPLE_PROFILES
         .filter(profile => {
           const contentCheck = filterProfile(profile);
-          console.log("Checking profile:", profile.full_name, contentCheck);
           return (contentCheck.isAppropriate || contentCheck.severity === 'low') && 
                  !passedProfiles.includes(profile.user_id);
         })
@@ -158,12 +155,10 @@ function DiscoveryScreenDemo() {
 
       // Fallback to all sample profiles if filtering removed everything
       const result = filteredProfiles.length > 0 ? filteredProfiles : SAMPLE_PROFILES.filter(p => !passedProfiles.includes(p.user_id));
-      console.log("✅ Loaded profiles:", result);   // 👈 check what's inside
       setProfiles(result);
       setCurrentIndex(0);
       setLoading(false);
     } catch (error) {
-      console.error("Error loading profiles:", error);
       setLoading(false);
     }
   };
@@ -210,7 +205,6 @@ function DiscoveryScreenDemo() {
     if (currentIndex >= profiles.length) return;
 
     const profile = profiles[currentIndex];
-    console.log(dailyLikes);
     // Check daily limits
     if (action === 'like' && dailyLikes >= DAILY_LIKE_LIMIT) {
       toast({
@@ -298,7 +292,6 @@ function DiscoveryScreenDemo() {
             target_user_id: profile.user_id,
             interaction_type: action
           });
-          console.log("liked");
           
           // Update ELO ratings
           await updateRating(user.id, profile.user_id, action, isMatch);
@@ -341,7 +334,6 @@ function DiscoveryScreenDemo() {
       }, 300);
       
     } catch (error) {
-      console.error("Error recording interaction:", error);
       setSwipeAnimation(null);
     }
   }, [currentIndex, profiles, dailyLikes, userEloRating, passedProfiles, toast, updateRating]);

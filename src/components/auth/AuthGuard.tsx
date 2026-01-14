@@ -62,7 +62,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         if (mounted) setLoading(false);
       } catch (error) {
-        console.error("Auth initialization error:", error);
         if (mounted) setLoading(false);
       }
     };
@@ -83,7 +82,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       AuthService.clearCurrentUser();    
       setUserEmail(null);
       setProfile(null);
-      return;
+      return;   
     }
  
     // 2. Setup Completion Sync: 

@@ -45,7 +45,6 @@ export function useLikes() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching pending likes:', error);
         return;
       }
 
@@ -146,7 +145,6 @@ export function useLikes() {
         like.interaction_type === 'like' || like.interaction_type === 'superlike'
       ));
     } catch (error) {
-      console.error('Error in fetchPendingLikes:', error);
       toast({
         title: "Error loading likes",
         description: "Failed to load pending likes",
@@ -182,7 +180,6 @@ export function useLikes() {
 
       return true;
     } catch (error) {
-      console.error('Error liking back:', error);
       toast({
         title: "Error",
         description: "Failed to create match. Please try again.",
@@ -204,7 +201,6 @@ export function useLikes() {
       .eq("target_user_id", user.email);        // me (the receiver)
 
     if (error) {
-      console.error("Error updating pass:", error);
       return false;
     }
 
@@ -213,7 +209,6 @@ export function useLikes() {
 
     return true;
   } catch (error) {
-    console.error("Error passing:", error);
     return false;
   }
 }, []);

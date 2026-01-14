@@ -33,7 +33,6 @@ export function IncognitoModeToggle({ isIncognito, userGender, onToggle }: Incog
           : "Your profile is now visible to others with your real information.",
       });
     } catch (error) {
-      console.error("Error toggling incognito mode:", error);
       toast({
         title: "Error",
         description: "Failed to update incognito mode. Please try again.",

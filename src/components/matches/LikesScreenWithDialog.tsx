@@ -134,7 +134,6 @@ function LikesScreenDemo() {
       localStorage.setItem('temp-user', JSON.stringify(userData));
     }
 
-    console.log("✅ Match created with:", like.profile.full_name);
   };
 
   const handlePass = (likeId: string) => {
@@ -155,7 +154,6 @@ function LikesScreenDemo() {
       description: `You passed on ${like.profile.full_name}.`,
     });
 
-    console.log("❌ Passed on:", like.profile.full_name);
   };
 
   const handleDialogLikeBack = (profileId: string) => {

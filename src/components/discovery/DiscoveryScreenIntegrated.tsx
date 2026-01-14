@@ -16,7 +16,6 @@ import { DailyLimitAlert } from "./DailyLimitAlert";
 import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldDisplayAnonymously } from "@/utils/incognitoUtils";
 
 export function DiscoveryScreenIntegrated() {
-  console.log("✅ SUCCESS: DiscoveryScreenIntegrated is running!");
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
@@ -87,7 +86,7 @@ export function DiscoveryScreenIntegrated() {
           target_user_id: profile.email,
           interaction_type: action
         });
-        if (error) console.error("Error recording interaction:", error);
+        
       }
       
       setTimeout(() => {
@@ -102,7 +101,6 @@ export function DiscoveryScreenIntegrated() {
         });
       }
     } catch (error) {
-      console.error("Error handling swipe:", error);
       setSwipeAnimation(null);
     }
   };
@@ -113,7 +111,6 @@ export function DiscoveryScreenIntegrated() {
             const displayName = getDisplayName(profile);
             const displayBio = getDisplayBio(profile);
             const displayPhotos = getDisplayPhotos(profile, profile.photos?.map(p => p.url) || []);
-        console.log(displayPhotos);
 
   
 

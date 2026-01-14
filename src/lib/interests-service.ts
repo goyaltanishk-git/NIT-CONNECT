@@ -10,7 +10,6 @@ export class InterestsService {
   // Get all interests for a user
   static async getUserInterests(userEmail: string): Promise<string[]> {
     try {
-      console.log('🎯 Fetching interests for:', userEmail);
       
       const { data, error } = await supabase
         .from('user_interests')
@@ -19,15 +18,12 @@ export class InterestsService {
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('❌ Error fetching interests:', error);
         throw error;
       }
 
       const interests = (data || []).map((row: any) => row.interest);
-      console.log(`✅ Found ${interests.length} interests for ${userEmail}:`, interests);
       return interests;
     } catch (error) {
-      console.error('❌ Failed to fetch interests:', error);
       throw error;
     }
   }
@@ -35,7 +31,6 @@ export class InterestsService {
   // Update all interests for a user (replace existing)
   static async updateUserInterests(userEmail: string, interests: string[]): Promise<void> {
     try {
-      console.log('🎯 Updating interests for:', userEmail, 'with:', interests);
 
       // First, delete all existing interests for this user
       const { error: deleteError } = await supabase
@@ -44,7 +39,6 @@ export class InterestsService {
         .eq('user_email', userEmail);
 
       if (deleteError) {
-        console.error('❌ Error deleting existing interests:', deleteError);
         throw deleteError;
       }
 
@@ -60,14 +54,11 @@ export class InterestsService {
           .insert(interestsToInsert);
 
         if (insertError) {
-          console.error('❌ Error inserting new interests:', insertError);
           throw insertError;
         }
       }
 
-      console.log('✅ Successfully updated interests for:', userEmail);
     } catch (error) {
-      console.error('❌ Failed to update interests:', error);
       throw error;
     }
   }
@@ -75,7 +66,6 @@ export class InterestsService {
   // Add a single interest
   static async addInterest(userEmail: string, interest: string): Promise<void> {
     try {
-      console.log('🎯 Adding interest:', interest, 'for:', userEmail);
 
       const { error } = await supabase
         .from('user_interests')
@@ -85,13 +75,10 @@ export class InterestsService {
         });
 
       if (error) {
-        console.error('❌ Error adding interest:', error);
         throw error;
       }
 
-      console.log('✅ Successfully added interest:', interest);
     } catch (error) {
-      console.error('❌ Failed to add interest:', error);
       throw error;
     }
   }
@@ -99,7 +86,6 @@ export class InterestsService {
   // Remove a single interest
   static async removeInterest(userEmail: string, interest: string): Promise<void> {
     try {
-      console.log('🎯 Removing interest:', interest, 'for:', userEmail);
 
       const { error } = await supabase
         .from('user_interests')
@@ -108,13 +94,10 @@ export class InterestsService {
         .eq('interest', interest);
 
       if (error) {
-        console.error('❌ Error removing interest:', error);
         throw error;
       }
 
-      console.log('✅ Successfully removed interest:', interest);
     } catch (error) {
-      console.error('❌ Failed to remove interest:', error);
       throw error;
     }
   }

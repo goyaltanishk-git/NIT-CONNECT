@@ -105,7 +105,6 @@ export function SettingsScreen({
           : "Your profile is now visible.",
       });
     } catch (error) {
-      console.error("Error toggling incognito mode:", error);
       toast({
         title: "Error",
         description: "Failed to update incognito mode. Please try again.",
@@ -174,7 +173,6 @@ export function SettingsScreen({
 
       handleLogout();
     } catch (error: any) {
-      console.error("Failed to delete account:", error);
       setDeleteError(
         error.message || "An unexpected error occurred. Please try again."
       );

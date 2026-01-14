@@ -77,7 +77,6 @@ export function useProfiles(): UseProfilesReturn {
     try {
       const userd = encryptedStorage.get('current-user');
       const user = JSON.parse(userd);
-      console.log(`🔄 Fetching profiles with offset: ${startOffset}`);
 
       // Step 1: Fetch base profiles from the main profiles table
       const { data: interactions, error: interactionError } = await supabase
@@ -85,14 +84,12 @@ export function useProfiles(): UseProfilesReturn {
         .select("target_user_id")
         .eq("user_id", user.email);
 
-      console.log(interactions);
        const { data: interactions1, error: interactionError1 } = await supabase
         .from("user_interactions")
         .select("user_id")
         .eq("target_user_id", user.email);
 
       if (interactionError) {
-        console.error("Error fetching interactions:", interactionError);
       }
       
       const interactedIds1 = interactions1?.map(i => i.user_id) || [];
@@ -112,17 +109,14 @@ export function useProfiles(): UseProfilesReturn {
 
       // 3️⃣ Only exclude interacted profiles if there are any
       if (!baseProfiles || baseProfiles.length === 0) {
-        console.log('📭 No more profiles found');
         setHasMore(false);
         return;
       }
 
-      console.log(`✅ Fetched ${baseProfiles.length} base profiles`);
 
       // Step 2: Enhance each profile with photos and interests
       const extendedProfiles: ExtendedProfile[] = await Promise.all(
         baseProfiles.map(async (profile: DatabaseProfile) => {
-          console.log(`🔍 Processing profile for: ${profile.email}`);
 
           // Get photos if user_photos table exists
           let photos: Array<{ url: string; order: number }> = [];
@@ -138,12 +132,9 @@ export function useProfiles(): UseProfilesReturn {
                 url: photo.photo_url,
                 order: photo.photo_order
               }));
-              console.log(`📸 Found ${photos.length} photos for ${profile.email}`);
             } else if (photosResponse.error) {
-              console.warn(`⚠️ Error fetching photos for ${profile.email}:`, photosResponse.error.message);
             }
           } catch (photosError) {
-            console.warn(`⚠️ Exception fetching photos for ${profile.email}:`, photosError);
           }
 
           // Get interests - FIXED TABLE NAME
@@ -156,12 +147,9 @@ export function useProfiles(): UseProfilesReturn {
 
             if (interestsData && !interestsError) {
               interests = interestsData.map((interest: any) => interest.interest);
-              console.log(`🎯 Found ${interests.length} interests for ${profile.email}`);
             } else if (interestsError) {
-              console.warn(`⚠️ Error fetching interests for ${profile.email}:`, interestsError.message);
             }
           } catch (interestsError) {
-            console.warn(`⚠️ Exception fetching interests for ${profile.email}:`, interestsError);
           }
 
           // Create extended profile
@@ -173,12 +161,10 @@ export function useProfiles(): UseProfilesReturn {
             name: `${profile.first_name} ${profile.last_name}`.trim()
           };
 
-          console.log(`✅ Extended profile created for: ${profile.email}`);
           return extendedProfile;
         })
       );
 
-      console.log(`✅ Successfully processed ${extendedProfiles.length} extended profiles`);
 
       // Step 3: Update state
       if (append) {
@@ -192,7 +178,6 @@ export function useProfiles(): UseProfilesReturn {
         setHasMore(false);
       }
     } catch (err) {
-      console.error('❌ Exception in fetchProfilesWithExtendedData:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
       setError(errorMessage);
       toast({
@@ -228,7 +213,6 @@ export function useProfiles(): UseProfilesReturn {
   }, [offset, hasMore, loading]);
 
   const refetch = useCallback(async () => {
-    console.log('🔄 Refetching all profiles...');
     setOffset(0);
     setHasMore(true);
     await fetchProfiles();

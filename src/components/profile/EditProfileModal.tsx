@@ -102,7 +102,6 @@ export function EditProfileModal({
       const userInterests = await InterestsService.getUserInterests(profile.email);
       setInterests(userInterests);
     } catch (error) {
-      console.error('Error loading interests:', error);
       toast({
         title: "Error loading interests",
         description: "Could not load your interests. Please try again.",
@@ -207,7 +206,6 @@ export function EditProfileModal({
         description: "Your profile and interests have been updated successfully.",
       });
     } catch (error) {
-      console.error('Error saving profile:', error);
       toast({
         title: "Error saving profile",
         description: "Could not save your profile. Please try again.",

@@ -57,7 +57,6 @@ export function PhotoUpload({
       onPhotosUpdate(updatedPhotos);
       toast({ title: 'Photo uploaded!' });
     } catch (error) {
-      console.error('Photo upload error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload photo.';
       toast({ title: 'Upload failed', description: errorMessage, variant: 'destructive' });
     } finally {
@@ -98,7 +97,6 @@ export function PhotoUpload({
       try {
           filePath = new URL(oldPhotoUrl).pathname.split('/user-photos/')[1];
       } catch (e) {
-          console.error("Invalid photo URL", e);
       }
 
       if (filePath) {

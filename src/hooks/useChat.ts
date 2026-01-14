@@ -117,19 +117,15 @@ export function useChat(user: Profile | null) {
   const [matchSubscription, setMatchSubscription] = useState<RealtimeSubscription | null>(null);
 
   const fetchConversations = useCallback(async () => {
-    console.log("🐛 DEBUG: 1. --- Starting fetchConversations ---");
     try {
       setLoading(true);
-      console.log("🐛 DEBUG: 2. Checking for provided user object:", user);
       
       if (!user) {
-        console.error("🐛 DEBUG: EXIT - No user provided to useChat hook. Aborting.");
         setConversations([]);
         setLoading(false);
         return;
       }
 
-      console.log(`🐛 DEBUG: 3. Querying matches for user email: ${user.email}`);
       
       // Get matches for current user
       const { data: matches, error: matchesError } = await supabase
@@ -140,27 +136,22 @@ export function useChat(user: Profile | null) {
         .order('created_at', { ascending: false });
 
       if (matchesError) {
-        console.error("🐛 DEBUG: ERROR - Supabase error fetching matches:", matchesError);
         throw matchesError;
       }
 
-      console.log("🐛 DEBUG: 4. Received matches from Supabase:", matches);
       
       if (!matches || matches.length === 0) {
-        console.log("🐛 DEBUG: EXIT - No matches found in the database. The function will now stop.");
         setConversations([]);
         setLoading(false);
         return;
       }
 
-      console.log(`🐛 DEBUG: 5. Found ${matches.length} matches. Now fetching profile data for each...`);
 
       // Get conversation data for each match
       const conversationPromises = matches.map(async (match) => {
         const otherUserId = match.user1_id === user.email ? match.user2_id : match.user1_id;
         const sortedUserIds = [match.user1_id, match.user2_id].sort();
         const generatedMatchId = sortedUserIds.join('_');
-  console.log(`[DEBUG] Fetching profile for email: '${otherUserId}'`);
       
 
         // Fetch other user's profile and photos in parallel
@@ -202,9 +193,7 @@ export function useChat(user: Profile | null) {
              
           // const displayPhotos = getDisplayPhotos(profileResult.data, profileResult.data.photos?.map(p => p.photo_url) || []);
           const isAnonymous = shouldDisplayAnonymously(profileResult.data);
-          console.log(profileResult.data);
-          console.log(photosResult.data);
-          console.log(displayPhotos);
+         
 
 
         return {
@@ -247,7 +236,6 @@ export function useChat(user: Profile | null) {
       setConversations(sortedConversations);
       
     } catch (error) {
-      console.error('Error fetching conversations:', error);
       setError('Failed to load conversations');
       toast({
         title: "Error loading conversations",
@@ -277,7 +265,6 @@ export function useChat(user: Profile | null) {
         .eq('is_read', false);
 
       if (error) {
-        console.error('Error marking messages as read:', error);
       } else {
         // Update conversations to reflect read messages
         setConversations(prev =>
@@ -290,7 +277,6 @@ export function useChat(user: Profile | null) {
         );
       }
     } catch (error) {
-      console.error('Error marking messages as read:', error);
     }
   }, []);
 
@@ -311,11 +297,9 @@ export function useChat(user: Profile | null) {
       .range(offset, offset + limit - 1);        // Select the top 'limit' newest records
 
     if (error) {
-      console.error('Error fetching messages:', error);
       setError('Failed to load messages');
       return;
     }
-    console.log("Fetched messages raw data:", messagesData);
 
     const transformedMessages: ChatMessage[] = (messagesData || []).map(msg => ({
       content: msg.content,
@@ -339,7 +323,6 @@ export function useChat(user: Profile | null) {
     setCurrentMatchId(matchId);
     await markMessagesAsRead(otherUserId, user.email);
   } catch (error) {
-    console.error('Fetch error:', error);
   }
 }, [user, markMessagesAsRead]);
   const sendMessage = useCallback(async (matchId: string, content: string) => {
@@ -366,7 +349,6 @@ export function useChat(user: Profile | null) {
         throw new Error('Could not determine reciever');
       }
 
-      console.log('Sending message from:', user.email, 'to:', otherUserId);
 
       // Fixed: Insert message with sender and receiver
       const { data, error } = await supabase
@@ -382,7 +364,6 @@ export function useChat(user: Profile | null) {
         .single();
 
       if (error) {
-        console.error('Error sending message:', error);
         throw error;
       }
 
@@ -428,7 +409,6 @@ export function useChat(user: Profile | null) {
       return { success: true, message: newMessage };
 
     } catch (error) {
-      console.error('Error sending message:', error);
       const errorMessage = 'Failed to send message';
       setError(errorMessage);
       toast({
@@ -447,7 +427,6 @@ export function useChat(user: Profile | null) {
     try {
       await fetchMessages(matchId, 25, currentCount);
     } catch (error) {
-      console.error('Error loading more messages:', error);
     }
   }, [fetchMessages]);
 
@@ -476,7 +455,6 @@ export function useChat(user: Profile | null) {
 
       return { success: true };
     } catch (err) {
-      console.error('Error unmatching:', err);
       toast({ title: 'Error', description: 'Failed to unmatch.', variant: 'destructive' });
       return { success: false, error: 'Failed to unmatch' };
     }
