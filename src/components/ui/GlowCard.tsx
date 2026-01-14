@@ -21,7 +21,7 @@ const sizeMap = {
   sm: 'w-48 h-64',
   md: 'w-64 h-80',
   lg: 'w-80 h-96'
-};
+}; 
 
 const GlowCard: React.FC<GlowCardProps> = ({ 
   children, 
