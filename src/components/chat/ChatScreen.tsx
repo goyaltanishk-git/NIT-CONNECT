@@ -7,11 +7,11 @@ import { IndividualChat } from "./IndividualChat";
 import { useChat, ChatConversation } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
 
-// Keeping the prop interface so your parent component doesn't break, 
+// Keeping the prop interface so your parent component doesn't break, gtgt
 // even though we aren't using the button anymore.
 interface ChatScreenProps {
   onNavigateToDiscovery?: () => void; 
-    setischatopen: (value: boolean) => void;
+    setischatopen: (value: boolean) => void; 
 }
 
 export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenProps) {

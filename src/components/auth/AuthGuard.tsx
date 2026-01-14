@@ -83,7 +83,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       AuthService.clearCurrentUser();    
       setUserEmail(null);
       setProfile(null);
-      return;
+      return;   
     }
  
     // 2. Setup Completion Sync: 
