@@ -38,7 +38,7 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const generatedOtp = generateOTP();
-      console.log(generatedOtp);
+      // console.log(generatedOtp);
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       await AuthService.generateOtp(email, generatedOtp, expiresAt);
       try {
@@ -48,8 +48,8 @@ export function LoginScreen() {
           body: JSON.stringify({ email, otp: generatedOtp }),
         });
       } catch (emailError) {
-        console.warn("Email service not available:", emailError);
-        console.log("Demo OTP for", email, ":", generatedOtp);
+        // console.warn("Email service not available:", emailError);
+        // console.log("Demo OTP for", email, ":", generatedOtp);
       }
       setStep("otp");
       toast({
@@ -101,7 +101,7 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
       // Redirect user or reload the page
       window.location.reload();
     } catch (error) {
-      console.error("Login error:", error);
+      // console.error("Login error:", error);
       toast({ 
         title: "Error",
         description: error instanceof Error ? error.message : "Login failed",
