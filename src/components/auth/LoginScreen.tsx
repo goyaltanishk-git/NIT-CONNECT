@@ -24,10 +24,12 @@ export function LoginScreen() {
   const [step, setStep] = useState<"email" | "otp">("email");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const nitkkrEmailRegex = /^[0-9]{8,10}@nitkkr\.ac\.in$/;
+
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.endsWith("@nitkkr.ac.in")) {
+    if (!nitkkrEmailRegex.test(email)) {
       toast({
         title: "Invalid Email",
         description: "Please use your NIT Kurukshetra email address (@nitkkr.ac.in)",
@@ -214,7 +216,7 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="your.name@nitkkr.ac.in" 
+                    placeholder="nitkkr domain mail id" 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
                     className="pl-12 h-12 glass-light border-white/20 text-white placeholder:text-gray-400 focus:border-pink-500 focus:ring-pink-500/20 transition-all duration-300" 
