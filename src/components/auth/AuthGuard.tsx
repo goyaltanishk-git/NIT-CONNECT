@@ -6,7 +6,7 @@ import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { Heart, Sparkles } from "lucide-react";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
-interface AuthGuardProps {
+interface AuthGuardProps { 
   children: React.ReactNode;
 }
 
