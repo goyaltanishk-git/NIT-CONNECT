@@ -216,7 +216,7 @@ encryptedStorage.set("user-login-time", new Date().toISOString());
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="nitkkr domain mail id" 
+                    placeholder=" Enter nitkkr domain mail id" 
                     value={email} 
                     onChange={(e) => setEmail(e.target.value)} 
                     className="pl-12 h-12 glass-light border-white/20 text-white placeholder:text-gray-400 focus:border-pink-500 focus:ring-pink-500/20 transition-all duration-300" 
