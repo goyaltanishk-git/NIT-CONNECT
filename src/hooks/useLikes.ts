@@ -7,11 +7,13 @@ import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } fr
 import { Database } from '@/integrations/supabase/types';
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
+// Added full_name to the Profile type definition
 type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: Database["public"]["Tables"]["user_photos"]["Row"][];
   interests: string[];
   prompts: Database["public"]["Tables"]["user_prompts"]["Row"][];
   elo_rating: number | null;
+  full_name: string; 
 };
 
 export interface PendingLike {
@@ -63,7 +65,6 @@ export function useLikes() {
       );
 
       // STEP 3: Fetch and Filter by Active Profiles
-      // FIX: Explicitly type the map return to be assignable to PendingLike | null
       const transformedLikesRaw = await Promise.all(
         pendingInteractions.map(async (interaction): Promise<PendingLike | null> => {
           
@@ -101,6 +102,12 @@ export function useLikes() {
             .eq('user_id', profileData.user_id)
             .single();
 
+           // --- Name Logic Fix ---
+           // If last_name is null or string "NULL", only show first_name
+           const fullName = (profileData.last_name && profileData.last_name !== "NULL")
+             ? `${profileData.first_name} ${profileData.last_name}`.trim()
+             : profileData.first_name;
+
            const safeProfile = { ...profileData };
            safeProfile.first_name = getDisplayName(profileData);
            safeProfile.year_of_study = getDisplayDetails(profileData).year;
@@ -113,10 +120,10 @@ export function useLikes() {
 
           return {
             ...interaction,
-            // Cast strictly to 'like' | 'superlike' to fit PendingLike after filtering nulls
             interaction_type: interaction.interaction_type as any,
             profile: {
               ...safeProfile,
+              full_name: fullName, // Full name for details screen
               photos: (photoUrls || []).map((url, index) => {
                 const originalPhoto = photos?.find(p => p.photo_url === url);
                 return {
@@ -136,7 +143,6 @@ export function useLikes() {
         })
       );
          
-      // Final Filter: TypeScript now allows this because the array is typed as (PendingLike | null)[]
       const cleanLikes = transformedLikesRaw.filter((like): like is PendingLike => like !== null);
       setPendingLikes(cleanLikes);
 
