@@ -112,7 +112,7 @@ export function ProfileScreen() {
       setPhotosLoading(false);
     }
   };
-
+ 
   const handlePhotosUpdate = useCallback((updatedPhotos: UserPhoto[]) => {
     setPhotos(updatedPhotos);
   }, []);
