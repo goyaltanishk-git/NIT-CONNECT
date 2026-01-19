@@ -62,7 +62,7 @@ function getRandomAnonymousName(userId: string): string {
     return a & a;
   }, 0);
   const index = Math.abs(hash) % ANONYMOUS_NAMES.length;
-  return ANONYMOUS_NAMES[index];
+  return "Anonymous";
 }
 
 // Get a consistent random emoji based on user ID
@@ -86,7 +86,7 @@ export function createAnonymousProfile(profile: DatabaseProfile): AnonymousProfi
     user_id: profile.user_id || profile.email,
     first_name: anonymousName,
     last_name: "",
-    bio: "This user is browsing anonymously",
+    bio: "This user has turned on their incognito mode",
     photos: [emojiToDataUrl(emojiAvatar)], // Use emoji avatar
     year_of_study: "Hidden", 
     branch: "Hidden",

@@ -37,6 +37,7 @@ export interface Database {
           last_active_at: string
           created_at: string
           updated_at: string
+          shuffle_order:number
         }
         Insert: {
           id?: string
