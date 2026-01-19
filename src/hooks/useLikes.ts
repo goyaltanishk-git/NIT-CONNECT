@@ -103,10 +103,16 @@ export function useLikes() {
             .single();
 
            // --- Name Logic Fix ---
-           // If last_name is null or string "NULL", only show first_name
-           const fullName = (profileData.last_name && profileData.last_name !== "NULL")
-             ? `${profileData.first_name} ${profileData.last_name}`.trim()
-             : profileData.first_name;
+           const f = profileData.first_name || '';
+           const l = profileData.last_name || '';
+           const full = `${f} ${l}`.trim();
+           
+           // 1. If ends in "null", only show first name
+           // 2. If first name already contains last name, don't duplicate
+           let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
+           if (l && f.toLowerCase().includes(l.toLowerCase())) {
+             cleanedFullName = f;
+           }
 
            const safeProfile = { ...profileData };
            safeProfile.first_name = getDisplayName(profileData);
@@ -123,7 +129,7 @@ export function useLikes() {
             interaction_type: interaction.interaction_type as any,
             profile: {
               ...safeProfile,
-              full_name: fullName, // Full name for details screen
+              full_name: cleanedFullName, // Full name for details screen
               photos: (photoUrls || []).map((url, index) => {
                 const originalPhoto = photos?.find(p => p.photo_url === url);
                 return {
