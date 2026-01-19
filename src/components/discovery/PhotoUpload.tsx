@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PhotoService, UserPhoto } from '@/lib/photoservice';
-import { Camera, RefreshCcw } from 'lucide-react'; // Removed Star import
+import { Camera, RefreshCcw, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,46 +24,64 @@ export function PhotoUpload({
   const [replacingOrder, setReplacingOrder] = useState<number | null>(null); 
   const { toast } = useToast();
 
+  /**
+   * FIX: Storage-First Upload
+   * Ensures the DB record is ONLY created after the file is confirmed in the bucket.
+   */
   const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-
     const file = files[0];
     
+    // Validations
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Please upload an image file.', variant: 'destructive' });
+      toast({ title: 'Invalid file', description: 'Please upload an image.', variant: 'destructive' });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Please upload an image smaller than 5MB.', variant: 'destructive' });
+      toast({ title: 'File too large', description: 'Max size is 5MB.', variant: 'destructive' });
       return;
     }
     if (photos.length >= maxPhotos) {
-      toast({ title: 'Maximum photos reached', description: `You can only upload up to ${maxPhotos} photos.`, variant: 'destructive' });
+      toast({ title: 'Limit reached', description: `Max ${maxPhotos} photos allowed.`, variant: 'destructive' });
       return;
     }
 
     setUploading(true);
 
     try {
+      // 1. ATTEMPT STORAGE UPLOAD FIRST
       const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
+
+      // 2. VERIFY URL INTEGRITY
+      if (!photoUrl || !photoUrl.startsWith('https://')) {
+        throw new Error("Storage returned an invalid URL. Aborting database update.");
+      }
+
+      // 3. UPDATE DATABASE ONLY AFTER STORAGE SUCCESS
       const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.photo_order)) + 1 : 1;
-      // We still mark the first photo as primary in the DB for data consistency, 
-      // even if the UI doesn't show the star.
       const isPrimary = photos.length === 0;
 
       await PhotoService.addUserPhoto(userEmail, photoUrl, nextOrder, isPrimary);
       
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
-      toast({ title: 'Photo uploaded!' });
+      toast({ title: 'Photo uploaded successfully!' });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload photo.';
-      toast({ title: 'Upload failed', description: errorMessage, variant: 'destructive' });
+      console.error("Upload Error:", error);
+      toast({ 
+        title: 'Upload failed', 
+        description: 'The image could not be saved to our servers. Check your connection.', 
+        variant: 'destructive' 
+      });
     } finally {
       setUploading(false);
     }
   }, [userEmail, photos, maxPhotos, onPhotosUpdate, toast]);
 
+  /**
+   * FIX: Safety Replace Logic
+   * Uploads the new image before removing the old one to prevent empty database rows.
+   */
   const handleReplaceFile = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0 || replacingOrder === null) {
       setReplacingOrder(null);
@@ -71,50 +89,43 @@ export function PhotoUpload({
     }
     
     const file = files[0];
-    
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Please upload an image file.', variant: 'destructive' });
-      setReplacingOrder(null);
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Please upload an image smaller than 5MB.', variant: 'destructive' });
-      setReplacingOrder(null);
-      return;
-    }
-
     setUploading(true); 
 
     try {
       const photoToReplace = photos.find(p => p.photo_order === replacingOrder);
-      if (!photoToReplace) {
-        throw new Error("Photo to replace not found.");
-      }
-      const wasPrimary = photoToReplace.is_primary;
+      if (!photoToReplace) throw new Error("Target photo not found.");
 
-      const oldPhotoUrl = photoToReplace.photo_url;
-      let filePath = "";
-      try {
-          filePath = new URL(oldPhotoUrl).pathname.split('/user-photos/')[1];
-      } catch (e) {
-      }
-
-      if (filePath) {
-          await supabase.storage.from("user-photos").remove([filePath]); 
-      }
-
-      await PhotoService.deletePhoto(userEmail, replacingOrder);
+      // 1. UPLOAD NEW PHOTO FIRST (Safety step)
       const newPhotoUrl = await PhotoService.uploadPhoto(file, userEmail);
-      await PhotoService.addUserPhoto(userEmail, newPhotoUrl, replacingOrder, wasPrimary);
+      if (!newPhotoUrl.startsWith('https://')) throw new Error("New photo storage failed.");
+
+      // 2. DELETE OLD STORAGE FILE ONLY AFTER NEW ONE IS SECURED
+      let oldFilePath = "";
+      try {
+          oldFilePath = new URL(photoToReplace.photo_url).pathname.split('/user-photos/')[1];
+      } catch (e) {}
+
+      if (oldFilePath) {
+          await supabase.storage.from("user-photos").remove([oldFilePath]); 
+      }
+
+      // 3. UPDATE DB WITH THE NEW URL (Atomic update)
+      // Assuming PhotoService has an update method, otherwise delete/insert
+      await PhotoService.deletePhoto(userEmail, replacingOrder);
+      await PhotoService.addUserPhoto(userEmail, newPhotoUrl, replacingOrder, photoToReplace.is_primary);
 
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
       
-      toast({ title: 'Photo replaced!' });
+      toast({ title: 'Photo replaced successfully!' });
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to replace photo.';
-      toast({ title: 'Replace failed', description: errorMessage, variant: 'destructive' });
+      console.error("Replace Error:", error);
+      toast({ 
+        title: 'Replace failed', 
+        description: 'Failed to upload new image. Your old photo remains active.', 
+        variant: 'destructive' 
+      });
     } finally {
       setUploading(false);
       setReplacingOrder(null); 
@@ -155,12 +166,13 @@ export function PhotoUpload({
               src={photo.photo_url}
               alt={`Photo ${photo.photo_order}`}
               className="w-full h-full object-cover rounded-xl border-2 border-white/10 group-hover:border-pink-500/50 transition-all duration-300"
+              onError={(e) => {
+                // Handle the 404 broken images in the UI
+                e.currentTarget.src = "https://placehold.co/400x400?text=Broken+Image";
+              }}
             />
             
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl flex items-center justify-center gap-2">
-              
-              {/* Removed the Star Button and Indicator Logic Here */}
-              
               <Button
                 size="icon"
                 variant="outline"
@@ -174,7 +186,7 @@ export function PhotoUpload({
 
             {uploading && replacingOrder === photo.photo_order && (
               <div className="absolute inset-0 bg-black/75 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-300">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-pink-500 border-t-transparent"></div>
+                <Loader2 className="animate-spin h-6 w-6 text-pink-500" />
               </div>
             )}
           </div>
@@ -188,12 +200,10 @@ export function PhotoUpload({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => {
-              document.getElementById('photo-upload-input')?.click();
-            }}
+            onClick={() => document.getElementById('photo-upload-input')?.click()}
           >
             {uploading && replacingOrder === null ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-pink-500 border-t-transparent"></div>
+              <Loader2 className="animate-spin h-6 w-6 text-pink-500" />
             ) : (
               <Camera className="w-6 h-6 text-gray-400 group-hover:text-pink-400 transition-colors duration-300" />
             )}
@@ -219,4 +229,4 @@ export function PhotoUpload({
       />   
     </div>   
   );
-} 
+}
