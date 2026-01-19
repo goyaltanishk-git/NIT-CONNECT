@@ -119,7 +119,10 @@ export function UserProfileDialog({
     setIsImageLoading(false);
   };
 
-  const profileName = profile.first_name || 'Unknown';
+  const rawFullName = `${profile.first_name || 'Unknown'} ${profile.last_name || ''}`.trim();
+  const profileName = rawFullName.toLowerCase().endsWith('null') 
+    ? profile.first_name || 'Unknown' 
+    : rawFullName;
   const profileAge = calculateAge(profile.date_of_birth);
   const profilePhotos = profile.photos || [];
   const profileActionId = profile.user_id;
