@@ -30,6 +30,7 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   interests: string[];
   prompts: UserPrompt[];
   elo_rating?: number | null;
+  full_name?: string;
 };
 
 interface UserProfileDialogProps {
@@ -119,7 +120,20 @@ export function UserProfileDialog({
     setIsImageLoading(false);
   };
 
-  const profileName = profile.first_name || 'Unknown';
+  const rawFullName = `${profile.first_name || 'Unknown'} ${profile.last_name || ''}`.trim();
+  const profileName = (() => {
+    if (profile.full_name) return profile.full_name;
+
+    const f = profile.first_name || 'Unknown';
+    const l = profile.last_name || '';
+    const combined = `${f} ${l}`.trim();
+    
+    let cleaned = combined;
+    if (l && f.toLowerCase().includes(l.toLowerCase())) cleaned = f;
+    if (cleaned.toLowerCase().endsWith('null')) cleaned = f;
+    
+    return cleaned;
+  })();
   const profileAge = calculateAge(profile.date_of_birth);
   const profilePhotos = profile.photos || [];
   const profileActionId = profile.user_id;

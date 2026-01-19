@@ -182,7 +182,9 @@ function shuffleWithSeed<T>(array: T[], seed: number): T[] {
             photos,
             interests,
             age: calculateAge(profile.date_of_birth),
-            name: `${profile.first_name} ${profile.last_name}`.trim()
+            name: (profile.last_name && profile.last_name !== "NULL")
+              ? `${profile.first_name} ${profile.last_name}`.trim()
+              : profile.first_name
           };
 
           return extendedProfile;

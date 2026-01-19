@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PhotoService, UserPhoto } from '@/lib/photoservice';
-import { Camera, RefreshCcw } from 'lucide-react'; // Removed Star import
+import { Camera, RefreshCcw, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -12,6 +12,9 @@ interface PhotoUploadProps {
   onPhotosUpdate: (photos: UserPhoto[]) => void;
   maxPhotos?: number;
 }
+
+// SECURITY: Define a strict whitelist of allowed image extensions
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
 
 export function PhotoUpload({ 
   userEmail, 
@@ -24,31 +27,54 @@ export function PhotoUpload({
   const [replacingOrder, setReplacingOrder] = useState<number | null>(null); 
   const { toast } = useToast();
 
+  /**
+   * SECURITY HELPER: Validates both the MIME type and the file extension
+   */
+  const isValidImage = (file: File): boolean => {
+    // 1. Check MIME type provided by the browser
+    if (!file.type.startsWith('image/')) return false;
+
+    // 2. Check File Extension (Critical for preventing code file uploads)
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) return false;
+
+    return true;
+  };
+
   const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
-
     const file = files[0];
     
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Please upload an image file.', variant: 'destructive' });
+    // VALIDATION: Block non-image files
+    if (!isValidImage(file)) {
+      toast({ 
+        title: 'Security Blocked', 
+        description: 'Only images (JPG, PNG, WEBP) are allowed for your profile.', 
+        variant: 'destructive' 
+      });
       return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Please upload an image smaller than 5MB.', variant: 'destructive' });
+      toast({ title: 'File too large', description: 'Max size is 5MB.', variant: 'destructive' });
       return;
     }
+
     if (photos.length >= maxPhotos) {
-      toast({ title: 'Maximum photos reached', description: `You can only upload up to ${maxPhotos} photos.`, variant: 'destructive' });
+      toast({ title: 'Limit reached', description: `Max ${maxPhotos} photos allowed.`, variant: 'destructive' });
       return;
     }
 
     setUploading(true);
 
     try {
+      // Storage-First Upload
       const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
+      if (!photoUrl || !photoUrl.startsWith('https://')) {
+        throw new Error("Invalid URL returned from storage.");
+      }
+
       const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.photo_order)) + 1 : 1;
-      // We still mark the first photo as primary in the DB for data consistency, 
-      // even if the UI doesn't show the star.
       const isPrimary = photos.length === 0;
 
       await PhotoService.addUserPhoto(userEmail, photoUrl, nextOrder, isPrimary);
@@ -57,8 +83,7 @@ export function PhotoUpload({
       onPhotosUpdate(updatedPhotos);
       toast({ title: 'Photo uploaded!' });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to upload photo.';
-      toast({ title: 'Upload failed', description: errorMessage, variant: 'destructive' });
+      toast({ title: 'Upload failed', description: 'Please check your connection.', variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -71,14 +96,14 @@ export function PhotoUpload({
     }
     
     const file = files[0];
-    
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file type', description: 'Please upload an image file.', variant: 'destructive' });
-      setReplacingOrder(null);
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Please upload an image smaller than 5MB.', variant: 'destructive' });
+
+    // VALIDATION: Block non-image files during replacement [The "Hack" Fix]
+    if (!isValidImage(file)) {
+      toast({ 
+        title: 'Invalid File Type', 
+        description: 'This file is not a valid image format.', 
+        variant: 'destructive' 
+      });
       setReplacingOrder(null);
       return;
     }
@@ -87,34 +112,29 @@ export function PhotoUpload({
 
     try {
       const photoToReplace = photos.find(p => p.photo_order === replacingOrder);
-      if (!photoToReplace) {
-        throw new Error("Photo to replace not found.");
-      }
-      const wasPrimary = photoToReplace.is_primary;
+      if (!photoToReplace) throw new Error("Target photo not found.");
 
-      const oldPhotoUrl = photoToReplace.photo_url;
-      let filePath = "";
+      const newPhotoUrl = await PhotoService.uploadPhoto(file, userEmail);
+      if (!newPhotoUrl.startsWith('https://')) throw new Error("New photo storage failed.");
+
+      // Cleanup old file from bucket
+      let oldFilePath = "";
       try {
-          filePath = new URL(oldPhotoUrl).pathname.split('/user-photos/')[1];
-      } catch (e) {
-      }
+          oldFilePath = new URL(photoToReplace.photo_url).pathname.split('/user-photos/')[1];
+      } catch (e) {}
 
-      if (filePath) {
-          await supabase.storage.from("user-photos").remove([filePath]); 
+      if (oldFilePath) {
+          await supabase.storage.from("user-photos").remove([oldFilePath]); 
       }
 
       await PhotoService.deletePhoto(userEmail, replacingOrder);
-      const newPhotoUrl = await PhotoService.uploadPhoto(file, userEmail);
-      await PhotoService.addUserPhoto(userEmail, newPhotoUrl, replacingOrder, wasPrimary);
+      await PhotoService.addUserPhoto(userEmail, newPhotoUrl, replacingOrder, photoToReplace.is_primary);
 
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
-      
       toast({ title: 'Photo replaced!' });
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to replace photo.';
-      toast({ title: 'Replace failed', description: errorMessage, variant: 'destructive' });
+      toast({ title: 'Replace failed', description: "Failed to update image.", variant: 'destructive' });
     } finally {
       setUploading(false);
       setReplacingOrder(null); 
@@ -146,35 +166,26 @@ export function PhotoUpload({
     <div className="space-y-4 animate-fade-in">
       <div className="grid grid-cols-2 gap-2 max-w-[280px] mx-auto">
         {photos.map((photo, index) => (
-          <div 
-            key={index} 
-            className="relative group aspect-square animate-slide-up"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
+          <div key={index} className="relative group aspect-square">
             <img
               src={photo.photo_url}
               alt={`Photo ${photo.photo_order}`}
               className="w-full h-full object-cover rounded-xl border-2 border-white/10 group-hover:border-pink-500/50 transition-all duration-300"
+              onError={(e) => {
+                // UI Protection: Show placeholder if database already contains a broken URL
+                e.currentTarget.src = "https://placehold.co/400x400?text=Invalid+File";
+              }}
             />
             
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl flex items-center justify-center gap-2">
-              
-              {/* Removed the Star Button and Indicator Logic Here */}
-              
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={() => handleTriggerReplace(photo.photo_order)}
-                className="h-10 w-10 glass-light border-white/50 text-white hover:bg-white/20 hover:border-white transition-all duration-300 rounded-full"
-                title="Replace photo"
-              >
+              <Button size="icon" variant="outline" onClick={() => handleTriggerReplace(photo.photo_order)} className="h-10 w-10 glass-light border-white/50 text-white rounded-full">
                 <RefreshCcw className="w-5 h-5" />
               </Button>
             </div>
 
             {uploading && replacingOrder === photo.photo_order && (
-              <div className="absolute inset-0 bg-black/75 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-300">
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-pink-500 border-t-transparent"></div>
+              <div className="absolute inset-0 bg-black/75 rounded-xl flex flex-col items-center justify-center gap-1">
+                <Loader2 className="animate-spin h-6 w-6 text-pink-500" />
               </div>
             )}
           </div>
@@ -188,12 +199,10 @@ export function PhotoUpload({
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onClick={() => {
-              document.getElementById('photo-upload-input')?.click();
-            }}
+            onClick={() => document.getElementById('photo-upload-input')?.click()}
           >
             {uploading && replacingOrder === null ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-pink-500 border-t-transparent"></div>
+              <Loader2 className="animate-spin h-6 w-6 text-pink-500" />
             ) : (
               <Camera className="w-6 h-6 text-gray-400 group-hover:text-pink-400 transition-colors duration-300" />
             )}
@@ -201,22 +210,8 @@ export function PhotoUpload({
         )}
       </div>
 
-      <Input
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleFileUpload(e.target.files)}
-        className="hidden"
-        id="photo-upload-input"
-        onClick={(e) => (e.currentTarget.value = '')} 
-      />
-      <Input
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleReplaceFile(e.target.files)}
-        className="hidden"
-        id="photo-replace-input"
-        onClick={(e) => (e.currentTarget.value = '')}  
-      />   
+      <Input type="file" accept="image/*" onChange={(e) => handleFileUpload(e.target.files)} className="hidden" id="photo-upload-input" onClick={(e) => (e.currentTarget.value = '')} />
+      <Input type="file" accept="image/*" onChange={(e) => handleReplaceFile(e.target.files)} className="hidden" id="photo-replace-input" onClick={(e) => (e.currentTarget.value = '')} />   
     </div>   
   );
-} 
+}

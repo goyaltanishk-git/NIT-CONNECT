@@ -1,28 +1,28 @@
+// src/hooks/useLikes.ts
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
-// --- ADDED: Import Database types ---
 import { Database } from '@/integrations/supabase/types';
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
-// --- UPDATED: Complete Profile type ---
-// This now matches the full shape of the data we are fetching
+// Added full_name to the Profile type definition
 type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: Database["public"]["Tables"]["user_photos"]["Row"][];
-  interests: string[]; // We will map the interests to a simple string array
+  interests: string[];
   prompts: Database["public"]["Tables"]["user_prompts"]["Row"][];
   elo_rating: number | null;
+  full_name: string; 
 };
 
-// --- UPDATED: PendingLike interface ---
 export interface PendingLike {
   id: string;
   user_id: string;
   target_user_id: string;
   interaction_type: 'like' | 'superlike' | 'pass' | 'block';
   created_at: string | null;
-  profile?: Profile; // Use the complete Profile type
+  profile?: Profile;
 }
 
 export function useLikes() {
@@ -33,10 +33,12 @@ export function useLikes() {
   const fetchPendingLikes = useCallback(async () => {
     try {
       setLoading(true);
-        const userd  = encryptedStorage.get('current-user');
+      const userd = encryptedStorage.get('current-user');
+      if (!userd) return;
+      
+      const user = JSON.parse(userd);
 
-               const user = JSON.parse(userd);
-      // Get interactions where others liked current user
+      // STEP 1: Fetch interactions where others liked current user
       const { data: interactions, error } = await supabase
         .from('user_interactions')
         .select('*')
@@ -44,11 +46,9 @@ export function useLikes() {
         .in('interaction_type', ['like', 'superlike'])
         .order('created_at', { ascending: false });
 
-      if (error) {
-        return;
-      }
+      if (error || !interactions) return;
 
-     // Filter out matches (mutual likes)
+      // STEP 2: Filter out existing mutual matches
       const { data: matches } = await supabase
         .from('matches')
         .select('user1_id, user2_id')
@@ -60,90 +60,98 @@ export function useLikes() {
         ) || []
       );
 
-      const pendingInteractions = interactions?.filter(
-        interaction => !matchedUserIds.has(interaction.user_id) && 
-        (interaction.interaction_type === 'like' || interaction.interaction_type === 'superlike')
-      ) || [];
+      const pendingInteractions = interactions.filter(
+        interaction => !matchedUserIds.has(interaction.user_id)
+      );
 
-      // --- UPDATED: Get profile data for each interaction ---
-      const transformedLikes = await Promise.all(pendingInteractions.map(async (interaction) => {
-        
-        // 1. Get ALL profile data
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*') // --- UPDATED: Select all columns
-          .eq('email', interaction.user_id)
-          .single();
-       
-        // 2. Get ALL photo data
-        const { data: photos } = await supabase
-          .from('user_photos')
-          .select('*') // --- UPDATED: Select all columns
-          .eq('user_email', interaction.user_id)
-          .order('photo_order');
+      // STEP 3: Fetch and Filter by Active Profiles
+      const transformedLikesRaw = await Promise.all(
+        pendingInteractions.map(async (interaction): Promise<PendingLike | null> => {
           
-        // --- ADDED: 3. Get interests ---
-        const { data: interestsData } = await supabase
-          .from('user_interests')
-          .select('interest')
-          .eq('user_email', interaction.user_id);
-          
-        // --- ADDED: 4. Get prompts (needs profileData.user_id) ---
-        const { data: prompts } = await supabase
-          .from('user_prompts')
-          .select('*')
-          .eq('user_id', profileData.user_id)
-          .order('prompt_order');
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', interaction.user_id)
+            .single();
 
-        // --- ADDED: 5. Get ELO rating (needs profileData.user_id) ---
-        const { data: eloData } = await supabase
-          .from('elo_ratings')
-          .select('rating')
-          .eq('user_id', profileData.user_id)
-          .single();
-
-         // --- This is your incognito logic ---
-         // Be aware this might hide the real data you just fetched
-         profileData.first_name=getDisplayName(profileData);
-         profileData.year_of_study=getDisplayDetails(profileData).year;
-         profileData.branch=getDisplayDetails(profileData).branch;
-         profileData.height=getDisplayDetails(profileData).height;
-          profileData.hometown=getDisplayDetails(profileData).hometown;
-          profileData.bio=getDisplayBio(profileData);
-
-         const photoUrls=getDisplayPhotos(profileData, photos?.map(p=>(p.photo_url)) || []);
-         // --- End of incognito logic ---
-
-        // --- UPDATED: Assemble the complete profile object ---
-        return {
-          ...interaction,
-          interaction_type: interaction.interaction_type as 'like' | 'superlike',
-          profile: {
-            ...profileData,
-            // Map your incognito-safe photo URLs back to the structure the dialog expects
-            photos: (photoUrls || []).map((url, index) => {
-              // Try to find the original photo object to keep its data
-              const originalPhoto = photos?.find(p => p.photo_url === url);
-              return {
-                photo_url: url,
-                photo_order: originalPhoto?.photo_order || index,
-                user_email: interaction.user_id,
-                is_primary: originalPhoto?.is_primary || (index === 0),
-                is_verified: originalPhoto?.is_verified || false,
-                created_at: originalPhoto?.created_at || null
-              };
-            }),
-            // Map the fetched interests into a simple string array
-            interests: (interestsData || []).map(i => i.interest),
-            prompts: prompts || [],
-            elo_rating: eloData?.rating || null,
+          // Filter out deactivated accounts
+          if (!profileData || profileData.is_active === false) {
+            return null;
           }
-        };
-      }));
          
-      setPendingLikes(transformedLikes.filter(like => 
-        like.interaction_type === 'like' || like.interaction_type === 'superlike'
-      ));
+          const { data: photos } = await supabase
+            .from('user_photos')
+            .select('*')
+            .eq('user_email', interaction.user_id)
+            .order('photo_order');
+            
+          const { data: interestsData } = await supabase
+            .from('user_interests')
+            .select('interest')
+            .eq('user_email', interaction.user_id);
+            
+          const { data: prompts } = await supabase
+            .from('user_prompts')
+            .select('*')
+            .eq('user_id', profileData.user_id)
+            .order('prompt_order');
+
+          const { data: eloData } = await supabase
+            .from('elo_ratings')
+            .select('rating')
+            .eq('user_id', profileData.user_id)
+            .single();
+
+           // --- Name Logic Fix ---
+           const f = profileData.first_name || '';
+           const l = profileData.last_name || '';
+           const full = `${f} ${l}`.trim();
+           
+           // 1. If ends in "null", only show first name
+           // 2. If first name already contains last name, don't duplicate
+           let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
+           if (l && f.toLowerCase().includes(l.toLowerCase())) {
+             cleanedFullName = f;
+           }
+
+           const safeProfile = { ...profileData };
+           safeProfile.first_name = getDisplayName(profileData);
+           safeProfile.year_of_study = getDisplayDetails(profileData).year;
+           safeProfile.branch = getDisplayDetails(profileData).branch;
+           safeProfile.height = getDisplayDetails(profileData).height;
+           safeProfile.hometown = getDisplayDetails(profileData).hometown;
+           safeProfile.bio = getDisplayBio(profileData);
+
+           const photoUrls = getDisplayPhotos(profileData, photos?.map(p => p.photo_url) || []);
+
+          return {
+            ...interaction,
+            interaction_type: interaction.interaction_type as any,
+            profile: {
+              ...safeProfile,
+              full_name: cleanedFullName, // Full name for details screen
+              photos: (photoUrls || []).map((url, index) => {
+                const originalPhoto = photos?.find(p => p.photo_url === url);
+                return {
+                  photo_url: url,
+                  photo_order: originalPhoto?.photo_order || index,
+                  user_email: interaction.user_id,
+                  is_primary: originalPhoto?.is_primary || (index === 0),
+                  is_verified: originalPhoto?.is_verified || false,
+                  created_at: originalPhoto?.created_at ? originalPhoto.created_at : new Date().toISOString()
+                };
+              }),
+              interests: (interestsData || []).map(i => i.interest),
+              prompts: prompts || [],
+              elo_rating: eloData?.rating || null,
+            }
+          };
+        })
+      );
+         
+      const cleanLikes = transformedLikesRaw.filter((like): like is PendingLike => like !== null);
+      setPendingLikes(cleanLikes);
+
     } catch (error) {
       toast({
         title: "Error loading likes",
@@ -157,62 +165,47 @@ export function useLikes() {
 
   const handleLikeBack = useCallback(async (interactionId: string, targetUserId: string) => {
     try {
-      
-      // Create reciprocal like
       const { error: likeError } = await supabase
         .from('user_interactions')
         .insert({
           user_id: interactionId,
-          target_user_id:targetUserId ,
+          target_user_id: targetUserId,
           interaction_type: 'like'
         });
 
       if (likeError) throw likeError;
 
-
-      // Remove from pending likes
       setPendingLikes(prev => prev.filter(like => like.user_id !== targetUserId));
-
       toast({
         title: "It's a Match! 🎉",
-        description: "You both liked each other! Start chatting now.",
+        description: "You both liked each other!",
       });
-
       return true;
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create match. Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to create match.", variant: "destructive" });
       return false;
     }
   }, [toast]);
 
   const handlePass = useCallback(async (targetUserId: string) => {
-  try {
-    const userd = encryptedStorage.get("current-user");
-    const user = JSON.parse(userd);
+    try {
+      const userd = encryptedStorage.get("current-user");
+      if (!userd) return false;
+      const user = JSON.parse(userd);
 
-    const { error } = await supabase
-      .from("user_interactions")
-      .update({ interaction_type: "pass" }) // overwrite like/superlike
-      .eq("user_id", targetUserId)              // the one who liked me
-      .eq("target_user_id", user.email);        // me (the receiver)
+      const { error } = await supabase
+        .from("user_interactions")
+        .update({ interaction_type: "pass" })
+        .eq("user_id", targetUserId)
+        .eq("target_user_id", user.email);
 
-    if (error) {
+      if (error) return false;
+      setPendingLikes(prev => prev.filter(like => like.user_id !== targetUserId));
+      return true;
+    } catch (error) {
       return false;
     }
-
-    // Update UI
-    setPendingLikes(prev => prev.filter(like => like.user_id !== targetUserId));
-
-    return true;
-  } catch (error) {
-    return false;
-  }
-}, []);
-
+  }, []);
 
   useEffect(() => {
     fetchPendingLikes();

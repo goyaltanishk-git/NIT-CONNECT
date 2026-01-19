@@ -74,7 +74,9 @@ export function ProfileScreen() {
     };
 
     return {
-      name: `${dbProfile.first_name} ${dbProfile.last_name}`.trim(),
+      name: (dbProfile.last_name && dbProfile.last_name !== "NULL")
+        ? `${dbProfile.first_name} ${dbProfile.last_name}`.trim()
+        : dbProfile.first_name,
       age: calculateAge(dbProfile.date_of_birth || '2000-01-01'),
       bio: dbProfile.bio || "No bio yet. Add one!",
       year: dbProfile.year_of_study || "N/A",

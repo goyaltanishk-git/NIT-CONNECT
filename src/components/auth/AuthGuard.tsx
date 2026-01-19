@@ -76,7 +76,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   const syncInterval = setInterval(async () => {
     const liveStatus = await AuthService.getUserProfile(userEmail);
-    
+     
     // 1. Hard Delete Check: If the row is actually gone
     if (!liveStatus) {
       AuthService.clearCurrentUser();    
