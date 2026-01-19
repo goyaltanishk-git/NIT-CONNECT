@@ -139,7 +139,6 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
     if (photos.length + files.length > MAX_PHOTOS) {
       const msg = `You can only upload a maximum of ${MAX_PHOTOS} photos.`;
       triggerError(msg); 

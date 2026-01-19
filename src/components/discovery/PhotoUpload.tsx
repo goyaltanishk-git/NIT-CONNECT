@@ -13,6 +13,9 @@ interface PhotoUploadProps {
   maxPhotos?: number;
 }
 
+// SECURITY: Define a strict whitelist of allowed image extensions
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+
 export function PhotoUpload({ 
   userEmail, 
   photos, 
@@ -25,22 +28,38 @@ export function PhotoUpload({
   const { toast } = useToast();
 
   /**
-   * FIX: Storage-First Upload
-   * Ensures the DB record is ONLY created after the file is confirmed in the bucket.
+   * SECURITY HELPER: Validates both the MIME type and the file extension
    */
+  const isValidImage = (file: File): boolean => {
+    // 1. Check MIME type provided by the browser
+    if (!file.type.startsWith('image/')) return false;
+
+    // 2. Check File Extension (Critical for preventing code file uploads)
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) return false;
+
+    return true;
+  };
+
   const handleFileUpload = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const file = files[0];
     
-    // Validations
-    if (!file.type.startsWith('image/')) {
-      toast({ title: 'Invalid file', description: 'Please upload an image.', variant: 'destructive' });
+    // VALIDATION: Block non-image files
+    if (!isValidImage(file)) {
+      toast({ 
+        title: 'Security Blocked', 
+        description: 'Only images (JPG, PNG, WEBP) are allowed for your profile.', 
+        variant: 'destructive' 
+      });
       return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
       toast({ title: 'File too large', description: 'Max size is 5MB.', variant: 'destructive' });
       return;
     }
+
     if (photos.length >= maxPhotos) {
       toast({ title: 'Limit reached', description: `Max ${maxPhotos} photos allowed.`, variant: 'destructive' });
       return;
@@ -49,15 +68,12 @@ export function PhotoUpload({
     setUploading(true);
 
     try {
-      // 1. ATTEMPT STORAGE UPLOAD FIRST
+      // Storage-First Upload
       const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
-
-      // 2. VERIFY URL INTEGRITY
       if (!photoUrl || !photoUrl.startsWith('https://')) {
-        throw new Error("Storage returned an invalid URL. Aborting database update.");
+        throw new Error("Invalid URL returned from storage.");
       }
 
-      // 3. UPDATE DATABASE ONLY AFTER STORAGE SUCCESS
       const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.photo_order)) + 1 : 1;
       const isPrimary = photos.length === 0;
 
@@ -65,23 +81,14 @@ export function PhotoUpload({
       
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
-      toast({ title: 'Photo uploaded successfully!' });
+      toast({ title: 'Photo uploaded!' });
     } catch (error) {
-      console.error("Upload Error:", error);
-      toast({ 
-        title: 'Upload failed', 
-        description: 'The image could not be saved to our servers. Check your connection.', 
-        variant: 'destructive' 
-      });
+      toast({ title: 'Upload failed', description: 'Please check your connection.', variant: 'destructive' });
     } finally {
       setUploading(false);
     }
   }, [userEmail, photos, maxPhotos, onPhotosUpdate, toast]);
 
-  /**
-   * FIX: Safety Replace Logic
-   * Uploads the new image before removing the old one to prevent empty database rows.
-   */
   const handleReplaceFile = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0 || replacingOrder === null) {
       setReplacingOrder(null);
@@ -89,17 +96,28 @@ export function PhotoUpload({
     }
     
     const file = files[0];
+
+    // VALIDATION: Block non-image files during replacement [The "Hack" Fix]
+    if (!isValidImage(file)) {
+      toast({ 
+        title: 'Invalid File Type', 
+        description: 'This file is not a valid image format.', 
+        variant: 'destructive' 
+      });
+      setReplacingOrder(null);
+      return;
+    }
+
     setUploading(true); 
 
     try {
       const photoToReplace = photos.find(p => p.photo_order === replacingOrder);
       if (!photoToReplace) throw new Error("Target photo not found.");
 
-      // 1. UPLOAD NEW PHOTO FIRST (Safety step)
       const newPhotoUrl = await PhotoService.uploadPhoto(file, userEmail);
       if (!newPhotoUrl.startsWith('https://')) throw new Error("New photo storage failed.");
 
-      // 2. DELETE OLD STORAGE FILE ONLY AFTER NEW ONE IS SECURED
+      // Cleanup old file from bucket
       let oldFilePath = "";
       try {
           oldFilePath = new URL(photoToReplace.photo_url).pathname.split('/user-photos/')[1];
@@ -109,23 +127,14 @@ export function PhotoUpload({
           await supabase.storage.from("user-photos").remove([oldFilePath]); 
       }
 
-      // 3. UPDATE DB WITH THE NEW URL (Atomic update)
-      // Assuming PhotoService has an update method, otherwise delete/insert
       await PhotoService.deletePhoto(userEmail, replacingOrder);
       await PhotoService.addUserPhoto(userEmail, newPhotoUrl, replacingOrder, photoToReplace.is_primary);
 
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
-      
-      toast({ title: 'Photo replaced successfully!' });
-
+      toast({ title: 'Photo replaced!' });
     } catch (error) {
-      console.error("Replace Error:", error);
-      toast({ 
-        title: 'Replace failed', 
-        description: 'Failed to upload new image. Your old photo remains active.', 
-        variant: 'destructive' 
-      });
+      toast({ title: 'Replace failed', description: "Failed to update image.", variant: 'destructive' });
     } finally {
       setUploading(false);
       setReplacingOrder(null); 
@@ -157,35 +166,25 @@ export function PhotoUpload({
     <div className="space-y-4 animate-fade-in">
       <div className="grid grid-cols-2 gap-2 max-w-[280px] mx-auto">
         {photos.map((photo, index) => (
-          <div 
-            key={index} 
-            className="relative group aspect-square animate-slide-up"
-            style={{ animationDelay: `${index * 0.1}s` }}
-          >
+          <div key={index} className="relative group aspect-square">
             <img
               src={photo.photo_url}
               alt={`Photo ${photo.photo_order}`}
               className="w-full h-full object-cover rounded-xl border-2 border-white/10 group-hover:border-pink-500/50 transition-all duration-300"
               onError={(e) => {
-                // Handle the 404 broken images in the UI
-                e.currentTarget.src = "https://placehold.co/400x400?text=Broken+Image";
+                // UI Protection: Show placeholder if database already contains a broken URL
+                e.currentTarget.src = "https://placehold.co/400x400?text=Invalid+File";
               }}
             />
             
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-xl flex items-center justify-center gap-2">
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={() => handleTriggerReplace(photo.photo_order)}
-                className="h-10 w-10 glass-light border-white/50 text-white hover:bg-white/20 hover:border-white transition-all duration-300 rounded-full"
-                title="Replace photo"
-              >
+              <Button size="icon" variant="outline" onClick={() => handleTriggerReplace(photo.photo_order)} className="h-10 w-10 glass-light border-white/50 text-white rounded-full">
                 <RefreshCcw className="w-5 h-5" />
               </Button>
             </div>
 
             {uploading && replacingOrder === photo.photo_order && (
-              <div className="absolute inset-0 bg-black/75 rounded-xl flex flex-col items-center justify-center gap-1 transition-all duration-300">
+              <div className="absolute inset-0 bg-black/75 rounded-xl flex flex-col items-center justify-center gap-1">
                 <Loader2 className="animate-spin h-6 w-6 text-pink-500" />
               </div>
             )}
@@ -211,22 +210,8 @@ export function PhotoUpload({
         )}
       </div>
 
-      <Input
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleFileUpload(e.target.files)}
-        className="hidden"
-        id="photo-upload-input"
-        onClick={(e) => (e.currentTarget.value = '')} 
-      />
-      <Input
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleReplaceFile(e.target.files)}
-        className="hidden"
-        id="photo-replace-input"
-        onClick={(e) => (e.currentTarget.value = '')}  
-      />   
+      <Input type="file" accept="image/*" onChange={(e) => handleFileUpload(e.target.files)} className="hidden" id="photo-upload-input" onClick={(e) => (e.currentTarget.value = '')} />
+      <Input type="file" accept="image/*" onChange={(e) => handleReplaceFile(e.target.files)} className="hidden" id="photo-replace-input" onClick={(e) => (e.currentTarget.value = '')} />   
     </div>   
   );
 }
