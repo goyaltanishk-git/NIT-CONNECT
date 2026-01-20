@@ -14,6 +14,7 @@ export class PhotoService {
   static async uploadPhoto(file: File, userEmail: string): Promise<string> {
     try {
       const fileExt = file.name.split('.').pop();
+      
       const fileName = `${userEmail}/${uuidv4()}.${fileExt}`;
       
       
