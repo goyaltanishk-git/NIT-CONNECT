@@ -248,62 +248,70 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
+
+// Replace your existing handleSubmit with this version
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!validateForm()) return;
 
   setLoading(true);
-  const uploadedPhotoPaths: string[] = [];
+  const uploadedPaths: string[] = [];
   
   try {
-    // 1. Upload to Storage (Keep track for rollback)
-    const uploadedPhotos = await Promise.all(photos.map(async (photo) => {
-      const file = photo.file;
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userEmail}/${uuidv4()}.${fileExt}`;
-
-      const { error } = await supabase.storage.from('user-photos').upload(fileName, file);
+    // 1. UPLOAD PHOTOS TO STORAGE FIRST
+    const uploadedPhotos = await Promise.all(photos.map(async (p) => {
+      const ext = p.file.name.split('.').pop()?.toLowerCase();
+      if (!ext || !ALLOWED_EXTS.includes(ext)) throw new Error("Invalid file type.");
+      
+      const path = `${userEmail}/${uuidv4()}.${ext}`;
+      const { error } = await supabase.storage.from('user-photos').upload(path, p.file);
       if (error) throw error;
       
-      uploadedPhotoPaths.push(fileName);
-      const { data: { publicUrl } } = supabase.storage.from('user-photos').getPublicUrl(fileName);
-      return { url: publicUrl, order: photo.order };
+      uploadedPaths.push(path);
+      const { data: { publicUrl } } = supabase.storage.from('user-photos').getPublicUrl(path);
+      return { url: publicUrl, order: p.order };
     }));
 
-    // 2. Save Interests
+    // 2. SAVE INTERESTS (Mandatory confirmation)
     await InterestsService.updateUserInterests(userEmail, interests);
 
-    // 3. Save Photo DB Records
-    const photoInsertPayload = uploadedPhotos.map((p, index) => ({
+    // 3. SAVE PHOTO DB RECORDS
+    const photoPayload = uploadedPhotos.map((p, i) => ({
       user_email: userEmail,
       photo_url: p.url,
       photo_order: p.order,
-      is_primary: index === 0,
+      is_primary: i === 0,
     }));
+    // Clean old broken attempts before inserting new ones
     await supabase.from('user_photos').delete().eq('user_email', userEmail);
-    const { error: photosError } = await supabase.from('user_photos').insert(photoInsertPayload);
-    if (photosError) throw photosError;
+    const { error: photoErr } = await supabase.from('user_photos').insert(photoPayload);
+    if (photoErr) throw photoErr;
 
-    // 4. THE GATEKEEPER: Mark active ONLY after everything else is safe
-    const profileUpdatePayload = {
+    // 4. LAST STEP: Mark profile as active only if everything above worked
+    // FIX: Parse height to number and map fields explicitly to resolve TS(2345)
+    const { error: profileErr } = await supabase.from('profiles').update({
       date_of_birth: formData.date_of_birth,
       bio: formData.bio.trim(),
-      height: parseInt(formData.height),
+      height: parseInt(formData.height), // ✅ Convert string to number
       hometown: formData.hometown.trim(),
-      is_active: true, // Moved to the end
-    };
+      phone_number: formData.phone_number.trim() || null, // Convert empty string to null
+      instagram_handle: formData.instagram_handle.trim() || null,
+      is_active: true 
+    }).eq('email', userEmail);
+    
+    if (profileErr) throw profileErr;
 
-    const { error: profileError } = await supabase.from('profiles').update(profileUpdatePayload).eq('email', userEmail);
-    if (profileError) throw profileError;
-
-    onComplete(await AuthService.getUserProfile(userEmail) as any);
+    // Load final profile and move user to main app
+    const finalProfile = await AuthService.getUserProfile(userEmail);
+    onComplete(finalProfile as any);
 
   } catch (error: any) {
-    // ROLLBACK: Remove storage files if DB fails
-    if (uploadedPhotoPaths.length > 0) {
-      await supabase.storage.from('user-photos').remove(uploadedPhotoPaths);
+    // ROLLBACK: Cleanup orphan photos in storage if DB update failed
+    if (uploadedPaths.length > 0) {
+      await supabase.storage.from('user-photos').remove(uploadedPaths);
     }
-    triggerError(error.message || "Failed to save profile. Please check your connection.");
+    triggerError(error.message || "Connection lost. Please try again.");
   } finally {
     setLoading(false);
   }
