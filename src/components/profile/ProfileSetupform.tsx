@@ -249,72 +249,65 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  const uploadedPhotoPaths: string[] = [];
+  
+  try {
+    // 1. Upload to Storage (Keep track for rollback)
+    const uploadedPhotos = await Promise.all(photos.map(async (photo) => {
+      const file = photo.file;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userEmail}/${uuidv4()}.${fileExt}`;
 
-    const uploadedPhotoPaths: string[] = [];
-    
-    try {
-      const photoUploadPromises = photos.map(async (photo) => {
-        const file = photo.file;
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${userEmail}/${uuidv4()}.${fileExt}`;
-
-        const { error } = await supabase.storage.from('user-photos').upload(fileName, file, { cacheControl: '3600', upsert: false });
-        if (error) throw new Error(`Photo upload failed: ${error.message}`);
-        
-        uploadedPhotoPaths.push(fileName);
-        const { data: { publicUrl } } = supabase.storage.from('user-photos').getPublicUrl(fileName);
-        return { url: publicUrl, order: photo.order };
-      });
+      const { error } = await supabase.storage.from('user-photos').upload(fileName, file);
+      if (error) throw error;
       
-      const uploadedPhotos = await Promise.all(photoUploadPromises);
+      uploadedPhotoPaths.push(fileName);
+      const { data: { publicUrl } } = supabase.storage.from('user-photos').getPublicUrl(fileName);
+      return { url: publicUrl, order: photo.order };
+    }));
 
-      const profileUpdatePayload = {
-        date_of_birth: formData.date_of_birth,
-        bio: formData.bio.trim(),
-        is_active: true,
-        height: parseInt(formData.height),
-        hometown: formData.hometown.trim(),
-        phone_number: formData.phone_number.trim() || null,
-        instagram_handle: formData.instagram_handle.trim() || null,
-      };
+    // 2. Save Interests
+    await InterestsService.updateUserInterests(userEmail, interests);
 
-      const photoInsertPayload = uploadedPhotos.map((p, index) => ({
-        user_email: userEmail,
-        photo_url: p.url,
-        photo_order: p.order,
-        is_primary: index === 0,
-        is_verified: false,
-      }));
+    // 3. Save Photo DB Records
+    const photoInsertPayload = uploadedPhotos.map((p, index) => ({
+      user_email: userEmail,
+      photo_url: p.url,
+      photo_order: p.order,
+      is_primary: index === 0,
+    }));
+    await supabase.from('user_photos').delete().eq('user_email', userEmail);
+    const { error: photosError } = await supabase.from('user_photos').insert(photoInsertPayload);
+    if (photosError) throw photosError;
 
-      await supabase.from('user_photos').delete().eq('user_email', userEmail);
-      
-      const { error: profileError } = await supabase.from('profiles').update(profileUpdatePayload).eq('email', userEmail);
-      if (profileError) throw profileError;
+    // 4. THE GATEKEEPER: Mark active ONLY after everything else is safe
+    const profileUpdatePayload = {
+      date_of_birth: formData.date_of_birth,
+      bio: formData.bio.trim(),
+      height: parseInt(formData.height),
+      hometown: formData.hometown.trim(),
+      is_active: true, // Moved to the end
+    };
 
-      const { error: photosError } = await supabase.from('user_photos').insert(photoInsertPayload);
-      if (photosError) throw photosError;
+    const { error: profileError } = await supabase.from('profiles').update(profileUpdatePayload).eq('email', userEmail);
+    if (profileError) throw profileError;
 
-      await InterestsService.updateUserInterests(userEmail, interests);
+    onComplete(await AuthService.getUserProfile(userEmail) as any);
 
-      const finalProfile = await AuthService.getUserProfile(userEmail);
-      onComplete(finalProfile!);
-
-    } catch (error: any) {
-      const msg = error.message || 'Failed to save profile. Please try again.';
-      triggerError(msg); 
-
-      if (uploadedPhotoPaths.length > 0) {
-        await supabase.storage.from('user-photos').remove(uploadedPhotoPaths);
-      }
-    } finally {
-      setLoading(false);
+  } catch (error: any) {
+    // ROLLBACK: Remove storage files if DB fails
+    if (uploadedPhotoPaths.length > 0) {
+      await supabase.storage.from('user-photos').remove(uploadedPhotoPaths);
     }
-  };
+    triggerError(error.message || "Failed to save profile. Please check your connection.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Helper logic for Year Display to avoid double "Year"
   const getFormattedYear = () => {

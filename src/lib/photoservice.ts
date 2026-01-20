@@ -27,7 +27,9 @@ export class PhotoService {
       if (error) {
         throw error;
       }
-
+      if (!data || !data.path) {
+      throw new Error("Upload completed but no file path was returned.");
+    }
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('user-photos')

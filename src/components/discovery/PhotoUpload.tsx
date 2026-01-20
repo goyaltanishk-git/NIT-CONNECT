@@ -66,18 +66,20 @@ export function PhotoUpload({
     }
 
     setUploading(true);
+try {
+  const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
 
-    try {
-      // Storage-First Upload
-      const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
-      if (!photoUrl || !photoUrl.startsWith('https://')) {
-        throw new Error("Invalid URL returned from storage.");
-      }
+  // FIX: Fetch the current latest order from the DB right before adding
+  const { data: existingPhotos } = await supabase
+    .from('user_photos')
+    .select('photo_order')
+    .eq('user_email', userEmail);
+    
+  const dbNextOrder = existingPhotos && existingPhotos.length > 0 
+    ? Math.max(...existingPhotos.map(p => p.photo_order)) + 1 
+    : 1;
 
-      const nextOrder = photos.length > 0 ? Math.max(...photos.map(p => p.photo_order)) + 1 : 1;
-      const isPrimary = photos.length === 0;
-
-      await PhotoService.addUserPhoto(userEmail, photoUrl, nextOrder, isPrimary);
+  await PhotoService.addUserPhoto(userEmail, photoUrl, dbNextOrder, dbNextOrder === 1);
       
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
