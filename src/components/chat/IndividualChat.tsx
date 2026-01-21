@@ -139,8 +139,6 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
     id: 0, // This is faked, UserProfileDialog should rely on user_id
     last_name: '', // Not available
     interests: [], // Not available from the 'user' prop
-    prompts: [],   // Not available from the 'user' prop
-    elo_rating: null,
     updated_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
     email: '', // Not available

@@ -268,8 +268,7 @@ export function ProfileScreen() {
       ...profile,
       photos: photos,
       interests: user.interests,
-      prompts: profile.prompts || [],
-      elo_rating: profile.elo_rating || null
+      prompts: profile.prompts || []
   } : null;
 
   return (
