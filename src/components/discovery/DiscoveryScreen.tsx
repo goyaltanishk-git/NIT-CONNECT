@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { DiscoveryScreenIntegrated } from "./DiscoveryScreenIntegrated";
 import { SAMPLE_PROFILES, Profile } from "@/data/sampleProfiles";
-import { useEloRating } from "@/hooks/useEloRating";
 import { filterProfile } from "@/utils/contentFilter";
 import{encryptedStorage} from "@/utils/encryptedStorage";
 
@@ -33,11 +32,9 @@ function DiscoveryScreenDemo() {
   const [swipeCount, setSwipeCount] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
-  const [userEloRating, setUserEloRating] = useState(1000);
   const [dailyLikes, setDailyLikes] = useState(0);
   const [passedProfiles, setPassedProfiles] = useState<string[]>([]);
   const { toast } = useToast();
-  const { updateRating, getUserRating, getRatingTier } = useEloRating();
 
   // Daily limits constants
   const DAILY_LIKE_LIMIT = 2;
@@ -47,12 +44,10 @@ function DiscoveryScreenDemo() {
     initializeUserData();
   }, []);
 
-  // ✅ once userEloRating is ready, load profiles
+  // ✅ load profiles after initialization
   useEffect(() => {
-    if (userEloRating) {
-      loadProfiles();
-    }
-  }, [userEloRating]);
+    loadProfiles();
+  }, []);
 
   // Check if it's a new day and reset limits
   const checkAndResetDailyLimits = () => {
@@ -110,16 +105,12 @@ function DiscoveryScreenDemo() {
       const tempUser = localStorage.getItem('temp-user');
       if (tempUser) {
         const userData = JSON.parse(tempUser);
-        setUserEloRating(userData.eloRating || 1000);
         setDailyLikes(userData.dailyLikes || 0);
         setPassedProfiles(userData.passedProfiles || []);
       } else {
         // In real mode, fetch from database
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const rating = await getUserRating(user.id);
-          setUserEloRating(rating?.rating || 1000);
-          
           // Get daily limits
           const today = new Date().toISOString().split('T')[0];
           const { data: limits } = await supabase
@@ -138,19 +129,12 @@ function DiscoveryScreenDemo() {
 
   const loadProfiles = async () => {
     try {
-      // Filter inappropriate content and sort by ELO rating for better matches
+      // Filter inappropriate content
       const filteredProfiles = SAMPLE_PROFILES
         .filter(profile => {
           const contentCheck = filterProfile(profile);
           return (contentCheck.isAppropriate || contentCheck.severity === 'low') && 
                  !passedProfiles.includes(profile.user_id);
-        })
-        .sort((a, b) => {
-          // Sort by ELO rating similarity to user for better matches
-          const userRating = userEloRating || 1000;
-          const diffA = Math.abs((a.elo_rating || 1000) - userRating);
-          const diffB = Math.abs((b.elo_rating || 1000) - userRating);
-          return diffA - diffB;
         });
 
       // Fallback to all sample profiles if filtering removed everything
@@ -228,15 +212,8 @@ function DiscoveryScreenDemo() {
       let isMatch = false;
       
       if (tempUser) {
-        // Simulate match probability based on ELO ratings
-        const userRating = userEloRating || 1000;
-        const profileRating = profile.elo_rating || 1000;
-        const ratingDiff = Math.abs(userRating - profileRating);
-        
-        // Higher chance of match with similar ELO ratings
+        // Simulate match probability (simple random chance)
         let matchChance = 0.25;
-        if (ratingDiff < 100) matchChance += 0.2;
-        if (ratingDiff < 50) matchChance += 0.1;
         
         isMatch = action !== 'pass' && Math.random() < matchChance;
         
@@ -293,9 +270,6 @@ function DiscoveryScreenDemo() {
             interaction_type: action
           });
           
-          // Update ELO ratings
-          await updateRating(user.id, profile.user_id, action, isMatch);
-          
           // Update daily limits
           const today = new Date().toISOString().split('T')[0];
           const { data: limits } = await supabase
@@ -336,7 +310,7 @@ function DiscoveryScreenDemo() {
     } catch (error) {
       setSwipeAnimation(null);
     }
-  }, [currentIndex, profiles, dailyLikes, userEloRating, passedProfiles, toast, updateRating]);
+  }, [currentIndex, profiles, dailyLikes, passedProfiles, toast]);
 
   // ✅ Enhanced Loading State
   if (loading) {

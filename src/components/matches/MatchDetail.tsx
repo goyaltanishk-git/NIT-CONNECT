@@ -16,7 +16,6 @@ interface User {
   year?: number;
   branch?: string;
   hometown?: string;
-  prompts?: { question: string; answer: string }[];
 }
 
 interface MatchDetailProps {
@@ -156,22 +155,6 @@ export function MatchDetail({ user, matchedAt, onBack, onMessage }: MatchDetailP
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          {/* Prompts */}
-          {user.prompts && user.prompts.length > 0 && (
-            <div className="space-y-3">
-              {user.prompts.map((prompt, index) => (
-                <Card key={index}>
-                  <CardContent className="p-4">
-                    <h4 className="font-medium text-primary mb-2">{prompt.question}</h4>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {prompt.answer}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           )}
         </div>
       </div>

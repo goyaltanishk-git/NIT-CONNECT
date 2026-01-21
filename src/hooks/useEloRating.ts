@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface EloRating {
   user_id: string;
@@ -33,18 +32,16 @@ export function useEloRating() {
     isMatch: boolean = false
   ) => {
     try {
-      // Get current ratings for both users
-      const { data: userRatings } = await supabase
-        .from('elo_ratings')
-        .select('*')
-        .in('user_id', [userId, targetUserId]);
+      // Mock data - simulating what would come from API
+      const mockUserRatings = [
+        { user_id: userId, rating: 1000, likes_given: 0, likes_received: 0, matches_count: 0, last_updated: new Date().toISOString() },
+        { user_id: targetUserId, rating: 1000, likes_given: 0, likes_received: 0, matches_count: 0, last_updated: new Date().toISOString() }
+      ];
 
-      if (!userRatings || userRatings.length < 2) return;
+      const currentUser = mockUserRatings.find(r => r.user_id === userId);
+      const targetUser = mockUserRatings.find(r => r.user_id === targetUserId);
 
-      const currentUser = userRatings.find(r => r.user_id === userId);
-      const targetUser = userRatings.find(r => r.user_id === targetUserId);
-
-      if (!currentUser || !targetUser) return;
+      if (!currentUser || !targetUser) return null;
 
       // Determine interaction results for ELO calculation
       let result = 0.5; // Default tie
@@ -70,7 +67,7 @@ export function useEloRating() {
       const newUserRating = Math.max(500, currentUser.rating + userRatingChange); // Minimum rating of 500
       const newTargetRating = Math.max(500, targetUser.rating + targetRatingChange);
 
-      // Update statistics
+      // Update statistics (in-memory only, no API call)
       const userUpdates = {
         rating: newUserRating,
         likes_given: interaction === 'like' || interaction === 'superlike' 
@@ -89,17 +86,8 @@ export function useEloRating() {
         last_updated: new Date().toISOString()
       };
 
-      // Update database
-      await Promise.all([
-        supabase
-          .from('elo_ratings')
-          .update(userUpdates)
-          .eq('user_id', userId),
-        supabase
-          .from('elo_ratings')
-          .update(targetUpdates)
-          .eq('user_id', targetUserId)
-      ]);
+      // Log the updates instead of saving to database
+      console.log('ELO Rating Update (Local Only):', { userUpdates, targetUpdates });
 
       return {
         userRatingChange,
@@ -109,43 +97,26 @@ export function useEloRating() {
       };
 
     } catch (error) {
+      console.error('ELO rating calculation error:', error);
       return null;
     }
   }, [calculateEloChange]);
 
   const getUserRating = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('elo_ratings')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      // Return mock initial rating instead of fetching from API
+      const initialRating: EloRating = {
+        user_id: userId,
+        rating: BASE_RATING,
+        likes_given: 0,
+        likes_received: 0,
+        matches_count: 0
+      };
 
-      if (error && error.code !== 'PGRST116') {
-        return null;
-      }
-
-      if (!data) {
-        // Create initial rating for user
-        const initialRating = {
-          user_id: userId,
-          rating: BASE_RATING,
-          likes_given: 0,
-          likes_received: 0,
-          matches_count: 0
-        };
-
-        const { data: newRating } = await supabase
-          .from('elo_ratings')
-          .insert(initialRating)
-          .select()
-          .single();
-
-        return newRating;
-      }
-
-      return data;
+      console.log('Getting user rating (Local Only):', initialRating);
+      return initialRating;
     } catch (error) {
+      console.error('Get user rating error:', error);
       return null;
     }
   }, []);

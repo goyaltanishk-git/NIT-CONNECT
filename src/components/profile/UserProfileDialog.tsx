@@ -28,8 +28,6 @@ type UserPrompt = Database["public"]["Tables"]["user_prompts"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: ProfilePhoto[];
   interests: string[];
-  prompts: UserPrompt[];
-  elo_rating?: number | null;
   full_name?: string;
 };
 
@@ -261,14 +259,6 @@ export function UserProfileDialog({
               </h2>
             </div>
 
-            {/* ELO Rating */}
-            {profile.elo_rating && (
-              <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/20 rounded-lg px-2 py-1 text-sm text-white">
-                <Star className="w-4 h-4 text-yellow-400" />
-                Rating: {profile.elo_rating}
-              </div>
-            )}
-
             {/* Education Card */}
             {(profile.year_of_study || profile.branch) && (
               <Card className="glass-light border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300">
@@ -345,24 +335,6 @@ export function UserProfileDialog({
                       </Badge>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Prompts Section */}
-            {profile.prompts && profile.prompts.length > 0 && (
-              <Card className="glass-light border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300">
-                <CardContent className="p-4 space-y-3">
-                  <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-pink-400" />
-                    Get to Know Me
-                  </h3>
-                  {profile.prompts.map((prompt, index) => (
-                    <div key={index} className="border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
-                      <p className="text-sm font-semibold text-gray-400 mb-1">{prompt.prompt_question}</p>
-                      <p className="text-base text-white leading-relaxed">{prompt.prompt_answer}</p>
-                    </div>
-                  ))}
                 </CardContent>
               </Card>
             )}

@@ -27,7 +27,6 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: ProfilePhoto[];
   interests: string[];
   prompts: UserPrompt[];
-  elo_rating?: number | null; 
 };
 
 interface MyProfileDialogProps {
@@ -240,14 +239,6 @@ export function MyProfileDialog({
                 )}
               </h2>
             </div>
-
-            {/* ELO Rating */}
-            {profile.elo_rating && (
-              <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/20 rounded-lg px-2 py-1 text-sm text-white">
-                <Star className="w-4 h-4 text-yellow-400" />
-                Rating: {profile.elo_rating}
-              </div>
-            )}
 
             {/* Education Card (Compact) */}
             {(profile.year_of_study || profile.branch) && (
