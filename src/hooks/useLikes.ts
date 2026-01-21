@@ -11,7 +11,7 @@ import { encryptedStorage } from "@/utils/encryptedStorage";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: Database["public"]["Tables"]["user_photos"]["Row"][];
   interests: string[];
-  prompts: Database["public"]["Tables"]["user_prompts"]["Row"][];
+ prompts: any[]; // Kept for type compatibility
   elo_rating: number | null;
   full_name: string; 
 };
@@ -90,18 +90,6 @@ export function useLikes() {
             .select('interest')
             .eq('user_email', interaction.user_id);
             
-          const { data: prompts } = await supabase
-            .from('user_prompts')
-            .select('*')
-            .eq('user_id', profileData.user_id)
-            .order('prompt_order');
-
-          const { data: eloData } = await supabase
-            .from('elo_ratings')
-            .select('rating')
-            .eq('user_id', profileData.user_id)
-            .single();
-
            // --- Name Logic Fix ---
            const f = profileData.first_name || '';
            const l = profileData.last_name || '';
@@ -142,8 +130,8 @@ export function useLikes() {
                 };
               }),
               interests: (interestsData || []).map(i => i.interest),
-              prompts: prompts || [],
-              elo_rating: eloData?.rating || null,
+              prompts: [],
+              elo_rating: null,
             }
           };
         })
