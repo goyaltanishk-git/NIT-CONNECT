@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
+import { 
+  getDisplayBio, 
+  getDisplayDetails, 
+  getDisplayName, 
+  getDisplayPhotos, 
+  shouldDisplayAnonymously 
+} from '@/utils/incognitoUtils';
 import { Database } from '@/integrations/supabase/types';
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
@@ -11,7 +17,7 @@ import { encryptedStorage } from "@/utils/encryptedStorage";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: Database["public"]["Tables"]["user_photos"]["Row"][];
   interests: string[];
- prompts: any[]; // Kept for type compatibility
+  prompts: any[]; // Kept for type compatibility
   elo_rating: number | null;
   full_name: string; 
 };
@@ -89,35 +95,38 @@ export function useLikes() {
             .from('user_interests')
             .select('interest')
             .eq('user_email', interaction.user_id);
-            
-           // --- Name Logic Fix ---
-           const f = profileData.first_name || '';
-           const l = profileData.last_name || '';
-           const full = `${f} ${l}`.trim();
+
+          // --- PRIVACY & NAME LOGIC ---
+          const displayName = getDisplayName(profileData);
+          const f = profileData.first_name || '';
+          const l = profileData.last_name || '';
+          const full = `${f} ${l}`.trim();
            
-           // 1. If ends in "null", only show first name
-           // 2. If first name already contains last name, don't duplicate
-           let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
-           if (l && f.toLowerCase().includes(l.toLowerCase())) {
-             cleanedFullName = f;
-           }
+          // Clean up common naming bugs (Deepak null / Duplicate names)
+          let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
+          if (l && f.toLowerCase().includes(l.toLowerCase())) {
+            cleanedFullName = f;
+          }
 
-           const safeProfile = { ...profileData };
-           safeProfile.first_name = getDisplayName(profileData);
-           safeProfile.year_of_study = getDisplayDetails(profileData).year;
-           safeProfile.branch = getDisplayDetails(profileData).branch;
-           safeProfile.height = getDisplayDetails(profileData).height;
-           safeProfile.hometown = getDisplayDetails(profileData).hometown;
-           safeProfile.bio = getDisplayBio(profileData);
+          // Force "Anonymous" for incognito users to prevent Dialog leaks
+          const finalName = shouldDisplayAnonymously(profileData) ? displayName : cleanedFullName;
+           
+          const safeProfile = { ...profileData };
+          safeProfile.first_name = displayName;
+          safeProfile.year_of_study = getDisplayDetails(profileData).year;
+          safeProfile.branch = getDisplayDetails(profileData).branch;
+          safeProfile.height = getDisplayDetails(profileData).height;
+          safeProfile.hometown = getDisplayDetails(profileData).hometown;
+          safeProfile.bio = getDisplayBio(profileData);
 
-           const photoUrls = getDisplayPhotos(profileData, photos?.map(p => p.photo_url) || []);
+          const photoUrls = getDisplayPhotos(profileData, photos?.map(p => p.photo_url) || []);
 
           return {
             ...interaction,
             interaction_type: interaction.interaction_type as any,
             profile: {
               ...safeProfile,
-              full_name: cleanedFullName, // Full name for details screen
+              full_name: finalName, // Masked name for details screen/dialog
               photos: (photoUrls || []).map((url, index) => {
                 const originalPhoto = photos?.find(p => p.photo_url === url);
                 return {
