@@ -57,11 +57,6 @@ function emojiToDataUrl(emoji: string): string {
 
 // Get a consistent random name based on user ID
 function getRandomAnonymousName(userId: string): string {
-  const hash = userId.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  const index = Math.abs(hash) % ANONYMOUS_NAMES.length;
   return "Anonymous";
 }
 
@@ -111,9 +106,12 @@ export function shouldDisplayAnonymously(profile: DatabaseProfile): boolean {
  * Get display name for a user (handles incognito mode)
  */
 export function getDisplayName(profile: DatabaseProfile): string {
+  // If incognito_mode is true, this will now strictly return "Anonymous"
   if (shouldDisplayAnonymously(profile)) {
     return getRandomAnonymousName(profile.user_id || profile.email);
   }
+  
+  // Standard naming logic for active users
   return `${profile.first_name} ${profile.last_name}`.trim();
 }
 
