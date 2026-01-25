@@ -20,27 +20,27 @@ export function useUserProfile() {
     setLoading(true);
     try {
 
-      // First try to get authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      let userEmail = user?.email;
+      // ✅ FIX #3: REMOVED REDUNDANT AUTH CHECK
+      // The auth state is already managed by AuthGuard, no need to call supabase.auth.getUser() again
+      // This eliminates 1 unnecessary auth query per profile fetch
+      
+      let userEmail: string | undefined;
 
-      // If no authenticated user, check localStorage
-      if (!userEmail) {
-        var storedUser = encryptedStorage.get('current-user');
-        const tempUser = localStorage.getItem('temp-user');
+      // Check localStorage directly
+      var storedUser = encryptedStorage.get('current-user');
+      const tempUser = localStorage.getItem('temp-user');
 
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            userEmail = parsedUser.email;
-          } catch (e) {
-          }
-        } else if (tempUser) {
-          try {
-            const parsedTempUser = JSON.parse(tempUser);
-            userEmail = parsedTempUser.email;
-          } catch (e) {
-          }
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          userEmail = parsedUser.email;
+        } catch (e) {
+        }
+      } else if (tempUser) {
+        try {
+          const parsedTempUser = JSON.parse(tempUser);
+          userEmail = parsedTempUser.email;
+        } catch (e) {
         }
       }
 
