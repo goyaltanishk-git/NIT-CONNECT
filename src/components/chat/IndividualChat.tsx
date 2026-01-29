@@ -186,7 +186,8 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
   className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
   onClick={() => setProfileDialogOpen(true)}
 >
-  {user.name} {/* user.name is already pre-filtered in ChatScreen, so this might be fine, but good to check */}
+  {/* Filter out string variants of null from user.name if they exist */}
+  {user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name}
 </h2>
             {/* ⛔️ Removed user.lastSeen and online status text */}
           </div>
