@@ -150,9 +150,12 @@ name: (selectedMatch.user.last_name && selectedMatch.user.last_name.toLowerCase(
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-bold text-lg text-white truncate hover:text-pink-300 transition-colors duration-300">
-                        {`${match.user.first_name} ${match.user.last_name}`}
-                      </h3>
+                      <h3 className="font-bold text-lg text-white truncate">
+                    {match.user.first_name} 
+                    {match.user.last_name && match.user.last_name.toLowerCase() !== "null" 
+                      ? ` ${match.user.last_name}` 
+                      : ""}
+                  </h3>
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-gray-400 glass-light px-3 py-1 rounded-full border border-white/10">
                           <Clock className="h-3 w-3 inline mr-1" />
