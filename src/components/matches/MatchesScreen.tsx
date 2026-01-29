@@ -26,9 +26,10 @@ export function MatchesScreen() {
   if (selectedMatch) {
     const userForDetail = {
       id: selectedMatch.user.id,
-name: (selectedMatch.user.last_name && selectedMatch.user.last_name !== "NULL")
+name: (selectedMatch.user.last_name && selectedMatch.user.last_name.toLowerCase() !== "null")
   ? `${selectedMatch.user.first_name} ${selectedMatch.user.last_name}`
-  : selectedMatch.user.first_name,      age: 21,
+  : selectedMatch.user.first_name,
+      age: 21,
       photos: selectedMatch.user.photos.sort((a, b) => a.photo_order - b.photo_order).map(p => p.photo_url),
     };
     
