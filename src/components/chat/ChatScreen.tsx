@@ -166,9 +166,11 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
+                   <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
   {conversation.user.first_name} 
-  {conversation.user.last_name && conversation.user.last_name !== "NULL" ? ` ${conversation.user.last_name}` : ""}
+  {conversation.user.last_name && conversation.user.last_name.toLowerCase() !== "null" 
+    ? ` ${conversation.user.last_name}` 
+    : ""}
 </h3>
                     <div className="flex items-center gap-3">
                       {conversation.unreadCount > 0 && (
