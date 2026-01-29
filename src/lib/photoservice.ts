@@ -21,7 +21,7 @@ export class PhotoService {
       const { data, error } = await supabase.storage
         .from('user-photos') // Changed from 'user_photos' to match your bucket name
         .upload(fileName, file, {
-          cacheControl: '3600',
+          cacheControl: '31536000',
           upsert: false
         });
 

@@ -127,7 +127,12 @@ export function MatchesScreen() {
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <Avatar className="h-16 w-16 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
-                      <AvatarImage src={match.user.photos?.[0]?.photo_url} />
+                     <AvatarImage 
+  src={match.user.photos?.[0]?.photo_url 
+    ? match.user.photos[0].photo_url
+    : undefined
+  } 
+/>
                       <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-lg">
                         {match.user.first_name[0]}
                       </AvatarFallback>

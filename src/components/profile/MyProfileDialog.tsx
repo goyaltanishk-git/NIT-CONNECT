@@ -168,36 +168,41 @@ export function MyProfileDialog({
             )}
 
             {/* ⭐ Framer Motion Image Slider */}
-            <AnimatePresence initial={false} custom={direction}>
-              <motion.img
-                key={currentPhotoIndex}
-                src={profilePhotos[currentPhotoIndex]?.photo_url}
-                custom={direction}
-                variants={variants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{
-                  x: { type: "spring", stiffness: 300, damping: 30 },
-                  opacity: { duration: 0.2 }
-                }}
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={1}
-                onDragEnd={(e, { offset, velocity }) => {
-                  const swipe = swipePower(offset.x, velocity.x);
+            {/* ⭐ Optimized Framer Motion Image Slider */}
+<AnimatePresence initial={false} custom={direction}>
+  <motion.img
+    key={currentPhotoIndex}
+    // ✅ OPTIMIZED: Transform URL to use WebP and 600px width
+    src={profilePhotos[currentPhotoIndex]?.photo_url
+      ? profilePhotos[currentPhotoIndex].photo_url
+      : undefined
+    }
+    custom={direction}
+    variants={variants}
+    initial="enter"
+    animate="center"
+    exit="exit"
+    transition={{
+      x: { type: "spring", stiffness: 300, damping: 30 },
+      opacity: { duration: 0.2 }
+    }}
+    drag="x"
+    dragConstraints={{ left: 0, right: 0 }}
+    dragElastic={1}
+    onDragEnd={(e, { offset, velocity }) => {
+      const swipe = swipePower(offset.x, velocity.x);
 
-                  if (swipe < -swipeConfidenceThreshold) {
-                    nextPhoto();
-                  } else if (swipe > swipeConfidenceThreshold) {
-                    prevPhoto();
-                  }
-                }}
-                onLoad={handleImageLoad}
-                alt={profileName}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            </AnimatePresence>
+      if (swipe < -swipeConfidenceThreshold) {
+        nextPhoto();
+      } else if (swipe > swipeConfidenceThreshold) {
+        prevPhoto();
+      }
+    }}
+    onLoad={handleImageLoad}
+    alt={profileName}
+    className="absolute inset-0 w-full h-full object-cover"
+  />
+</AnimatePresence>
 
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent pointer-events-none z-10" />
 

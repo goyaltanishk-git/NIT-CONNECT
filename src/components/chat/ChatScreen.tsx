@@ -149,7 +149,12 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
               <div className="flex items-start gap-5">
                 <div className="relative">
                   <Avatar className="h-16 w-16 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
-                    <AvatarImage src={conversation.user.photos?.[0]?.photo_url} />
+                    <AvatarImage 
+  src={conversation.user.photos?.[0]?.photo_url 
+    ? conversation.user.photos[0].photo_url
+    : undefined
+  } 
+/>
                     <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-3xl">
                       {conversation.user.first_name[0]}
                     </AvatarFallback>

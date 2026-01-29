@@ -190,7 +190,10 @@ export function UserProfileDialog({
             <AnimatePresence initial={false} custom={direction}>
               <motion.img
                 key={currentPhotoIndex}
-                src={profilePhotos[currentPhotoIndex]?.photo_url}
+src={profilePhotos[currentPhotoIndex]?.photo_url
+  ? profilePhotos[currentPhotoIndex].photo_url
+  : undefined
+}
                 custom={direction}
                 variants={variants}
                 initial="enter"

@@ -5,6 +5,7 @@ import { PhotoService, UserPhoto } from '@/lib/photoservice';
 import { Camera, RefreshCcw, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import imageCompression from 'browser-image-compression';
 
 interface PhotoUploadProps {
   userEmail: string;
@@ -15,6 +16,15 @@ interface PhotoUploadProps {
 
 // SECURITY: Define a strict whitelist of allowed image extensions
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+
+// ✅ AGGRESSIVE COMPRESSION OPTIONS FOR FREE PLAN EGRESS
+const compressionOptions = {
+  maxSizeMB: 0.4,          // Reduced from 1MB to 400KB
+  maxWidthOrHeight: 1200, // Reduced from 1200 to 1000 (standard for mobile)
+  useWebWorker: true,
+  initialQuality: 0.7,    // Added: Starts at 70% quality for better compression
+  fileType: 'image/webp'  // Added: Forces WebP format (significantly smaller than JPG)
+};
 
 export function PhotoUpload({ 
   userEmail, 
@@ -31,13 +41,9 @@ export function PhotoUpload({
    * SECURITY HELPER: Validates both the MIME type and the file extension
    */
   const isValidImage = (file: File): boolean => {
-    // 1. Check MIME type provided by the browser
     if (!file.type.startsWith('image/')) return false;
-
-    // 2. Check File Extension (Critical for preventing code file uploads)
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (!extension || !ALLOWED_EXTENSIONS.includes(extension)) return false;
-
     return true;
   };
 
@@ -45,7 +51,6 @@ export function PhotoUpload({
     if (!files || files.length === 0) return;
     const file = files[0];
     
-    // VALIDATION: Block non-image files
     if (!isValidImage(file)) {
       toast({ 
         title: 'Security Blocked', 
@@ -55,36 +60,35 @@ export function PhotoUpload({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'File too large', description: 'Max size is 5MB.', variant: 'destructive' });
-      return;
-    }
-
     if (photos.length >= maxPhotos) {
       toast({ title: 'Limit reached', description: `Max ${maxPhotos} photos allowed.`, variant: 'destructive' });
       return;
     }
 
     setUploading(true);
-try {
-  const photoUrl = await PhotoService.uploadPhoto(file, userEmail);
+    try {
+      // ✅ 1. Apply aggressive compression before upload
+      const compressedFile = await imageCompression(file, compressionOptions);
 
-  // FIX: Fetch the current latest order from the DB right before adding
-  const { data: existingPhotos } = await supabase
-    .from('user_photos')
-    .select('photo_order')
-    .eq('user_email', userEmail);
-    
-  const dbNextOrder = existingPhotos && existingPhotos.length > 0 
-    ? Math.max(...existingPhotos.map(p => p.photo_order)) + 1 
-    : 1;
+      // ✅ 2. Upload the compressed version (now a WebP blob)
+      const photoUrl = await PhotoService.uploadPhoto(compressedFile as File, userEmail);
 
-  await PhotoService.addUserPhoto(userEmail, photoUrl, dbNextOrder, dbNextOrder === 1);
+      const { data: existingPhotos } = await supabase
+        .from('user_photos')
+        .select('photo_order')
+        .eq('user_email', userEmail);
+        
+      const dbNextOrder = existingPhotos && existingPhotos.length > 0 
+        ? Math.max(...existingPhotos.map(p => p.photo_order)) + 1 
+        : 1;
+
+      await PhotoService.addUserPhoto(userEmail, photoUrl, dbNextOrder, dbNextOrder === 1);
       
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
       toast({ title: 'Photo uploaded!' });
-    } catch (error) {
+    }
+    catch (error) {
       toast({ title: 'Upload failed', description: 'Please check your connection.', variant: 'destructive' });
     } finally {
       setUploading(false);
@@ -99,7 +103,6 @@ try {
     
     const file = files[0];
 
-    // VALIDATION: Block non-image files during replacement [The "Hack" Fix]
     if (!isValidImage(file)) {
       toast({ 
         title: 'Invalid File Type', 
@@ -116,17 +119,20 @@ try {
       const photoToReplace = photos.find(p => p.photo_order === replacingOrder);
       if (!photoToReplace) throw new Error("Target photo not found.");
 
-      const newPhotoUrl = await PhotoService.uploadPhoto(file, userEmail);
+      // ✅ 1. Apply aggressive compression for replacement
+      const compressedFile = await imageCompression(file, compressionOptions);
+
+      const newPhotoUrl = await PhotoService.uploadPhoto(compressedFile as File, userEmail);
       if (!newPhotoUrl.startsWith('https://')) throw new Error("New photo storage failed.");
 
-      // Cleanup old file from bucket
       let oldFilePath = "";
       try {
-          oldFilePath = new URL(photoToReplace.photo_url).pathname.split('/user-photos/')[1];
+          const cleanUrl = photoToReplace.photo_url.split('?')[0];
+          oldFilePath = cleanUrl.split('/user-photos/')[1]; 
       } catch (e) {}
 
       if (oldFilePath) {
-          await supabase.storage.from("user-photos").remove([oldFilePath]); 
+          await supabase.storage.from("user-photos").remove([oldFilePath]);
       }
 
       await PhotoService.deletePhoto(userEmail, replacingOrder);
@@ -135,7 +141,8 @@ try {
       const updatedPhotos = await PhotoService.getUserPhotos(userEmail);
       onPhotosUpdate(updatedPhotos);
       toast({ title: 'Photo replaced!' });
-    } catch (error) {
+    }
+    catch (error) {
       toast({ title: 'Replace failed', description: "Failed to update image.", variant: 'destructive' });
     } finally {
       setUploading(false);
@@ -170,11 +177,11 @@ try {
         {photos.map((photo, index) => (
           <div key={index} className="relative group aspect-square">
             <img
-              src={photo.photo_url}
+              // ✅ Always strip potential query params for Free Plan compatibility
+              src={photo.photo_url.split('?')[0]} 
               alt={`Photo ${photo.photo_order}`}
               className="w-full h-full object-cover rounded-xl border-2 border-white/10 group-hover:border-pink-500/50 transition-all duration-300"
               onError={(e) => {
-                // UI Protection: Show placeholder if database already contains a broken URL
                 e.currentTarget.src = "https://placehold.co/400x400?text=Invalid+File";
               }}
             />

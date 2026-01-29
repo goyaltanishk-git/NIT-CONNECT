@@ -165,7 +165,12 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
           >
             {/* 🆕 Increased Avatar size */}
             <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-              <AvatarImage src={user.photos[0]} />
+              <AvatarImage 
+  src={user.photos[0] 
+    ? user.photos[0] 
+    : undefined
+  } 
+/>
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                 {user.name[0]}
               </AvatarFallback>

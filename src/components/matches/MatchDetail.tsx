@@ -71,8 +71,11 @@ export function MatchDetail({ user, matchedAt, onBack, onMessage }: MatchDetailP
         {/* Profile photos */}
         <div className="p-4">
           <div className="relative">
-            <div className="aspect-[3/4] bg-cover bg-center rounded-xl shadow-lg" 
-                 style={{ backgroundImage: `url(${user.photos[currentPhotoIndex]})` }}>
+           {/* ✅ Replace the style around line 63 */}
+<div className="aspect-[3/4] bg-cover bg-center rounded-xl shadow-lg" 
+     style={{ 
+       backgroundImage: `url(${user.photos[currentPhotoIndex]})` 
+     }}>
               {user.photos.length > 1 && (
                 <>
                   <div className="absolute top-2 left-2 right-2 flex gap-1">

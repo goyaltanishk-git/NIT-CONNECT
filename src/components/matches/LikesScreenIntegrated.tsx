@@ -136,10 +136,10 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
                   <div className="relative w-full aspect-square bg-gray-800 flex items-center justify-center overflow-hidden">
                     {like.profile?.photos?.[0]?.photo_url ? (
                       <img
-                        src={like.profile.photos[0].photo_url}
-                        alt={like.profile?.first_name || 'Profile'}
-                        className="w-full h-full object-cover"
-                      />
+  src={like.profile.photos[0].photo_url}
+  alt={like.profile?.first_name || 'Profile'}
+  className="w-full h-full object-cover"
+/>
                     ) : (
                       <Avatar className="h-full w-full rounded-none">
                         <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-6xl rounded-none">

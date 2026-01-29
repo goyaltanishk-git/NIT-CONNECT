@@ -304,7 +304,12 @@ export function ProfileScreen() {
           >
             {/* KEPT SMALL: Avatar size 200px / 55vw */}
             <Avatar className="w-[55vw] h-[55vw] max-w-[200px] max-h-[200px] ring-4 ring-pink-500/30 border-4 border-black">
-              <AvatarImage src={photos.length > 0 ? photos[0].photo_url : undefined} />
+<AvatarImage 
+  src={photos.length > 0 
+    ? photos[0].photo_url 
+    : undefined
+  } 
+/>
               <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 text-5xl font-bold">
                 {user.name[0] || 'U'}
               </AvatarFallback>
