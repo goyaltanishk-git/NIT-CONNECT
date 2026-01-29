@@ -167,8 +167,9 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
-                      {`${conversation.user.first_name} ${conversation.user.last_name}`}
-                    </h3>
+  {conversation.user.first_name} 
+  {conversation.user.last_name && conversation.user.last_name !== "NULL" ? ` ${conversation.user.last_name}` : ""}
+</h3>
                     <div className="flex items-center gap-3">
                       {conversation.unreadCount > 0 && (
                         <Badge className="h-7 w-7 p-0 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs animate-pulse-glow">
