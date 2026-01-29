@@ -183,11 +183,11 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
           <div className="flex-1">
             {/* 🆕 Made Name clickable */}
             <h2 
-              className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
-              onClick={() => setProfileDialogOpen(true)}
-            >
-              {user.name}
-            </h2>
+  className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
+  onClick={() => setProfileDialogOpen(true)}
+>
+  {user.name} {/* user.name is already pre-filtered in ChatScreen, so this might be fine, but good to check */}
+</h2>
             {/* ⛔️ Removed user.lastSeen and online status text */}
           </div>
           
