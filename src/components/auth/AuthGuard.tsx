@@ -105,7 +105,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
        setShowProfileSetup(false); 
        setShowHeroScreen(false);
     }
-  }, 5000); 
+  }, 500000); 
 
   return () => clearInterval(syncInterval);
 }, [userEmail, showHeroScreen, showProfileSetup]);

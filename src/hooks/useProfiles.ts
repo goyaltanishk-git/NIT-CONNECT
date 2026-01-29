@@ -35,7 +35,7 @@ export interface DatabaseProfile {
 // Extended profile for UI with photos and interests
 export interface ExtendedProfile extends DatabaseProfile {
   photos: Array<{ url: string; order: number }>;
-  interests: Array<string>; // ✅ Fixed: Added proper type
+  interests: Array<string>;
   age?: number;
   name?: string;
 }
@@ -72,37 +72,38 @@ export function useProfiles(): UseProfilesReturn {
 
     return age;
   };
+  
   function seededRandom(seed: number) {
-  return function () {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
-  };
-}
-
-function shuffleWithSeed<T>(array: T[], seed: number): T[] {
-  const rand = seededRandom(seed);
-  const result = [...array];
-
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+    return function () {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
   }
-  return result;
-}
 
+  function shuffleWithSeed<T>(array: T[], seed: number): T[] {
+    const rand = seededRandom(seed);
+    const result = [...array];
 
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+
+  // ✅ FIX #4: CONSOLIDATED N+1 QUERIES INTO SINGLE QUERY WITH JOINS
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
       const userd = encryptedStorage.get('current-user');
       const user = JSON.parse(userd);
 
-      // Step 1: Fetch base profiles from the main profiles table
+      // Step 1: Get interacted user IDs
       const { data: interactions, error: interactionError } = await supabase
         .from("user_interactions")
         .select("target_user_id")
         .eq("user_id", user.email);
 
-       const { data: interactions1, error: interactionError1 } = await supabase
+      const { data: interactions1, error: interactionError1 } = await supabase
         .from("user_interactions")
         .select("user_id")
         .eq("target_user_id", user.email);
@@ -112,85 +113,57 @@ function shuffleWithSeed<T>(array: T[], seed: number): T[] {
       
       const interactedIds1 = interactions1?.map(i => i.user_id) || [];
       const interactedIds2 = interactions?.map(i => i.target_user_id) || [];
-      const interactedIds=[...interactedIds1,...interactedIds2];
-      
+      const interactedIds = [...interactedIds1, ...interactedIds2];
 
-      // 2️⃣ Fetch only unseen profiles
-      const {data:baseProfiles} = await supabase
+      // ✅ OPTIMIZED: Single query with embedded relationships using PostgREST foreign key syntax
+      const { data: profilesWithData, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+        .select(`
+          *,
+          user_photos!user_photos_user_email_fkey(photo_url, photo_order, is_primary, is_verified),
+          user_interests!user_interests_user_email_fkey(interest)
+        `)
         .eq("is_active", true)
-        .neq("gender",user.gender)
+        .neq("gender", user.gender)
         .order("shuffle_order", { ascending: false })
         .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
         .filter('email', 'not.in', `(${interactedIds.join(',')})`);
 
-      // 3️⃣ Only exclude interacted profiles if there are any
-      if (!baseProfiles || baseProfiles.length === 0) {
+      if (profilesError) throw profilesError;
+
+      if (!profilesWithData || profilesWithData.length === 0) {
         setHasMore(false);
         return;
-      } 
-  const userSeed = user.email
-  .split("")
-  .reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+      }
 
-  const pageProfiles = shuffleWithSeed(baseProfiles, userSeed);
+      const userSeed = user.email
+        .split("")
+        .reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
 
-        
+      const pageProfiles = shuffleWithSeed(profilesWithData, userSeed);
 
-      // Step 2: Enhance each profile with photos and interests
-      const extendedProfiles: ExtendedProfile[] = await Promise.all(
-        pageProfiles.map(async (profile: DatabaseProfile) => {
+      // ✅ OPTIMIZED: Transform inline without additional queries (data already fetched)
+      const extendedProfiles: ExtendedProfile[] = pageProfiles.map((profile: any) => {
+        // Photos already fetched via join
+        const photos = (profile.user_photos || []).map((photo: any, index: number) => ({
+          url: photo.photo_url,
+          order: photo.photo_order || index
+        }));
 
-          // Get photos if user_photos table exists
-          let photos: Array<{ url: string; order: number }> = [];
-          try {
-            const photosResponse = await supabase
-              .from('user_photos')
-              .select('photo_url, photo_order, is_primary, is_verified')
-              .eq('user_email', profile.email) // ✅ Fixed: Use email directly
-              .order('photo_order');
+        // Interests already fetched via join
+        const interests = (profile.user_interests || []).map((interest: any) => interest.interest);
 
-            if (photosResponse.data && !photosResponse.error) {
-              photos = photosResponse.data.map((photo: any) => ({
-                url: photo.photo_url,
-                order: photo.photo_order
-              }));
-            } else if (photosResponse.error) {
-            }
-          } catch (photosError) {
-          }
-
-          // Get interests - FIXED TABLE NAME
-          let interests: Array<string> = [];
-          try {
-            const { data: interestsData, error: interestsError } = await supabase
-              .from('user_interests') // ✅ CHANGED from 'user_interests' to 'interests'
-              .select('interest')
-              .eq('user_email', profile.email); // ✅ Fixed: Use email directly
-
-            if (interestsData && !interestsError) {
-              interests = interestsData.map((interest: any) => interest.interest);
-            } else if (interestsError) {
-            }
-          } catch (interestsError) {
-          }
-
-          // Create extended profile
-          const extendedProfile: ExtendedProfile = {
-            ...profile,
-            photos,
-            interests,
-            age: calculateAge(profile.date_of_birth),
-            name: (profile.last_name && profile.last_name !== "NULL")
-              ? `${profile.first_name} ${profile.last_name}`.trim()
-              : profile.first_name
-          };
-
-          return extendedProfile;
-        })
-      );
-
+        // Create extended profile
+        return {
+          ...profile,
+          photos,
+          interests,
+          age: calculateAge(profile.date_of_birth),
+          name: (profile.last_name && profile.last_name !== "NULL")
+            ? `${profile.first_name} ${profile.last_name}`.trim()
+            : profile.first_name
+        };
+      });
 
       // Step 3: Update state
       if (append) {

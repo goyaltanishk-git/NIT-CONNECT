@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
 import { AuthService, Profile } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -20,13 +20,27 @@ export function useAuth(): UseAuthReturn {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // --- CACHE LOGIC ---
+  const authCacheRef = useRef<{ user: any; timestamp: number } | null>(null);
+  const CACHE_TTL = 60000; // 1 minute cache for session checks
+
   const fetchCurrentUser = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Try to get from Supabase auth first
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      // ✅ FIX #5: Check Memory Cache before Network Request
+      const now = Date.now();
+      let authUser;
+
+      if (authCacheRef.current && (now - authCacheRef.current.timestamp) < CACHE_TTL) {
+        authUser = authCacheRef.current.user;
+      } else {
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        authUser = supabaseUser;
+        // Update cache
+        authCacheRef.current = { user: authUser, timestamp: now };
+      }
       
       if (authUser?.email) {
         const profile = await AuthService.getUserProfile(authUser.email);
@@ -34,7 +48,7 @@ export function useAuth(): UseAuthReturn {
         return;
       }
 
-      // Fallback to localStorage
+      // Fallback to localStorage (legacy/redundant but kept for your flow)
       const currentUser = AuthService.getCurrentUser();
       if (currentUser) {
         setUser(currentUser);
@@ -63,18 +77,14 @@ export function useAuth(): UseAuthReturn {
     }
   }, []);
 
+  // ... rest of the hook (login, logout, updateProfile, refetch, useEffects) remains the same
+  
   const login = useCallback(async (email: string, otp: string) => {
     try {
       setLoading(true);
       setError(null);
-      
-      
-      // Verify OTP
       await AuthService.verifyOtp(email, otp);
-      
-      // Get or create user profile
       const profile = await AuthService.getOrCreateUserProfile(email);
-      
       setUser(profile);
       
       toast({
@@ -85,13 +95,11 @@ export function useAuth(): UseAuthReturn {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
-      
       toast({
         title: 'Login Failed',
         description: errorMessage,
         variant: 'destructive',
       });
-      
       throw err;
     } finally {
       setLoading(false);
@@ -99,11 +107,13 @@ export function useAuth(): UseAuthReturn {
   }, [toast]);
 
   const logout = useCallback(() => {
+    // Clear the memory cache on logout
+    authCacheRef.current = null;
+    
     AuthService.clearCurrentUser();
     setUser(null);
     setError(null);
     
-    // Also clear Supabase auth session if exists
     supabase.auth.signOut().catch(console.warn);
     
     toast({
@@ -113,32 +123,24 @@ export function useAuth(): UseAuthReturn {
   }, [toast]);
 
   const updateProfile = useCallback(async (updates: any) => {
-    if (!user?.email) {
-      throw new Error('No user logged in');
-    }
+    if (!user?.email) throw new Error('No user logged in');
 
     try {
       setLoading(true);
-      
-      
       const updatedProfile = await AuthService.updateProfile(user.email, updates);
       setUser(updatedProfile);
-      
       toast({
         title: 'Profile Updated',
         description: 'Your profile has been saved successfully.',
       });
-      
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
       setError(errorMessage);
-      
       toast({
         title: 'Update Failed',
         description: errorMessage,
         variant: 'destructive',
       });
-      
       throw err;
     } finally {
       setLoading(false);
@@ -146,6 +148,8 @@ export function useAuth(): UseAuthReturn {
   }, [user, toast]);
 
   const refetch = useCallback(async () => {
+    // Force a cache bypass for explicit refetching
+    authCacheRef.current = null;
     await fetchCurrentUser();
   }, [fetchCurrentUser]);
 
@@ -153,16 +157,17 @@ export function useAuth(): UseAuthReturn {
     fetchCurrentUser();
   }, [fetchCurrentUser]);
 
-  // Listen for auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        
         if (event === 'SIGNED_IN' && session?.user?.email) {
           const profile = await AuthService.getUserProfile(session.user.email);
           setUser(profile);
+          // Sync cache with new session
+          authCacheRef.current = { user: session.user, timestamp: Date.now() };
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
+          authCacheRef.current = null;
         }
       }
     );

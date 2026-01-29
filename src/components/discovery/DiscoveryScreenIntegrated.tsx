@@ -120,7 +120,7 @@ export function DiscoveryScreenIntegrated() {
     return {
       id: profile.email,
       user_id: profile.email,
-      full_name: profile.first_name,
+      full_name: displayName,
       age: calculateAge(profile.date_of_birth),
       bio: displayBio || 'No bio available',
       year: parseInt(profile.year_of_study || '1'),

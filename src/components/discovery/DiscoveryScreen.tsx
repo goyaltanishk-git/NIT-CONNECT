@@ -118,7 +118,7 @@ function DiscoveryScreenDemo() {
             .select('*')
             .eq('email', user.email!)
             .eq('date', today)
-            .maybeSingle();
+            .single();
             
           setDailyLikes(limits?.likes_used || 0);
         }
@@ -277,7 +277,7 @@ function DiscoveryScreenDemo() {
             .select('*')
             .eq('email', user.email)
             .eq('date', today)
-            .maybeSingle();
+            .single();
             
           if (limits) {
             await supabase

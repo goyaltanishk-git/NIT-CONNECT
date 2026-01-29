@@ -3,15 +3,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } from '@/utils/incognitoUtils';
+import { 
+  getDisplayBio, 
+  getDisplayDetails, 
+  getDisplayName, 
+  getDisplayPhotos, 
+  shouldDisplayAnonymously 
+} from '@/utils/incognitoUtils';
 import { Database } from '@/integrations/supabase/types';
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
-// Added full_name to the Profile type definition
 type Profile = Database["public"]["Tables"]["profiles"]["Row"] & {
   photos: Database["public"]["Tables"]["user_photos"]["Row"][];
   interests: string[];
- prompts: any[]; // Kept for type compatibility
+  prompts: any[]; 
   elo_rating: number | null;
   full_name: string; 
 };
@@ -35,18 +40,20 @@ export function useLikes() {
       setLoading(true);
       const userd = encryptedStorage.get('current-user');
       if (!userd) return;
-      
       const user = JSON.parse(userd);
 
-      // STEP 1: Fetch interactions where others liked current user
-      const { data: interactions, error } = await supabase
+      // STEP 1: Fetch interactions
+      const { data: interactions, error: intError } = await supabase
         .from('user_interactions')
         .select('*')
         .eq('target_user_id', user.email)
         .in('interaction_type', ['like', 'superlike'])
         .order('created_at', { ascending: false });
 
-      if (error || !interactions) return;
+      if (intError || !interactions || interactions.length === 0) {
+        setPendingLikes([]);
+        return;
+      }
 
       // STEP 2: Filter out existing mutual matches
       const { data: matches } = await supabase
@@ -64,81 +71,85 @@ export function useLikes() {
         interaction => !matchedUserIds.has(interaction.user_id)
       );
 
-      // STEP 3: Fetch and Filter by Active Profiles
-      const transformedLikesRaw = await Promise.all(
-        pendingInteractions.map(async (interaction): Promise<PendingLike | null> => {
-          
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', interaction.user_id)
-            .single();
+      if (pendingInteractions.length === 0) {
+        setPendingLikes([]);
+        return;
+      }
 
-          // Filter out deactivated accounts
-          if (!profileData || profileData.is_active === false) {
-            return null;
-          }
-         
-          const { data: photos } = await supabase
-            .from('user_photos')
-            .select('*')
-            .eq('user_email', interaction.user_id)
-            .order('photo_order');
-            
-          const { data: interestsData } = await supabase
-            .from('user_interests')
-            .select('interest')
-            .eq('user_email', interaction.user_id);
-            
-           // --- Name Logic Fix ---
-           const f = profileData.first_name || '';
-           const l = profileData.last_name || '';
-           const full = `${f} ${l}`.trim();
+      // STEP 3: BATCHED QUERY - Profiles, Photos, and Interests in ONE call
+      const userIds = pendingInteractions.map(i => i.user_id);
+      
+      const { data: enrichedProfiles, error: profError } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          user_photos(*),
+          user_interests(interest)
+        `)
+        .in('email', userIds)
+        .eq('is_active', true);
+
+      if (profError) throw profError;
+
+      // STEP 4: Map and Apply Privacy Logic
+      const transformedLikes = pendingInteractions
+        .map(interaction => {
+          const profileData = enrichedProfiles?.find(p => p.email === interaction.user_id);
+          if (!profileData) return null;
+
+          // --- PRIVACY & NAME LOGIC ---
+          const displayName = getDisplayName(profileData);
+          const f = profileData.first_name || '';
+          const l = profileData.last_name || '';
+          const full = `${f} ${l}`.trim();
            
-           // 1. If ends in "null", only show first name
-           // 2. If first name already contains last name, don't duplicate
-           let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
-           if (l && f.toLowerCase().includes(l.toLowerCase())) {
-             cleanedFullName = f;
-           }
+          let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
+          if (l && f.toLowerCase().includes(l.toLowerCase())) {
+            cleanedFullName = f;
+          }
 
-           const safeProfile = { ...profileData };
-           safeProfile.first_name = getDisplayName(profileData);
-           safeProfile.year_of_study = getDisplayDetails(profileData).year;
-           safeProfile.branch = getDisplayDetails(profileData).branch;
-           safeProfile.height = getDisplayDetails(profileData).height;
-           safeProfile.hometown = getDisplayDetails(profileData).hometown;
-           safeProfile.bio = getDisplayBio(profileData);
+          const finalName = shouldDisplayAnonymously(profileData) ? displayName : cleanedFullName;
+           
+          const safeProfile = { ...profileData };
+          // Apply obfuscation via utils
+          const details = getDisplayDetails(profileData);
+          safeProfile.first_name = displayName;
+          safeProfile.year_of_study = details.year;
+          safeProfile.branch = details.branch;
+          safeProfile.height = details.height;
+          safeProfile.hometown = details.hometown;
+          safeProfile.bio = getDisplayBio(profileData);
 
-           const photoUrls = getDisplayPhotos(profileData, photos?.map(p => p.photo_url) || []);
+          // Handle Photos Join
+          const rawPhotos = (profileData as any).user_photos || [];
+          const photoUrls = getDisplayPhotos(profileData, rawPhotos.map((p: any) => p.photo_url) || []);
 
           return {
             ...interaction,
             interaction_type: interaction.interaction_type as any,
             profile: {
               ...safeProfile,
-              full_name: cleanedFullName, // Full name for details screen
-              photos: (photoUrls || []).map((url, index) => {
-                const originalPhoto = photos?.find(p => p.photo_url === url);
+              full_name: finalName,
+              photos: photoUrls.map((url, index) => {
+                const originalPhoto = rawPhotos.find((p: any) => p.photo_url === url);
                 return {
                   photo_url: url,
                   photo_order: originalPhoto?.photo_order || index,
                   user_email: interaction.user_id,
                   is_primary: originalPhoto?.is_primary || (index === 0),
                   is_verified: originalPhoto?.is_verified || false,
-                  created_at: originalPhoto?.created_at ? originalPhoto.created_at : new Date().toISOString()
+                  created_at: originalPhoto?.created_at || new Date().toISOString()
                 };
               }),
-              interests: (interestsData || []).map(i => i.interest),
+              interests: ((profileData as any).user_interests || []).map((i: any) => i.interest),
               prompts: [],
               elo_rating: null,
             }
-          };
+          } as PendingLike;
         })
-      );
-         
-      const cleanLikes = transformedLikesRaw.filter((like): like is PendingLike => like !== null);
-      setPendingLikes(cleanLikes);
+        .filter((like): like is PendingLike => like !== null);
+
+      setPendingLikes(transformedLikes);
 
     } catch (error) {
       toast({
@@ -151,6 +162,7 @@ export function useLikes() {
     }
   }, [toast]);
 
+  // handleLikeBack and handlePass remain the same...
   const handleLikeBack = useCallback(async (interactionId: string, targetUserId: string) => {
     try {
       const { error: likeError } = await supabase
