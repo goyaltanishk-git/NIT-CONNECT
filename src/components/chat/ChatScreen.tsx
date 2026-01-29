@@ -50,9 +50,12 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
   };
   
   if (selectedConversation && currentUser) {
+    const cleanLastName = (selectedConversation.user.last_name && selectedConversation.user.last_name.toLowerCase() !== "null") 
+      ? ` ${selectedConversation.user.last_name}` 
+      : "";
     const chatUser = {
       id: selectedConversation.user.id,
-      name: selectedConversation.user.first_name,
+     name: `${selectedConversation.user.first_name}${cleanLastName}`.trim(),
       photos: selectedConversation.user.photos?.map(p => p.photo_url) || [],
       lastSeen: selectedConversation.user.last_active_at,
       bio: selectedConversation.user.bio,

@@ -119,7 +119,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
   const profileForDialog: UserProfileType = {
     // --- Data from User prop ---
     user_id: user.id,
-    first_name: user.name,
+    first_name: user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name,
     bio: user.bio,
     year_of_study: user.year_of_study,
     branch: user.branch,
