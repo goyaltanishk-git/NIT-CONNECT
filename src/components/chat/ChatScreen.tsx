@@ -174,7 +174,7 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
   {conversation.user.last_name && conversation.user.last_name.toLowerCase() !== "null" 
     ? ` ${conversation.user.last_name}` 
     : ""}
-</h3>
+</h3> 
                     <div className="flex items-center gap-3">
                       {conversation.unreadCount > 0 && (
                         <Badge className="h-7 w-7 p-0 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs animate-pulse-glow">
