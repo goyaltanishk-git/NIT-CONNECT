@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, User, Settings, Sparkles, Zap } from "lucide-react";
+import { Heart, MessageCircle, User, Settings, Sparkles, Zap, Trophy } from "lucide-react";
 import { DiscoveryScreenIntegrated } from "@/components/discovery/DiscoveryScreenIntegrated";
 import { LikesScreenIntegrated } from "@/components/matches/LikesScreenIntegrated";
 import { ChatScreen } from "@/components/chat/ChatScreen";
 import { ProfileScreen } from "@/components/profile/ProfileScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
+import { LeaderboardScreen } from "@/components/leaderboard/LeaderboardScreen";
 import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -102,6 +103,10 @@ export function MainLayout() {
             <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")} />
           </TabsContent>
 
+          <TabsContent value="leaderboard" className="h-full animate-fade-in">
+            <LeaderboardScreen />
+          </TabsContent>
+
           <TabsContent value="chat" className="h-full animate-fade-in">
             <ChatScreen  setischatopen={setischatopen}/>
           </TabsContent>
@@ -121,9 +126,11 @@ export function MainLayout() {
             {[
               { tab: "discovery", icon: Heart, label: "Discover", gradient: "from-pink-400 to-pink-600" },
               { tab: "likes", icon: Sparkles, label: "Likes", gradient: "from-purple-400 to-pink-500" },
+              
               { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
               { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
-              { tab: "settings", icon: Settings, label: "Settings", gradient: "from-gray-400 to-gray-600" },
+              { tab: "leaderboard", icon: Trophy, label: "Spotlight", gradient: "from-red-400 to-red-500" },
+               { tab: "settings", icon: Settings, label: "settings", gradient: "from-grey-400 to-grey-500" },
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
                 key={tab}
@@ -206,4 +213,5 @@ export function MainLayout() {
         ))}
       </div>
     </div>
-  );}
+  );
+}
