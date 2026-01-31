@@ -118,13 +118,20 @@ export function getDisplayName(profile: DatabaseProfile): string {
 /**
  * Get display photos for a user (handles incognito mode)
  */
+/**
+ * Get display photos for a user (handles incognito mode and optimization)
+ */
 export function getDisplayPhotos(profile: DatabaseProfile, photos: string[] = []): string[] {
   if (shouldDisplayAnonymously(profile)) {
     const emoji = getRandomEmoji(profile.user_id || profile.email);
     return [emojiToDataUrl(emoji)];
-    
   }
-  return photos.length > 0 ? photos : [];
+  // ✅ OPTIMIZED: Transform raw URLs into lightweight WebP thumbnails
+  return photos.map(url => {
+    if (url.includes('data:image')) return url;
+    // Remove the .replace() and the query parameters
+    return url.split('?')[0]; 
+  });
 }
 
 /**

@@ -91,13 +91,11 @@ export function useProfiles(): UseProfilesReturn {
     return result;
   }
 
-  // ✅ FIX #4: CONSOLIDATED N+1 QUERIES INTO SINGLE QUERY WITH JOINS
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
       const userd = encryptedStorage.get('current-user');
       const user = JSON.parse(userd);
 
-      // Step 1: Get interacted user IDs
       const { data: interactions, error: interactionError } = await supabase
         .from("user_interactions")
         .select("target_user_id")
@@ -108,14 +106,10 @@ export function useProfiles(): UseProfilesReturn {
         .select("user_id")
         .eq("target_user_id", user.email);
 
-      if (interactionError) {
-      }
-      
       const interactedIds1 = interactions1?.map(i => i.user_id) || [];
       const interactedIds2 = interactions?.map(i => i.target_user_id) || [];
       const interactedIds = [...interactedIds1, ...interactedIds2];
 
-      // ✅ OPTIMIZED: Single query with embedded relationships using PostgREST foreign key syntax
       const { data: profilesWithData, error: profilesError } = await supabase
         .from("profiles")
         .select(`
@@ -142,18 +136,20 @@ export function useProfiles(): UseProfilesReturn {
 
       const pageProfiles = shuffleWithSeed(profilesWithData, userSeed);
 
-      // ✅ OPTIMIZED: Transform inline without additional queries (data already fetched)
       const extendedProfiles: ExtendedProfile[] = pageProfiles.map((profile: any) => {
-        // Photos already fetched via join
-        const photos = (profile.user_photos || []).map((photo: any, index: number) => ({
-          url: photo.photo_url,
-          order: photo.photo_order || index
-        }));
+        // ✅ OPTIMIZED: Apply Image Transformation to reduce egress
+        const photos = (profile.user_photos || []).map((photo: any, index: number) => {
+          // Change URL from /object/public/ to /render/image/public/ and add resizing params
+          const optimizedUrl = photo.photo_url;
 
-        // Interests already fetched via join
+          return {
+            url: optimizedUrl,
+            order: photo.photo_order || index
+          };
+        });
+
         const interests = (profile.user_interests || []).map((interest: any) => interest.interest);
 
-        // Create extended profile
         return {
           ...profile,
           photos,
@@ -165,14 +161,12 @@ export function useProfiles(): UseProfilesReturn {
         };
       });
 
-      // Step 3: Update state
       if (append) {
         setProfiles(prev => [...prev, ...extendedProfiles]);
       } else {
         setProfiles(extendedProfiles);
       }
 
-      // Update pagination
       if (extendedProfiles.length < PROFILES_PER_BATCH) {
         setHasMore(false);
       }

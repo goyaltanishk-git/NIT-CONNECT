@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert as UIAlert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import imageCompression from 'browser-image-compression';
+
 import { 
   Dialog, 
   DialogContent, 
@@ -137,27 +139,49 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
     setError('');
   };
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (photos.length + files.length > MAX_PHOTOS) {
-      const msg = `You can only upload a maximum of ${MAX_PHOTOS} photos.`;
-      triggerError(msg); 
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(event.target.files || []);
+  
+  if (photos.length + files.length > MAX_PHOTOS) {
+    const msg = `You can only upload a maximum of ${MAX_PHOTOS} photos.`;
+    triggerError(msg); 
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    return;
+  }
 
-    files.forEach(file => {
-      if (file.type.startsWith('image/')) {
+  // Compression options
+  const compressionOptions = {
+    maxSizeMB: 0.4,          // Shrink to under 1MB
+    maxWidthOrHeight: 1200, // Reasonable social media resolution
+    useWebWorker: true,
+    initialQuality: 0.7,
+    fileType: 'image/webp'
+  };
+  
+  for (const file of files) {
+    if (file.type.startsWith('image/')) {
+      try {
+        // ✅ COMPRESSION START
+        const compressedFile = await imageCompression(file, compressionOptions);
+        
         const reader = new FileReader();
         reader.onload = (e) => {
-          const newPhoto: PhotoFile = { file, preview: e.target?.result as string, order: photos.length + 1 };
+          const newPhoto: PhotoFile = { 
+            file: compressedFile as File, // Use the compressed blob
+            preview: e.target?.result as string, 
+            order: photos.length + 1 
+          };
           setPhotos(prev => (prev.length < MAX_PHOTOS ? [...prev, newPhoto] : prev));
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(compressedFile);
+      } catch (err) {
+        console.error("Compression Error:", err);
       }
-    });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+    }
+  }
+  
+  if (fileInputRef.current) fileInputRef.current.value = '';
+};
 
   const removePhoto = (index: number) => {
     const updated = photos.filter((_, i) => i !== index);

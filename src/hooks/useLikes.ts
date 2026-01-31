@@ -100,10 +100,18 @@ export function useLikes() {
           // --- PRIVACY & NAME LOGIC ---
           const displayName = getDisplayName(profileData);
           const f = profileData.first_name || '';
-          const l = profileData.last_name || '';
-          const full = `${f} ${l}`.trim();
-           
-          let cleanedFullName = full.toLowerCase().endsWith('null') ? f : full;
+          
+          // ✅ FIX: Robust check for null or literal "NULL" string
+          const hasLastName = profileData.last_name && 
+                              profileData.last_name !== "NULL" && 
+                              profileData.last_name.toLowerCase() !== 'null';
+          
+          const l = hasLastName ? profileData.last_name : '';
+          
+          // Construct the cleaned full name
+          let cleanedFullName = `${f} ${l}`.trim();
+
+          // Handle cases where first name might already contain the last name
           if (l && f.toLowerCase().includes(l.toLowerCase())) {
             cleanedFullName = f;
           }
@@ -113,7 +121,7 @@ export function useLikes() {
           const safeProfile = { ...profileData };
           // Apply obfuscation via utils
           const details = getDisplayDetails(profileData);
-          safeProfile.first_name = displayName;
+          safeProfile.first_name = finalName; // Use the cleaned name as first_name for UI consistency
           safeProfile.year_of_study = details.year;
           safeProfile.branch = details.branch;
           safeProfile.height = details.height;
@@ -162,7 +170,6 @@ export function useLikes() {
     }
   }, [toast]);
 
-  // handleLikeBack and handlePass remain the same...
   const handleLikeBack = useCallback(async (interactionId: string, targetUserId: string) => {
     try {
       const { error: likeError } = await supabase

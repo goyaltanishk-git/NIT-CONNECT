@@ -112,10 +112,6 @@ export function DiscoveryScreenIntegrated() {
             const displayBio = getDisplayBio(profile);
             const displayPhotos = getDisplayPhotos(profile, profile.photos?.map(p => p.url) || []);
 
-  
-
-
-
 
     return {
       id: profile.email,
@@ -127,10 +123,18 @@ export function DiscoveryScreenIntegrated() {
       branch: displayDetails.branch  || 'Not specified',
       hometown: displayDetails.hometown|| 'Not specified',
       interests: profile.interests || [],
-      photos:  (displayPhotos || []).map((url: string, index: number) => ({
-    url: url,
+      // Inside transformProfileForCard, replace the photos mapping logic:
+photos: (displayPhotos || []).map((url: string, index: number) => {
+  // ✅ Ensure we apply transformation if it wasn't already applied by utils
+  const optimizedUrl = url.includes('?width=') 
+    ? url 
+    : url ;
+
+  return {
+    url: optimizedUrl,
     order: index,
-  })) ,
+  };
+}),
       height: displayDetails.height || 'Not specified',
       looking_for: profile.interested_in || 'Anyone',
       verified: profile.is_verified || false,

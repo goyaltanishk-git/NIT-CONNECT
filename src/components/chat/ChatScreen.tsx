@@ -50,9 +50,12 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
   };
   
   if (selectedConversation && currentUser) {
+    const cleanLastName = (selectedConversation.user.last_name && selectedConversation.user.last_name.toLowerCase() !== "null") 
+      ? ` ${selectedConversation.user.last_name}` 
+      : "";
     const chatUser = {
       id: selectedConversation.user.id,
-      name: selectedConversation.user.first_name,
+     name: `${selectedConversation.user.first_name}${cleanLastName}`.trim(),
       photos: selectedConversation.user.photos?.map(p => p.photo_url) || [],
       lastSeen: selectedConversation.user.last_active_at,
       bio: selectedConversation.user.bio,
@@ -149,7 +152,12 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
               <div className="flex items-start gap-5">
                 <div className="relative">
                   <Avatar className="h-16 w-16 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
-                    <AvatarImage src={conversation.user.photos?.[0]?.photo_url} />
+                    <AvatarImage 
+  src={conversation.user.photos?.[0]?.photo_url 
+    ? conversation.user.photos[0].photo_url
+    : undefined
+  } 
+/>
                     <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-3xl">
                       {conversation.user.first_name[0]}
                     </AvatarFallback>
@@ -161,9 +169,12 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
-                      {`${conversation.user.first_name} ${conversation.user.last_name}`}
-                    </h3>
+                   <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
+  {conversation.user.first_name} 
+  {conversation.user.last_name && conversation.user.last_name.toLowerCase() !== "null" 
+    ? ` ${conversation.user.last_name}` 
+    : ""}
+</h3>
                     <div className="flex items-center gap-3">
                       {conversation.unreadCount > 0 && (
                         <Badge className="h-7 w-7 p-0 flex items-center justify-center bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs animate-pulse-glow">

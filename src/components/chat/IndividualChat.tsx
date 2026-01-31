@@ -119,7 +119,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
   const profileForDialog: UserProfileType = {
     // --- Data from User prop ---
     user_id: user.id,
-    first_name: user.name,
+    first_name: user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name,
     bio: user.bio,
     year_of_study: user.year_of_study,
     branch: user.branch,
@@ -165,7 +165,12 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
           >
             {/* 🆕 Increased Avatar size */}
             <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-              <AvatarImage src={user.photos[0]} />
+              <AvatarImage 
+  src={user.photos[0] 
+    ? user.photos[0] 
+    : undefined
+  } 
+/>
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
                 {user.name[0]}
               </AvatarFallback>
@@ -178,11 +183,12 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
           <div className="flex-1">
             {/* 🆕 Made Name clickable */}
             <h2 
-              className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
-              onClick={() => setProfileDialogOpen(true)}
-            >
-              {user.name}
-            </h2>
+  className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
+  onClick={() => setProfileDialogOpen(true)}
+>
+  {/* Filter out string variants of null from user.name if they exist */}
+  {user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name}
+</h2>
             {/* ⛔️ Removed user.lastSeen and online status text */}
           </div>
           

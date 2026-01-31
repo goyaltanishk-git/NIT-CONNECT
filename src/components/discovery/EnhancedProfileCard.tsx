@@ -143,7 +143,10 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             <AnimatePresence mode="wait" initial={false}>
               <img
                 key={currentPhotoIndex}
-                src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/800/1000"}
+                src={profile.photos[currentPhotoIndex]?.url 
+  ? profile.photos[currentPhotoIndex].url + (profile.photos[currentPhotoIndex].url.includes('?') ? '' : '')
+  : "/api/placeholder/800/1000"
+}
                 alt={profile.full_name}
                 className={`
                   absolute inset-0 w-full h-full object-cover object-center
@@ -269,7 +272,10 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
                  <AnimatePresence mode="wait" initial={false}>
                   <img
                     key={currentPhotoIndex}
-                    src={profile.photos[currentPhotoIndex]?.url || "/api/placeholder/800/1000"}
+                    src={profile.photos[currentPhotoIndex]?.url 
+  ? profile.photos[currentPhotoIndex].url + (profile.photos[currentPhotoIndex].url.includes('?') ? '' : '')
+  : "/api/placeholder/800/1000"
+}
                     alt={profile.full_name}
                     className={`
                       absolute inset-0 w-full h-full object-cover object-center
