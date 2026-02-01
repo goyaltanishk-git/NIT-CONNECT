@@ -122,7 +122,9 @@ export function DiscoveryScreenIntegrated() {
       year: parseInt(profile.year_of_study || '1'),
       branch: displayDetails.branch  || 'Not specified',
       hometown: displayDetails.hometown|| 'Not specified',
+        college:profile.college,
       interests: profile.interests || [],
+    
       // Inside transformProfileForCard, replace the photos mapping logic:
 photos: (displayPhotos || []).map((url: string, index: number) => {
   // ✅ Ensure we apply transformation if it wasn't already applied by utils
