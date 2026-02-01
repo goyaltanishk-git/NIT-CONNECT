@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Heart, X, ChevronLeft, ChevronRight, GraduationCap, Calendar } from "lucide-react";
+import { Heart, X, ChevronLeft, ChevronRight, GraduationCap, Calendar,School } from "lucide-react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { GlowCard } from "@/components/ui/GlowCard";
 
@@ -19,6 +19,7 @@ interface Profile {
   verified: boolean;
   lives_in: string;
   distance_from_you: string;
+  college:string
 }
 interface ProfileCardProps {
   profile: Profile;
@@ -184,6 +185,10 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
             </div>
 
             <div className="flex flex-wrap ms-3 text-xs text-pink-100 mb-4">
+               <div className="flex w-full items-center gap-1 px-2 py-1 rounded-full">
+                <School className="w-3 h-3" />
+                {profile.college}
+              </div>
               <div className="flex w-full items-center gap-1 px-2 py-1 rounded-full">
                 <GraduationCap className="w-3 h-3" />
                 {profile.branch}
@@ -296,6 +301,10 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
 
               <div className="flex flex-wrap gap-3 mt-4 mb-10">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
+                  <School className="w-3 h-3" />
+                  {profile.college} 
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-pink-200 text-xs shadow-sm ">
                   <GraduationCap className="w-3 h-3" />
                   {profile.branch} 
                 </div>
@@ -312,7 +321,7 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
               <h3 className="text-lg font-semibold text-pink-300 mb-4">Details</h3>
 
               <div className="grid grid-cols-2 gap-4">
-                {["height", "hometown"].map((key) =>
+                {["height", "hometown","instagram_handle"].map((key) =>
                   (profile as any)[key] && (
                     <div
                       key={key}

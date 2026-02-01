@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { encryptedStorage } from '@/utils/encryptedStorage';
+import { string } from "three/tsl";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
@@ -92,11 +93,15 @@ export class AuthService {
         created_at: now,
         updated_at: now,
         last_active_at: now,
+      
+      
+        
       };
 
       const { data, error } = await supabase.from('profiles').insert(userData).select().single();
       if (error) throw error;
       const storageData = { ...data, needsSetup: true }; 
+
     encryptedStorage.set('current-user', JSON.stringify(storageData));
       return data;
     } catch (error) {

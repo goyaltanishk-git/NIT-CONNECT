@@ -173,6 +173,7 @@ export type Database = {
             | Database["public"]["Enums"]["verification_status"]
             | null
           year_of_study: string | null
+          college:string
         }
         Insert: {
           bio?: string | null
@@ -203,6 +204,7 @@ export type Database = {
             | Database["public"]["Enums"]["verification_status"]
             | null
           year_of_study?: string | null
+          
         }
         Update: {
           bio?: string | null

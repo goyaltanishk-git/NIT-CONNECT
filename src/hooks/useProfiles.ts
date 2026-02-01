@@ -29,7 +29,8 @@ export interface DatabaseProfile {
   last_active_at: string | null; // timestamp with time zone
   created_at: string; // timestamp with time zone
   updated_at: string; // timestamp with time zone
-  user_id: string; // Add this if missing from your interface
+  user_id: string;
+  college:string // Add this if missing from your interface
 }
 
 // Extended profile for UI with photos and interests
@@ -94,7 +95,30 @@ export function useProfiles(): UseProfilesReturn {
   const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
     try {
       const userd = encryptedStorage.get('current-user');
-      const user = JSON.parse(userd);
+      const userdd = JSON.parse(userd);
+      
+  
+
+  // If college is missing, we need to refresh the cache once
+  if (!userdd.college) {
+    console.log("Old session detected. Refreshing user data...");
+    
+    const { data: freshUser, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("email", userdd.email)
+      .single();
+
+    if (!error && freshUser) {
+      // Update the cache with the full object including 'college'
+      encryptedStorage.set('current-user', JSON.stringify(freshUser));
+    
+    }
+  }
+    const userddd = encryptedStorage.get('current-user');
+      const user= JSON.parse(userddd);
+
+  
 
       const { data: interactions, error: interactionError } = await supabase
         .from("user_interactions")
@@ -109,6 +133,7 @@ export function useProfiles(): UseProfilesReturn {
       const interactedIds1 = interactions1?.map(i => i.user_id) || [];
       const interactedIds2 = interactions?.map(i => i.target_user_id) || [];
       const interactedIds = [...interactedIds1, ...interactedIds2];
+    
 
       const { data: profilesWithData, error: profilesError } = await supabase
         .from("profiles")
@@ -118,6 +143,7 @@ export function useProfiles(): UseProfilesReturn {
           user_interests!user_interests_user_email_fkey(interest)
         `)
         .eq("is_active", true)
+        .eq("college",user.college)
         .neq("gender", user.gender)
         .order("shuffle_order", { ascending: false })
         .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
