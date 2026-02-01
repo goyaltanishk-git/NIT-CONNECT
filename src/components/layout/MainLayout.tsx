@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, User, Settings, Sparkles, Zap, Trophy } from "lucide-react";
+import { Heart, MessageCircle, User, Settings, Sparkles, Zap, Trophy, Globe } from "lucide-react";
 import { DiscoveryScreenIntegrated } from "@/components/discovery/DiscoveryScreenIntegrated";
+import { DiscoveryScreenGlobal } from "@/components/discovery/DiscoveryScreenGlobal";
 import { LikesScreenIntegrated } from "@/components/matches/LikesScreenIntegrated";
 import { ChatScreen } from "@/components/chat/ChatScreen";
 import { ProfileScreen } from "@/components/profile/ProfileScreen";
@@ -99,6 +100,11 @@ export function MainLayout() {
             <DiscoveryScreenIntegrated />
           </TabsContent>
 
+          {/* NEW: Discover Global Tab */}
+          <TabsContent value="discovery-global" className="h-full animate-fade-in">
+            <DiscoveryScreenGlobal />
+          </TabsContent>
+
           <TabsContent value="likes" className="h-full animate-fade-in">
             <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")} />
           </TabsContent>
@@ -125,6 +131,7 @@ export function MainLayout() {
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
               { tab: "discovery", icon: Heart, label: "Discover", gradient: "from-pink-400 to-pink-600" },
+              { tab: "discovery-global", icon: Globe, label: "Global", gradient: "from-blue-400 to-purple-500" },
               { tab: "likes", icon: Sparkles, label: "Likes", gradient: "from-purple-400 to-pink-500" },
               
               { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
