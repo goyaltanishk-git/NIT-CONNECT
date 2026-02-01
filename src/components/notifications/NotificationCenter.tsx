@@ -157,7 +157,7 @@ export function NotificationCenter({ userId, isOpen, onClose }: NotificationCent
                     {getNotificationIcon(notification.type)}
                   </div>
                   
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <p className={`text-sm ${notification.is_read ? 'text-muted-foreground' : 'font-medium'}`}>
