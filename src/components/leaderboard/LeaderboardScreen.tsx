@@ -3,8 +3,8 @@ import { Heart, Sparkles, Gift, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-const GIRLS = [];
-const BOYS = [];
+const GIRLS = ["Khushi", "Prachi", "Kanishka","Sneha" ,"Purvi"];
+const BOYS = ["Saurabh","Anshul","Rishul","Ayush","Nitin"];
 
 export function LeaderboardScreen() {
   const [active, setActive] = useState<"girls" | "boys">("girls");
