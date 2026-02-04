@@ -99,7 +99,8 @@ export function DiscoveryScreenGlobal() {
       looking_for: profile.interested_in || 'Anyone',
       verified: profile.is_verified || false,
       lives_in: profile.hometown || '',
-      distance_from_you: 'Nearby'
+      distance_from_you: 'Nearby',
+      college:profile.college
     };
   };
 

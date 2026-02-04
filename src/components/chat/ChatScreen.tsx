@@ -62,6 +62,7 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
       year_of_study: selectedConversation.user.year_of_study,
       branch: selectedConversation.user.branch,
       hometown: selectedConversation.user.hometown,
+      college: selectedConversation.user.college,
     };
     
     return (

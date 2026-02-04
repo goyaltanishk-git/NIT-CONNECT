@@ -215,7 +215,8 @@ export function useChat(user: Profile | null) {
     hometown: displayDetails.hometown,
     gender:profileResult.data?.gender,
     height:displayDetails.height,
-    incognito_mode:profileResult.data?.incognito_mode
+    incognito_mode:profileResult.data?.incognito_mode,
+    college:profileResult.data?.college
           },
           lastMessage: lastMessageResult.data,
           unreadCount: unreadCount || 0,

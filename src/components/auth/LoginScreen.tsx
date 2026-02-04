@@ -17,6 +17,8 @@ export function LoginScreen() {
   const [countdown, setCountdown] = useState(0); // Anti-spam timer state
   const { toast } = useToast();
   const nitkkrEmailRegex = /^[0-9]{8,10}@nitkkr\.ac\.in$/;
+  const nithEmailRegex =/^(1[9]|2[0-8])[a-z]+\d+@nith\.ac\.in$/;
+
 
   // Timer logic: Counts down every second if countdown > 0
   useEffect(() => {
@@ -29,7 +31,7 @@ export function LoginScreen() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nitkkrEmailRegex.test(email)) {
+    if (!(nitkkrEmailRegex.test(email)||nithEmailRegex.test(email))) {
       toast({ 
         title: "Invalid Email", 
         description: "Please use your NIT Kurukshetra email (@nitkkr.ac.in)", 

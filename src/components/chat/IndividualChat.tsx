@@ -42,6 +42,7 @@ interface User {
   year_of_study?: string | null;
   branch?: string | null;
   hometown?: string | null;
+  college:string
 }
 
 interface IndividualChatProps {
@@ -124,6 +125,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
     year_of_study: user.year_of_study,
     branch: user.branch,
     hometown: user.hometown,
+    college: user.college,
     
     // --- Transform photos: string[] to ProfilePhoto[] ---
     photos: user.photos.map((url, index) => ({
