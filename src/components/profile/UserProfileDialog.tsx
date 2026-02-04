@@ -19,6 +19,7 @@ import {
   Calendar,
   Ruler,
   Home,
+  School,
   BookOpen
 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
@@ -261,6 +262,16 @@ src={profilePhotos[currentPhotoIndex]?.photo_url
                 )}
               </h2>
             </div>
+            <Card className="glass-light border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300">
+                <CardContent className="p-4 flex items-center gap-2">
+                  <School className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                  <span className="text-base text-white">
+                    {profile.college}
+                 
+                   
+                  </span>
+                </CardContent>
+              </Card>
 
             {/* Education Card */}
             {(profile.year_of_study || profile.branch) && (
@@ -270,10 +281,12 @@ src={profilePhotos[currentPhotoIndex]?.photo_url
                   <span className="text-base text-white">
                     {profile.year_of_study}
                     {profile.branch && ` • ${profile.branch}`}
+                   
                   </span>
                 </CardContent>
               </Card>
             )}
+             
 
             {/* Bio Section */}
             {profile.bio && (

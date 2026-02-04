@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Filter, X } from "lucide-react";
-import { EnhancedProfileCard } from "./EnhancedProfileCard";
+import { EnhancedProfileCard} from "./EnhancedProfileCard";
 import { useProfilesGlobal, DatabaseProfile } from "@/hooks/useProfilesGlobal";
 import { useAuth } from "@/hooks/useAuth";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
@@ -203,7 +203,7 @@ export function DiscoveryScreenGlobal() {
              )}
            </div>
         ) : (
-          <div className="relative w-[92%] max-w-[400px] h-[82dvh]">
+          <div className="relative w-[92%] max-w-[400px] h-[75dvh]">
             <div className={`relative w-full h-full transition-all duration-300 ${
               swipeAnimation === 'left' ? 'swipe-left' :
               swipeAnimation === 'right' ? 'swipe-right' : ''
