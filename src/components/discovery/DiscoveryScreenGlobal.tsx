@@ -121,8 +121,19 @@ export function DiscoveryScreenGlobal() {
 
   if (loading || limitsLoading) {
     return (
-      <div className="flex items-center justify-center h-full bg-black">
-        <div className="loading-heart mx-auto"></div>
+    <div className="flex items-center justify-center h-full bg-black">
+        <div className="text-center space-y-8 animate-fade-in">
+          <div className="relative">
+            <div className="loading-heart mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-pink-500 animate-pulse" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold gradient-text-animated">Finding amazing people...</h3>
+            <p className="text-gray-400">Preparing your perfect matches</p>
+          </div>
+        </div>
       </div>
     );
   }
