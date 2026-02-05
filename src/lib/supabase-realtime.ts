@@ -1,5 +1,6 @@
-import { supabase } from '@/integrations/supabase/client'
+import { supabase, syncAppSession } from '@/integrations/supabase/client'
 import { Database } from '@/types/generated'
+import { encryptedStorage } from '@/utils/encryptedStorage';
 
 /** Table type aliases **/
 type ProfileRow = Database['public']['Tables']['profiles']['Row']
@@ -33,6 +34,64 @@ type ReportRow = Database['public']['Tables']['reports']['Row']
 type ReportInsert = Database['public']['Tables']['reports']['Insert']
 type ReportUpdate = Database['public']['Tables']['reports']['Update']
 
+export class RealtimeService {
+  /**
+   * ✅ NEW: Bridges the gap between the WebSocket and RLS.
+   * Tells the DB who is connecting so Realtime filters work.
+   */
+  private async ensureSession() {
+    try {
+      const stored = encryptedStorage.get("current-user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        // This is the Handshake we established in client.ts
+        await syncAppSession(user.email);
+      }
+    } catch (e) {
+      console.error("Realtime identity sync failed:", e);
+    }
+  }
+
+  /** Matches Realtime **/
+  onMatchInsert(callback: (newRow: MatchRow) => void) {
+    // We 'await' the session before subscribing
+    this.ensureSession().then(() => {
+      return supabase
+        .channel('realtime-matches')
+        .on(
+          'postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'matches' }, 
+          payload => {
+            console.log("🔥 New Match Received:", payload.new);
+            callback(payload.new as MatchRow);
+          }
+        )
+        .subscribe();
+    });
+  }
+
+  /** Messages Realtime **/
+  onMessageInsert(callback: (newRow: MessageRow) => void) {
+    this.ensureSession().then(() => {
+      return supabase
+        .channel('realtime-messages')
+        .on(
+          'postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'messages' }, 
+          payload => {
+            console.log("💬 New Message Received:", payload.new);
+            callback(payload.new as MessageRow);
+          }
+        )
+        .subscribe();
+    });
+  }
+
+  // ... You can apply the same .ensureSession().then(...) pattern 
+  // to your Report and CRUD methods below
+}
+
+export const realtimeService = new RealtimeService();
 export class SupabaseRealtime {
   /** Profiles realtime **/
   onProfileInsert(callback: (newRow: ProfileRow) => void) {

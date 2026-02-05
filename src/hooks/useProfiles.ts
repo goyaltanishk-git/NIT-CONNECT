@@ -1,39 +1,38 @@
+// @/hooks/useProfiles.ts
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncAppSession } from "@/integrations/supabase/client"; // Added syncAppSession
 import { useToast } from "@/hooks/use-toast";
-import {encryptedStorage} from "@/utils/encryptedStorage"
+import { encryptedStorage } from "@/utils/encryptedStorage"
 
-// Interface matching your exact database schema
 export interface DatabaseProfile {
-  email: string; // PRIMARY KEY
+  email: string;
   first_name: string;
   last_name: string;
-  gender: string; // USER-DEFINED enum
-  interested_in: string; // USER-DEFINED enum
-  date_of_birth: string; // date
+  gender: string;
+  interested_in: string;
+  date_of_birth: string;
   bio: string | null;
   hometown: string | null;
   year_of_study: string | null;
   branch: string | null;
-  height: number | null; // integer
+  height: number | null;
   instagram_handle: string | null;
   phone_number: string | null;
-  verification_status: string | null; // USER-DEFINED enum
+  verification_status: string | null;
   verification_document_url: string | null;
   is_verified: boolean | null;
   is_active: boolean | null;
   incognito_mode: boolean | null;
   hide_year_branch: boolean | null;
-  latitude: number | null; // numeric
-  longitude: number | null; // numeric
-  last_active_at: string | null; // timestamp with time zone
-  created_at: string; // timestamp with time zone
-  updated_at: string; // timestamp with time zone
+  latitude: number | null;
+  longitude: number | null;
+  last_active_at: string | null;
+  created_at: string;
+  updated_at: string;
   user_id: string;
-  college:string // Add this if missing from your interface
+  college: string;
 }
 
-// Extended profile for UI with photos and interests
 export interface ExtendedProfile extends DatabaseProfile {
   photos: Array<{ url: string; order: number }>;
   interests: Array<string>;
@@ -41,151 +40,72 @@ export interface ExtendedProfile extends DatabaseProfile {
   name?: string;
 }
 
-interface UseProfilesReturn {
-  profiles: ExtendedProfile[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  fetchNextBatch: () => Promise<void>;
-  hasMore: boolean;
-}
-
 const PROFILES_PER_BATCH = 10;
 
-export function useProfiles(): UseProfilesReturn {
+export function useProfiles() {
   const [profiles, setProfiles] = useState<ExtendedProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const { toast } = useToast();
 
-  // Calculate age helper
-  const calculateAge = (dateOfBirth: string): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-
-    return age;
-  };
-  
-  function seededRandom(seed: number) {
-    return function () {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
-  }
-
-  function shuffleWithSeed<T>(array: T[], seed: number): T[] {
-    const rand = seededRandom(seed);
-    const result = [...array];
-
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(rand() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
-  }
-
-  const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
+  const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
     try {
-      const userd = encryptedStorage.get('current-user');
-      const userdd = JSON.parse(userd);
-      
-  
+      const stored = encryptedStorage.get("current-user");
+      if (!stored) return;
+      const currentUser = JSON.parse(stored);
 
-  // If college is missing, we need to refresh the cache once
-  if (!userdd.college) {
-    console.log("Old session detected. Refreshing user data...");
-    
-    const { data: freshUser, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("email", userdd.email)
-      .single();
+      // ✅ HANDSHAKE: Sync session before fetching any profile or photo data
+      await syncAppSession(currentUser.email);
 
-    if (!error && freshUser) {
-      // Update the cache with the full object including 'college'
-      encryptedStorage.set('current-user', JSON.stringify(freshUser));
-    
-    }
-  }
-    const userddd = encryptedStorage.get('current-user');
-      const user= JSON.parse(userddd);
+      // Fetch interactions to exclude swiped profiles
+      const { data: interactions } = await supabase
+        .from('user_interactions')
+        .select('target_user_id')
+        .eq('user_id', currentUser.email);
 
-  
+      const swipedUserIds = interactions?.map(i => i.target_user_id) || [];
 
-      const { data: interactions, error: interactionError } = await supabase
-        .from("user_interactions")
-        .select("target_user_id")
-        .eq("user_id", user.email);
+      // Query profiles based on preferences
+      let query = supabase
+        .from('profiles')
+        .select('*')
+        .neq('email', currentUser.email)
+        .eq('is_active', true)
+        .eq('gender', currentUser.interested_in);
 
-      const { data: interactions1, error: interactionError1 } = await supabase
-        .from("user_interactions")
-        .select("user_id")
-        .eq("target_user_id", user.email);
+      if (swipedUserIds.length > 0) {
+        query = query.not('email', 'in', `(${swipedUserIds.join(',')})`);
+      }
 
-      const interactedIds1 = interactions1?.map(i => i.user_id) || [];
-      const interactedIds2 = interactions?.map(i => i.target_user_id) || [];
-      const interactedIds = [...interactedIds1, ...interactedIds2];
-    
-
-      const { data: profilesWithData, error: profilesError } = await supabase
-        .from("profiles")
-        .select(`
-          *,
-          user_photos!user_photos_user_email_fkey(photo_url, photo_order, is_primary, is_verified),
-          user_interests!user_interests_user_email_fkey(interest)
-        `)
-        .eq("is_active", true)
-        .eq("college",user.college)
-        .neq("gender", user.gender)
-        .order("shuffle_order", { ascending: false })
-        .range(startOffset, startOffset + PROFILES_PER_BATCH - 1)
-        .filter('email', 'not.in', `(${interactedIds.join(',')})`);
+      const { data: profilesData, error: profilesError } = await query
+        .range(currentOffset, currentOffset + PROFILES_PER_BATCH - 1);
 
       if (profilesError) throw profilesError;
 
-      if (!profilesWithData || profilesWithData.length === 0) {
-        setHasMore(false);
-        return;
-      }
+      const extendedProfiles = await Promise.all((profilesData || []).map(async (profile) => {
+        // These requests now work because of the Handshake performed above
+        const [photosRes, interestsRes] = await Promise.all([
+          supabase.from('user_photos').select('photo_url, photo_order').eq('user_email', profile.email).order('photo_order'),
+          supabase.from('user_interests').select('interest').eq('user_email', profile.email)
+        ]);
 
-      const userSeed = user.email
-        .split("")
-        .reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-
-      const pageProfiles = shuffleWithSeed(profilesWithData, userSeed);
-
-      const extendedProfiles: ExtendedProfile[] = pageProfiles.map((profile: any) => {
-        // ✅ OPTIMIZED: Apply Image Transformation to reduce egress
-        const photos = (profile.user_photos || []).map((photo: any, index: number) => {
-          // Change URL from /object/public/ to /render/image/public/ and add resizing params
-          const optimizedUrl = photo.photo_url;
-
-          return {
-            url: optimizedUrl,
-            order: photo.photo_order || index
-          };
-        });
-
-        const interests = (profile.user_interests || []).map((interest: any) => interest.interest);
+        const today = new Date();
+        const birthDate = new Date(profile.date_of_birth);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        if (today.getMonth() < birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
 
         return {
           ...profile,
-          photos,
-          interests,
-          age: calculateAge(profile.date_of_birth),
-          name: (profile.last_name && profile.last_name !== "NULL")
-            ? `${profile.first_name} ${profile.last_name}`.trim()
-            : profile.first_name
+          photos: (photosRes.data || []).map(p => ({ url: p.photo_url, order: p.photo_order })),
+          interests: (interestsRes.data || []).map(i => i.interest),
+          age,
+          name: profile.first_name
         };
-      });
+      }));
 
       if (append) {
         setProfiles(prev => [...prev, ...extendedProfiles]);
@@ -193,60 +113,31 @@ export function useProfiles(): UseProfilesReturn {
         setProfiles(extendedProfiles);
       }
 
-      if (extendedProfiles.length < PROFILES_PER_BATCH) {
-        setHasMore(false);
-      }
+      setHasMore(extendedProfiles.length === PROFILES_PER_BATCH);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
-      setError(errorMessage);
-      toast({
-        title: 'Error Loading Profiles',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      console.error('Fetch profiles error:', err);
+      setError('Failed to fetch profiles');
     }
   };
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
-    setError(null);
-    setOffset(0);
-    try {
-      await fetchProfilesWithExtendedData(0, false);
-    } finally {
-      setLoading(false);
-    }
+    await fetchProfilesWithExtendedData(0, false);
+    setLoading(false);
   }, []);
 
   const fetchNextBatch = useCallback(async () => {
     if (!hasMore || loading) return;
-
     setLoading(true);
-    try {
-      const nextOffset = offset + PROFILES_PER_BATCH;
-      await fetchProfilesWithExtendedData(nextOffset, true);
-      setOffset(nextOffset);
-    } finally {
-      setLoading(false);
-    }
+    const nextOffset = offset + PROFILES_PER_BATCH;
+    await fetchProfilesWithExtendedData(nextOffset, true);
+    setOffset(nextOffset);
+    setLoading(false);
   }, [offset, hasMore, loading]);
-
-  const refetch = useCallback(async () => {
-    setOffset(0);
-    setHasMore(true);
-    await fetchProfiles();
-  }, [fetchProfiles]);
 
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  return {
-    profiles,
-    loading,
-    error,
-    refetch,
-    fetchNextBatch,
-    hasMore
-  };
+  return { profiles, loading, error, hasMore, fetchNextBatch, refetch: fetchProfiles };
 }

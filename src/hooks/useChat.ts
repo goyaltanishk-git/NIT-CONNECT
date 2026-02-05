@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Profile } from '@/lib/auth';
 import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldDisplayAnonymously } from "@/utils/incognitoUtils";
-
+import { supabase, syncAppSession } from '@/integrations/supabase/client'; // Import sync function
 // Create proper realtime subscription interface
 export interface RealtimeSubscription {
   unsubscribe: () => void;
@@ -117,44 +116,40 @@ export function useChat(user: Profile | null) {
   const [matchSubscription, setMatchSubscription] = useState<RealtimeSubscription | null>(null);
 
   const fetchConversations = useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      if (!user) {
-        setConversations([]);
-        setLoading(false);
-        return;
-      }
+  if (!user?.email) return;
 
-      
-      // Get matches for current user
-      const { data: matches, error: matchesError } = await supabase
-        .from('matches')
-        .select('user1_id, user2_id, created_at, is_active')
-        .or(`user1_id.eq.${user.email},user2_id.eq.${user.email}`)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+  try {
+    setLoading(true);
+    
+    // ✅ STEP 1: Perform the Handshake
+    await syncAppSession(user.email);
 
-      if (matchesError) {
-        throw matchesError;
-      }
+    // ✅ STEP 2: Fetch matches (Now unlocked by RLS)
+    const { data: matches, error: matchesError } = await supabase
+      .from('matches')
+      .select('user1_id, user2_id, created_at, is_active')
+      .or(`user1_id.eq.${user.email},user2_id.eq.${user.email}`)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
 
-      
+    if (matchesError) throw matchesError;
+
       if (!matches || matches.length === 0) {
         setConversations([]);
         setLoading(false);
         return;
       }
 
-
-      // Get conversation data for each match
+      // 3. Process each match into a conversation
       const conversationPromises = matches.map(async (match) => {
         const otherUserId = match.user1_id === user.email ? match.user2_id : match.user1_id;
+        
+        // Consistent match ID generation
         const sortedUserIds = [match.user1_id, match.user2_id].sort();
         const generatedMatchId = sortedUserIds.join('_');
-      
 
-        // Fetch other user's profile and photos in parallel
+        // Fetch other user's data in parallel
+        // RLS "Secure_View_Profiles" and "Photos_Viewable" will filter these
         const [profileResult, photosResult, lastMessageResult] = await Promise.all([
           supabase
             .from('profiles')
@@ -167,7 +162,6 @@ export function useChat(user: Profile | null) {
             .eq('user_email', otherUserId)
             .order('photo_order')
             .limit(3),
-          // Fixed: Query messages using sender and receiver
           supabase
             .from('messages')
             .select('content, created_at, sender')
@@ -176,25 +170,26 @@ export function useChat(user: Profile | null) {
             .limit(1)
             .maybeSingle()
         ]);
-        
-        
 
-        // Get unread count - Fixed: Using sender and receiver
+        // If the profile is blocked by RLS, we skip processing this conversation
+        if (!profileResult.data) return null;
+
+        // Get unread count specifically sent to current user by this person
         const { count: unreadCount } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('reciever', user.email)
           .eq('sender', otherUserId)
           .eq('is_read', false);
-         const displayDetails = getDisplayDetails(profileResult.data);
-          const displayName = getDisplayName(profileResult.data);
-          const displayBio = getDisplayBio(profileResult.data);
-          const displayPhotos = getDisplayPhotos(profileResult.data, photosResult.data?.map(p => p.photo_url) || []);
-             
-          // const displayPhotos = getDisplayPhotos(profileResult.data, profileResult.data.photos?.map(p => p.photo_url) || []);
-          const isAnonymous = shouldDisplayAnonymously(profileResult.data);
-         
 
+        // Process incognito/privacy logic using your utils
+        const displayDetails = getDisplayDetails(profileResult.data);
+        const displayName = getDisplayName(profileResult.data);
+        const displayBio = getDisplayBio(profileResult.data);
+        const displayPhotos = getDisplayPhotos(
+          profileResult.data, 
+          photosResult.data?.map(p => p.photo_url) || []
+        );
 
         return {
           id: generatedMatchId,
@@ -204,19 +199,19 @@ export function useChat(user: Profile | null) {
             first_name: displayName,
             last_name: " ",
             photos: (displayPhotos || []).map((url: string, index: number) => ({
-    photo_url: url,
-    photo_order: index,
-    is_primary: index === 0,
-  })),
+              photo_url: url,
+              photo_order: index,
+              is_primary: index === 0,
+            })),
             last_active_at: profileResult.data?.last_active_at,
             bio: displayBio,
-    year_of_study: displayDetails.year,
-    branch: displayDetails.branch,
-    hometown: displayDetails.hometown,
-    gender:profileResult.data?.gender,
-    height:displayDetails.height,
-    incognito_mode:profileResult.data?.incognito_mode,
-    college:profileResult.data?.college
+            year_of_study: displayDetails.year,
+            branch: displayDetails.branch,
+            hometown: displayDetails.hometown,
+            gender: profileResult.data?.gender,
+            height: displayDetails.height,
+            incognito_mode: profileResult.data?.incognito_mode,
+            college: profileResult.data?.college
           },
           lastMessage: lastMessageResult.data,
           unreadCount: unreadCount || 0,
@@ -225,7 +220,8 @@ export function useChat(user: Profile | null) {
         };
       });
 
-      const conversationData = await Promise.all(conversationPromises);
+      // Wait for all promises and filter out any nulls (blocked profiles)
+      const conversationData = (await Promise.all(conversationPromises)).filter(c => c !== null);
 
       // Sort by last message time, then by match creation time
       const sortedConversations = conversationData.sort((a, b) => {
@@ -237,6 +233,7 @@ export function useChat(user: Profile | null) {
       setConversations(sortedConversations);
       
     } catch (error) {
+      console.error('Fetch error:', error);
       setError('Failed to load conversations');
       toast({
         title: "Error loading conversations",
@@ -247,7 +244,6 @@ export function useChat(user: Profile | null) {
       setLoading(false);
     }
   }, [user, toast]);
-
   // Inside useChat.ts
 
 
@@ -558,15 +554,16 @@ export function useChat(user: Profile | null) {
 }, [user?.email, currentMatchId, fetchConversations, markMessagesAsRead]);
 
   useEffect(() => {
-    // Only try to fetch conversations if a valid user object exists
-    if (user) {
+  const initChat = async () => {
+    if (user?.email) {
+      // 1. Authenticate the connection for RLS
+      await syncAppSession(user.email);
+      // 2. Now the database will allow the fetch
       fetchConversations();
-    } else {
-      // If user logs out, clear the conversations
-      setConversations([]);
-      setLoading(false);
     }
-  }, [user, fetchConversations]);
+  };
+  initChat();
+}, [user?.email, fetchConversations]);
 
   // Cleanup subscriptions on unmount
   useEffect(() => {
