@@ -80,10 +80,22 @@ export function LoginScreen() {
       const otpVerified = await AuthService.verifyOtp(email, otp);
       if (!otpVerified) throw new Error("Invalid or expired code.");
 
+      // ✅ FIX #9: PRESERVE needsSetup FLAG
+      // getOrCreateUserProfile already sets needsSetup: true for inactive users
+      // We must NOT overwrite it here, otherwise AuthGuard won't show the hero
       const userProfile = await AuthService.getOrCreateUserProfile(email);
       await AuthService.updateLastActive(email);
       
+      // ✅ CRITICAL: Store the profile AS-IS from getOrCreateUserProfile
+      // This preserves the needsSetup flag that was set in auth.ts (lines 103, 133)
+      // DO NOT modify or strip any properties here
       encryptedStorage.set("current-user", JSON.stringify(userProfile));
+      
+      // Note: The profile returned from getOrCreateUserProfile already contains:
+      // - needsSetup: true (if is_active is false)
+      // - All other profile data
+      // AuthGuard will check this flag to decide: Hero Screen vs Setup Form
+      
       window.location.reload();
     } catch (error: any) {
       toast({ 

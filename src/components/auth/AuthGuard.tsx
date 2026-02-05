@@ -1,3 +1,4 @@
+// src/components/auth/AuthGuard.tsx
 import { useEffect, useState } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
@@ -16,6 +17,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showHeroScreen, setShowHeroScreen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -30,27 +32,31 @@ export function AuthGuard({ children }: AuthGuardProps) {
           const liveProfile = await AuthService.getUserProfile(emailToCheck);
 
           if (mounted) {
-            // If the profile doesn't exist at all, clear session
             if (!liveProfile) {
               AuthService.clearCurrentUser();
               setUserEmail(null);
               setProfile(null);
             } 
-            // 🛠️ NEW LOGIC: If account is inactive (is_active: false), allow setup instead of kicking
+            // ✅ FIX: Trigger Hero Screen for all inactive profiles
             else if (liveProfile.is_active === false) {
               setUserEmail(liveProfile.email);
               setProfile(liveProfile);
               
-              // Only show Hero if specifically flagged, otherwise straight to setup
-              const isReactivating = (localUser as any)?.needsSetup;
-              if (isReactivating) {
-                setShowHeroScreen(true);
-              } else {
-                setShowProfileSetup(true);
-              }
+              // Secure Session Token to prevent ghost logins
+              const newSessionToken = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              setSessionToken(newSessionToken);
+              
+              const sessionData = {
+                email: liveProfile.email,
+                sessionToken: newSessionToken,
+                timestamp: Date.now()
+              };
+              encryptedStorage.set('active-session', JSON.stringify(sessionData));
+              
+              // Force Hero Screen visibility for setup flow
+              setShowHeroScreen(true);
             } 
             else {
-              // Standard active user flow
               setUserEmail(liveProfile.email);
               setProfile(liveProfile);
               await AuthService.updateLastActive(liveProfile.email);
@@ -62,6 +68,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         if (mounted) setLoading(false);
       } catch (error) {
+        console.error('Auth initialization error:', error);
         if (mounted) setLoading(false);
       }
     };
@@ -70,45 +77,37 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return () => { mounted = false; };
   }, []);
 
-  // HEARTBEAT: Sync Check to catch setup completion or deletions in other tabs
   useEffect(() => {
-  if (!userEmail) return;
+    if (!userEmail) return;
 
-  const syncInterval = setInterval(async () => {
-    const liveStatus = await AuthService.getUserProfile(userEmail);
-     
-    // 1. Hard Delete Check: If the row is actually gone
-    if (!liveStatus) {
-      AuthService.clearCurrentUser();    
-      setUserEmail(null);
-      setProfile(null);
-      return;   
-    }
+    const syncInterval = setInterval(async () => {
+      const liveStatus = await AuthService.getUserProfile(userEmail);
+      
+      if (!liveStatus) {
+        AuthService.clearCurrentUser();    
+        setUserEmail(null);
+        setProfile(null);
+        return;   
+      }
  
-    // 2. Setup Completion Sync: 
-    // If Device A finishes setup, Device B moves from Setup Form -> Main App
-    if (liveStatus.is_active === true && showProfileSetup) {
-      setProfile(liveStatus);
-      setShowProfileSetup(false);
-      setShowHeroScreen(false);
-    }
-    
-    // 3. 🛠️ THE FIX: Deactivation/Soft-Delete Sync
-    // If the user is currently IN the main app (!showProfileSetup) 
-    // but the database now says is_active is false, they were "deleted" elsewhere.
-    if (liveStatus.is_active === false && !showProfileSetup && !showHeroScreen) {
-       // Clear session and kick to Login Screen immediately
-       AuthService.clearCurrentUser();
-       setUserEmail(null);
-       setProfile(null);
-       // Ensure setup states are reset so they don't get stuck in setup form
-       setShowProfileSetup(false); 
-       setShowHeroScreen(false);
-    }
-  }, 500000); 
+      // Ghost Login Prevention: If account becomes active elsewhere, hide hero/setup
+      if (liveStatus.is_active === true && (showProfileSetup || showHeroScreen)) {
+        setProfile(liveStatus);
+        setShowProfileSetup(false);
+        setShowHeroScreen(false);
+      }
+      
+      // Deactivation Sync: Kick to login if deactivated elsewhere
+      if (liveStatus.is_active === false && !showProfileSetup && !showHeroScreen) {
+         AuthService.clearCurrentUser();
+         encryptedStorage.set('active-session', '');
+         setUserEmail(null);
+         setProfile(null);
+      }
+    }, 5000); 
 
-  return () => clearInterval(syncInterval);
-}, [userEmail, showHeroScreen, showProfileSetup]);
+    return () => clearInterval(syncInterval);
+  }, [userEmail, showHeroScreen, showProfileSetup]);
 
   const handleHeroComplete = () => {
     setShowHeroScreen(false);
@@ -118,28 +117,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const handleProfileSetupComplete = (updatedProfile: Profile) => {
     setProfile(updatedProfile);
     setShowProfileSetup(false);
-    // Clear the needsSetup flag upon completion
-    const { needsSetup, ...cleanProfile } = updatedProfile as any;
-    encryptedStorage.set("current-user", JSON.stringify(cleanProfile));
+    encryptedStorage.set("current-user", JSON.stringify(updatedProfile));
+    encryptedStorage.set('active-session', ''); 
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
-        {/* Loading Spinner Content */}
-        <div className="text-center space-y-8 p-8 animate-fade-in">
-          <div className="relative">
-            <div className="loading-heart mx-auto"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 border-4 border-pink-500/20 border-t-pink-500 rounded-full animate-spin"></div>
-            </div>
-            <Sparkles className="absolute -top-4 -right-4 w-6 h-6 text-pink-400 animate-pulse" />
-            <Heart className="absolute -bottom-4 -left-4 w-5 h-5 text-purple-400 animate-bounce" />
-          </div>
-          <div className="space-y-4">
-            <h3 className="text-3xl font-bold gradient-text-animated">Loading...</h3>
-            <p className="text-gray-400 text-lg">Preparing your experience</p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-center animate-fade-in">
+          <div className="loading-heart mx-auto mb-4"></div>
+          <h3 className="text-xl font-bold text-white">Loading Experience...</h3>
         </div>
       </div>
     );
@@ -147,6 +134,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (!userEmail) return <LoginScreen />;
 
+  // ✅ Hero must be checked before children to block the main app
   if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
 
   if (showProfileSetup) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
