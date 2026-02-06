@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { AuthService, Profile, ProfileUpdate } from '@/lib/auth';
 import { InterestsService } from '@/lib/interests-service';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, syncAppSession } from '@/integrations/supabase/client'; 
 import { encryptedStorage } from '@/utils/encryptedStorage';
 
 export type FullProfile = Profile & {
@@ -73,19 +73,28 @@ export function useUserProfile() {
     }
   }, []);
 
-  const updateProfile = useCallback(async (updates: ProfileUpdate) => {
-    if (!profile?.email) return;
-    setLoading(true);
-    try {
-      await AuthService.updateProfile(profile.email, updates);
-      await fetchProfile();
-      toast({ title: 'Success', description: 'Profile updated.' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Update failed.', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [profile, fetchProfile, toast]);
+  // @/hooks/useUserProfile.ts
+
+const updateProfile = useCallback(async (updates: ProfileUpdate) => {
+  if (!profile?.email) return;
+  setLoading(true);
+  try {
+    // ✅ Ensure the session is synced before updating
+    await syncAppSession(profile.email);
+
+    // If AuthService.updateProfile uses supabase.from('profiles').update()
+    // Ensure it includes .select() at the end of the query to avoid 406
+    await AuthService.updateProfile(profile.email, updates);
+    
+    await fetchProfile();
+    toast({ title: 'Success', description: 'Profile updated.' });
+  } catch (error: any) {
+    console.error("Update error:", error);
+    toast({ title: 'Error', description: 'Update failed.', variant: 'destructive' });
+  } finally {
+    setLoading(false);
+  }
+}, [profile?.email, fetchProfile, toast]);
 
   useEffect(() => {
     fetchProfile();

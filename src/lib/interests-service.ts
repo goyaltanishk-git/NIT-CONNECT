@@ -30,18 +30,22 @@ export class InterestsService {
 
   // Update all interests for a user (replace existing)
   // Inside interests-service.ts
-static async updateUserInterests(userEmail: string, interests: string[]): Promise<void> {
-  try {
-    // Use a simpler approach: if it fails, the catch block catches it
-    const { error: deleteError } = await supabase.from('user_interests').delete().eq('user_email', userEmail);
-    if (deleteError) throw deleteError;
+// Inside InterestsService.ts
+static async updateUserInterests(email: string, interests: string[]) {
+  // 1. Delete all current interests for this user
+  await supabase
+    .from('user_interests')
+    .delete()
+    .eq('user_email', email);
 
-    if (interests.length > 0) {
-      const payload = interests.map(i => ({ user_email: userEmail, interest: i.trim() }));
-      const { error: insertError } = await supabase.from('user_interests').insert(payload);
-      if (insertError) throw insertError;
-    }
-  } catch (error) { throw error; }
+  // 2. Insert the new list
+  if (interests.length > 0) {
+    const { error } = await supabase
+      .from('user_interests')
+      .insert(interests.map(i => ({ user_email: email, interest: i })));
+    
+    if (error) throw error;
+  }
 }
 
   // Add a single interest

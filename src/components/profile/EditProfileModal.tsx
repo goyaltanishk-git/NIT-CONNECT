@@ -10,6 +10,7 @@ import { Plus, X, Tag, ArrowLeft } from "lucide-react";
 import { UserPhoto } from "@/lib/photoservice";
 import { InterestsService } from "../../lib/interests-service";
 import { useToast } from "@/hooks/use-toast";
+import {  supabase,syncAppSession } from '@/integrations/supabase/client'; 
 
 // Define the profile type that matches your database schema
 export interface ProfileType {
@@ -176,44 +177,95 @@ export function EditProfileModal({
     }
   };
 
-  const handleSave = async () => {
-    if (phoneError) {
-      toast({
-        title: "Invalid Input",
-        description: phoneError,
-        variant: "destructive",
-      });
-      return;
+  // @/components/profile/EditProfileModal.tsx
+
+// @/components/profile/EditProfileModal.tsx
+
+// @/components/profile/EditProfileModal.tsx
+
+// @/components/profile/EditProfileModal.tsx
+
+const handleSave = async () => {
+  try {
+    console.log("Starting save process...");
+    
+    // 1. Authorize session
+    await syncAppSession(formData.email);
+
+    // 2. Update Profiles Table
+    const profileUpdates = {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      date_of_birth: formData.date_of_birth, // ✅ ADD THIS LINE
+      bio: formData.bio || "",
+      hometown: formData.hometown || "",
+      branch: formData.branch || "",
+      year_of_study: formData.year_of_study || "",
+      height: formData.height ? Number(formData.height) : null,
+      phone_number: formData.phone_number || null,
+      instagram_handle: formData.instagram_handle || null,
+    };
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update(profileUpdates)
+      .eq('email', formData.email)
+      .select();
+
+    if (profileError) throw profileError;
+
+    // 3. ✅ THE FIX FOR 23505: Inline Delete-then-Insert Logic
+    // We do it directly here to ensure perfect timing
+    console.log("Cleaning old interests for:", formData.email);
+    const { error: deleteError } = await supabase
+      .from('user_interests')
+      .delete()
+      .eq('user_email', formData.email);
+
+    if (deleteError) throw deleteError;
+
+    // 4. Insert New Interests (Only if list isn't empty)
+    if (interests.length > 0) {
+      console.log("Inserting new interests:", interests);
+      const payload = interests.map(i => ({ 
+        user_email: formData.email, 
+        interest: i.trim() 
+      }));
+
+      const { error: insertError } = await supabase
+        .from('user_interests')
+        .insert(payload);
+
+      if (insertError) {
+        // If it still says 23505, it means the delete failed or hasn't propagated
+        console.error("Insert failed after delete attempt:", insertError);
+        throw insertError;
+      }
     }
 
+    toast({
+      title: "Success",
+      description: "Profile updated successfully!",
+    });
+
+    // 5. Parent update and Close
     try {
-      const editableData: Partial<ProfileType> = {
-        bio: formData.bio,
-        hometown: formData.hometown,
-        height: formData.height,
-        phone_number: formData.phone_number,
-        instagram_handle: formData.instagram_handle,
-        date_of_birth: formData.date_of_birth,
-      };
-      
-      await onSave(editableData);
-      
-      await InterestsService.updateUserInterests(profile.email, interests);
-      
-      setIsOpen(false);
-      toast({
-        title: "Profile updated",
-        description: "Your profile and interests have been updated successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error saving profile",
-        description: "Could not save your profile. Please try again.",
-        variant: "destructive",
-      });
+      await onSave(profileUpdates);
+    } catch (e) {
+      console.error("Parent sync failed, but DB saved:", e);
     }
-  };
-
+    
+    setIsOpen(false);
+    
+  } catch (error: any) {
+    console.error("HandleSave Full Error:", error);
+    toast({
+      title: "Update Failed",
+      description: error.message || "Unique constraint error on interests.",
+      variant: "destructive",
+    });
+  }
+};
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>

@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert as UIAlert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import imageCompression from 'browser-image-compression';
+import {  syncAppSession } from '@/integrations/supabase/client'; 
+
 
 import { 
   Dialog, 
@@ -283,6 +285,10 @@ const handleSubmit = async (e: React.FormEvent) => {
   const uploadedPaths: string[] = [];
   
   try {
+    // ✅ FIX 1: Sync Identity Handshake before ANY requests are made
+    // This provides the identity needed for the 401 Unauthorized errors
+    await syncAppSession(userEmail);
+
     // 1. UPLOAD PHOTOS TO STORAGE FIRST
     const uploadedPhotos = await Promise.all(photos.map(async (p) => {
       const ext = p.file.name.split('.').pop()?.toLowerCase();
@@ -297,7 +303,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       return { url: publicUrl, order: p.order };
     }));
 
-    // 2. SAVE INTERESTS (Mandatory confirmation)
+    // 2. SAVE INTERESTS
+    // Now that syncAppSession is called, this will no longer return 401
     await InterestsService.updateUserInterests(userEmail, interests);
 
     // 3. SAVE PHOTO DB RECORDS
@@ -307,22 +314,26 @@ const handleSubmit = async (e: React.FormEvent) => {
       photo_order: p.order,
       is_primary: i === 0,
     }));
-    // Clean old broken attempts before inserting new ones
+    
     await supabase.from('user_photos').delete().eq('user_email', userEmail);
     const { error: photoErr } = await supabase.from('user_photos').insert(photoPayload);
     if (photoErr) throw photoErr;
 
-    // 4. LAST STEP: Mark profile as active only if everything above worked
-    // FIX: Parse height to number and map fields explicitly to resolve TS(2345)
-    const { error: profileErr } = await supabase.from('profiles').update({
-      date_of_birth: formData.date_of_birth,
-      bio: formData.bio.trim(),
-      height: parseInt(formData.height), // ✅ Convert string to number
-      hometown: formData.hometown.trim(),
-      phone_number: formData.phone_number.trim() || null, // Convert empty string to null
-      instagram_handle: formData.instagram_handle.trim() || null,
-      is_active: true 
-    }).eq('email', userEmail);
+    // 4. LAST STEP: UPDATE PROFILE
+    // ✅ FIX 2: Add .select() to satisfy the 'Accept' header requirement and fix 406 error
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({
+        date_of_birth: formData.date_of_birth,
+        bio: formData.bio.trim(),
+        height: parseInt(formData.height),
+        hometown: formData.hometown.trim(),
+        phone_number: formData.phone_number.trim() || null,
+        instagram_handle: formData.instagram_handle.trim() || null,
+        is_active: true 
+      })
+      .eq('email', userEmail)
+      .select(); // 👈 This line fixes the 406 Not Acceptable error
     
     if (profileErr) throw profileErr;
 
