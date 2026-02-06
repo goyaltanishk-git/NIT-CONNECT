@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncAppSession } from "@/integrations/supabase/client"; // ✅ Added syncAppSession
 import { useToast } from "@/hooks/use-toast";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
@@ -109,97 +109,106 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
     }
   }, []);
 
-  const fetchProfilesWithExtendedData = async (startOffset: number = 0, append: boolean = false) => {
-    try {
-      const userd = encryptedStorage.get('current-user');
-      if (!userd) return;
-      const user = JSON.parse(userd);
+  // Inside @/hooks/useProfilesGlobal.ts
 
-      const { data: interactions } = await supabase
-        .from("user_interactions")
-        .select("target_user_id")
-        .eq("user_id", user.email);
+const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
+  try {
+    const stored = encryptedStorage.get("current-user");
+    if (!stored) return;
+    
+    // currentUserData contains email, interested_in, and their own college
+    const currentUser = JSON.parse(stored);
 
-      const { data: interactions1 } = await supabase
-        .from("user_interactions")
-        .select("user_id")
-        .eq("target_user_id", user.email);
+    // 1. ✅ THE HANDSHAKE: Establish identity for RLS to prevent 401/406 errors
+    await syncAppSession(currentUser.email);
 
-      const interactedIds = [
-        ...(interactions1?.map(i => i.user_id) || []),
-        ...(interactions?.map(i => i.target_user_id) || [])
-      ];
+    // 2. Get the list of people the user has already swiped on to exclude them
+    const { data: swipedData } = await supabase
+      .from('user_interactions')
+    .select('user_id, target_user_id')
+      .or(`user_id.eq.${currentUser.email},target_user_id.eq.${currentUser.email}`);
+    
+    const swipedEmails = swipedData?.map(s => s.target_user_id) || [];
 
-      let query = supabase
-        .from("profiles")
-        .select(`
-          *,
-          user_photos!user_photos_user_email_fkey(photo_url, photo_order, is_primary, is_verified),
-          user_interests!user_interests_user_email_fkey(interest)
-        `)
-        .eq("is_active", true)
-        .neq("gender", user.gender)
-        .neq("college", user.college) // 🌍 Never show profiles from user's own college
-        .order("shuffle_order", { ascending: false });
+    const hiddenEmails = new Set<string>();
+    swipedData?.forEach(i => {
+      hiddenEmails.add(i.user_id);
+      hiddenEmails.add(i.target_user_id);
+    });
+    // 3. Build the Discovery Query using Joins for Photos and Interests
+    let query = supabase
+      .from('profiles')
+      .select(`
+        *,
+        user_photos(photo_url, photo_order),
+        user_interests(interest)
+      `)
+      .neq('email', currentUser.email)      // Don't show the user themselves
+      .eq('is_active', true)                 // Only active users
+      .eq('gender', currentUser.interested_in); // Match gender preference
 
-      if (interactedIds.length > 0) {
-        query = query.filter('email', 'not.in', `(${interactedIds.join(',')})`);
-      }
-
-      if (selectedColleges.length > 0) {
-        query = query.eq("college", selectedColleges[0]);
-      }
-
-      query = query.range(startOffset, startOffset + PROFILES_PER_BATCH - 1);
-
-      const { data: profilesWithData, error: profilesError } = await query;
-      if (profilesError) throw profilesError;
-
-      if (!profilesWithData || profilesWithData.length === 0) {
-        setHasMore(false);
-        if (!append) setProfiles([]);
-        return;
-      }
-
-      const userSeed = user.email.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
-      const pageProfiles = shuffleWithSeed(profilesWithData, userSeed);
-
-      const extendedProfiles: ExtendedProfile[] = pageProfiles.map((profile: any) => {
-        const photos = (profile.user_photos || []).map((photo: any, index: number) => ({
-          url: photo.photo_url,
-          order: photo.photo_order || index
-        }));
-
-        const interests = (profile.user_interests || []).map((interest: any) => interest.interest);
-
-        return {
-          ...profile,
-          photos,
-          interests,
-          age: calculateAge(profile.date_of_birth),
-          name: (profile.last_name && profile.last_name !== "NULL")
-            ? `${profile.first_name} ${profile.last_name}`.trim()
-            : profile.first_name
-        };
-      });
-
-      if (append) {
-        setProfiles(prev => [...prev, ...extendedProfiles]);
-      } else {
-        setProfiles(extendedProfiles);
-      }
-
-      setHasMore(extendedProfiles.length === PROFILES_PER_BATCH);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
-      setError(errorMessage);
-      toast({
-        title: 'Error Loading Profiles',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      if (hiddenEmails.size > 0) {
+      query = query.not('email', 'in', `(${Array.from(hiddenEmails).join(',')})`);
     }
-  };
+    // 4. ✅ COLLEGE FILTER: Global logic
+    // If specific colleges are selected via the UI, filter by them.
+    // Otherwise, show everyone (Global mode).
+    if (selectedColleges && selectedColleges.length > 0) {
+      query = query.in('college', selectedColleges);
+    }
+
+    // 5. Exclude people already swiped
+    if (swipedEmails.length > 0) {
+      query = query.not('email', 'in', `(${swipedEmails.join(',')})`);
+    }
+
+    // 6. Execute fetch with pagination
+    const { data, error: fetchError } = await query
+      .range(currentOffset, currentOffset + PROFILES_PER_BATCH - 1);
+
+    if (fetchError) throw fetchError;
+
+    // 7. Format the data for the UI
+    const extendedProfiles: ExtendedProfile[] = (data || []).map(profile => {
+      // Calculate age
+      const today = new Date();
+      const birthDate = new Date(profile.date_of_birth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      if (today.getMonth() < birthDate.getMonth() || 
+         (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      return {
+        ...profile,
+        // Map joined data to the expected UI format
+        photos: (profile.user_photos || [])
+          .sort((a: any, b: any) => (a.photo_order || 0) - (b.photo_order || 0))
+          .map((p: any) => ({ url: p.photo_url, order: p.photo_order })),
+        interests: (profile.user_interests || []).map((i: any) => i.interest),
+        age,
+        name: profile.first_name
+      };
+    });
+
+    // 8. Update State
+    if (append) {
+      setProfiles(prev => [...prev, ...extendedProfiles]);
+    } else {
+      setProfiles(extendedProfiles);
+    }
+
+    setHasMore(extendedProfiles.length === PROFILES_PER_BATCH);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
+    setError(errorMessage);
+    toast({
+      title: 'Error Loading Profiles',
+      description: errorMessage,
+      variant: 'destructive',
+    });
+  }
+};
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true);

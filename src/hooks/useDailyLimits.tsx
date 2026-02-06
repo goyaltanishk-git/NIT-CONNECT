@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, syncAppSession } from "@/integrations/supabase/client"
 import { useToast } from '@/hooks/use-toast';
 
 interface UseDailyLimitsReturn {
@@ -45,28 +45,36 @@ export function useDailyLimits(userEmail?: string): UseDailyLimitsReturn {
     }
   }, [userEmail]);
 
-  const incrementLikes = async (): Promise<boolean> => {
-    if (!userEmail || dailyLikes >= DAILY_LIKE_LIMIT) {
-      return false;
-    }
-    try {
-      const newLikesCount = dailyLikes + 1;
-      const { error } = await supabase.from('daily_limits').upsert({
-        email: userEmail,
-        date: getCurrentDate(),
-        likes_used: newLikesCount,
-      });
+ // @/hooks/useDailyLimits.ts
 
-      if (error) {
-        toast({ title: "Error", description: "Could not save your like.", variant: "destructive" });
-        return false;
-      }
-      setDailyLikes(newLikesCount);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
+const incrementLikes = async () => {
+  if (!userEmail) return false;
+
+  try {
+    // ✅ STEP 1: Establish identity for RLS
+    // This removes the 401 Unauthorized error
+    await syncAppSession(userEmail);
+
+    const today = new Date().toISOString().split('T')[0];
+
+    // ✅ STEP 2: Use an 'upsert' to either update today's count or create it
+    const { error } = await supabase
+      .from('daily_limits')
+      .upsert({ 
+        email: userEmail, 
+        date: today,
+        likes_used: (dailyLikes || 0) + 1 
+      }, { onConflict: 'email,date' });
+
+    if (error) throw error;
+    
+    setDailyLikes(prev => (prev || 0) + 1);
+    return true;
+  } catch (err) {
+    console.error("Error updating daily limits:", err);
+    return false;
+  }
+};
 
   const refreshLimits = async () => {
     await loadDailyLimits();

@@ -6,7 +6,7 @@ import { useProfilesGlobal, DatabaseProfile } from "@/hooks/useProfilesGlobal";
 import { useAuth } from "@/hooks/useAuth";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncAppSession } from "@/integrations/supabase/client"
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { DailyLimitAlert } from "./DailyLimitAlert";
 import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } from "@/utils/incognitoUtils";
@@ -34,6 +34,7 @@ export function DiscoveryScreenGlobal() {
     hasUserInteracted.current = true;
     const profile = profiles[currentIndex];
 
+    // Check limits for likes
     if (action === 'like' && !canLike) { 
       setShowLimitAlert(true);
       return;
@@ -42,6 +43,12 @@ export function DiscoveryScreenGlobal() {
     setSwipeAnimation(action === 'like' ? 'right' : 'left');
 
     try {
+      // 1. ✅ THE HANDSHAKE: Establish identity before the POST request
+      // This is what fixes the 401 Unauthorized error
+      if (userEmail) {
+        await syncAppSession(userEmail);
+      }
+
       if (action === 'like') {
         const success = await incrementLikes();
         if (!success) {
@@ -51,14 +58,18 @@ export function DiscoveryScreenGlobal() {
         }
       }
 
+      // 2. Insert the interaction
       if (userEmail) {
-        await supabase.from('user_interactions').insert({
+        const { error } = await supabase.from('user_interactions').insert({
           user_id: userEmail,
           target_user_id: profile.email,
           interaction_type: action
         });
+
+        if (error) throw error;
       }
 
+      // 3. UI Update
       setTimeout(() => {
         setCurrentIndex(prev => prev + 1);
         setSwipeAnimation(null);
@@ -71,10 +82,16 @@ export function DiscoveryScreenGlobal() {
         });
       }
     } catch (error) {
+      console.error("Swipe error:", error);
       setSwipeAnimation(null);
+      toast({
+        title: "Action failed",
+        description: "Your session might have expired. Please refresh.",
+        variant: "destructive",
+      });
     }
   };
-
+  
   const transformProfileForCard = (profile: DatabaseProfile) => {
     const displayDetails = getDisplayDetails(profile);
     const displayName = getDisplayName(profile);

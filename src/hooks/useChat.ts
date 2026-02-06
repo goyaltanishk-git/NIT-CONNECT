@@ -103,8 +103,8 @@ function subscribeToMatches(userId: string, onMatch: () => void): RealtimeSubscr
 }
 
 export function useChat(user: Profile | null) {
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
@@ -322,103 +322,63 @@ export function useChat(user: Profile | null) {
   } catch (error) {
   }
 }, [user, markMessagesAsRead]);
-  const sendMessage = useCallback(async (matchId: string, content: string) => {
-    if (!content.trim()) {
-      return { success: false, error: 'Message cannot be empty' };
+  // Inside useChat.ts -> sendMessage function
+// @/hooks/useChat.ts
+
+const sendMessage = async (content: string, type: string = 'text', attachmentUrl?: string) => {
+  // 1. Guard: Ensure we have a user, a match, and actual text
+  if (!user?.email || !currentMatchId || !content.trim()) return;
+
+  try {
+    setSendingMessage(true);
+    
+    // 2. Perform the Handshake
+    await syncAppSession(user.email);
+
+    // 3. Find the recipient
+    const conversation = conversations.find(c => c.match_id === currentMatchId);
+    const otherUserId = conversation?.user.id;
+
+    if (!otherUserId) {
+      console.error("Recipient not found");
+      return;
     }
 
-    try {
-      setSendingMessage(true);
-      setError(null);
+    // 4. Construct the message for the DB
+    const newMessage = {
+      content: content.trim(), // This is the "Hi" or "Hello"
+      sender: user.email.toLowerCase(),
+      reciever: otherUserId.toLowerCase(),
+      type: type,
+      attachment_url: attachmentUrl,
+      is_read: false
+    };
 
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+    // 5. Insert into Supabase
+    const { data, error: insertError } = await supabase
+      .from('messages')
+      .insert(newMessage)
+      .select() // This gets the full row back from the DB
+      .single();
 
-      // Extract the other user ID from matchId
-      const userIds = matchId.split('_');
-      if (userIds.length !== 2) {
-        throw new Error('Invalid match ID format');
-      }
-      
-      const otherUserId = userIds.find(id => id !== user.email);
-      if (!otherUserId) {
-        throw new Error('Could not determine reciever');
-      }
+    if (insertError) throw insertError;
 
-
-      // Fixed: Insert message with sender and receiver
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          sender: user.email,
-          reciever: otherUserId,
-          content: content.trim(),
-          type: 'text',
-          is_read: false
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      // Transform the response to match our interface
-      const newMessage: ChatMessage = {
-        //id: data.id,
-        content: data.content,
-        sender: data.sender,
-        reciever: data.reciever,
-        created_at: data.created_at || '',
-        is_read: data.is_read || false,
-        read_at: data.read_at,
-        type: data.type || 'text',
-        attachment_url: data.attachment_url
-      };
-
-      // Add message to local state immediately for better UX
-      if (currentMatchId === matchId) {
-        setMessages(prev => [...prev, newMessage].slice(-100));
-      }
-
-      // Update conversations to reflect the new last message
-      setConversations(prev =>
-        prev.map(conv => {
-          if (conv.match_id === matchId) {
-            return {
-              ...conv,
-              lastMessage: {
-                content: newMessage.content,
-                created_at: newMessage.created_at,
-                sender: newMessage.sender
-              }
-            };
-          }
-          return conv;
-        }).sort((a, b) => {
-          const aTime = a.lastMessage?.created_at || a.created_at;
-          const bTime = b.lastMessage?.created_at || b.created_at;
-          return new Date(bTime).getTime() - new Date(aTime).getTime();
-        })
-      );
-
-      return { success: true, message: newMessage };
-
-    } catch (error) {
-      const errorMessage = 'Failed to send message';
-      setError(errorMessage);
-      toast({
-        title: "Failed to send message",
-        description: "Please check your connection and try again",
-        variant: "destructive"
-      });
-      return { success: false, error: errorMessage };
-    } finally {
-      setSendingMessage(false);
+    // 6. ✅ THE CRITICAL FIX: Update the UI with the DB result
+    // This ensures 'msg.content' is available for IndividualChat.tsx
+    if (data) {
+      setMessages(prev => [...prev, data as ChatMessage]);
     }
-  }, [currentMatchId, toast, user]);
 
+  } catch (err) {
+    console.error('Send message error:', err);
+    toast({
+      title: "Failed to send message",
+      variant: "destructive",
+    });
+  } finally {
+    setSendingMessage(false);
+  }
+};
   const loadMoreMessages = useCallback(async (matchId: string, currentCount: number) => {
     if (!matchId) return;
     try {
@@ -589,7 +549,7 @@ export function useChat(user: Profile | null) {
   return {
     conversations,
     messages,
-    loading,
+    loading: false,
     sendingMessage,
     error,
     unmatch,

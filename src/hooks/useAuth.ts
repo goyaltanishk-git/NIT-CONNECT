@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'; // Added useRef
+// @/hooks/useAuth.ts
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthService, Profile } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, syncAppSession } from '@/integrations/supabase/client'; // Added syncAppSession
 import { useToast } from '@/hooks/use-toast';
+import { encryptedStorage } from '@/utils/encryptedStorage';
 
 interface UseAuthReturn {
   user: Profile | null;
@@ -19,163 +21,96 @@ export function useAuth(): UseAuthReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-
-  // --- CACHE LOGIC ---
   const authCacheRef = useRef<{ user: any; timestamp: number } | null>(null);
-  const CACHE_TTL = 60000; // 1 minute cache for session checks
 
   const fetchCurrentUser = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      // ✅ FIX #5: Check Memory Cache before Network Request
-      const now = Date.now();
-      let authUser;
-
-      if (authCacheRef.current && (now - authCacheRef.current.timestamp) < CACHE_TTL) {
-        authUser = authCacheRef.current.user;
-      } else {
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-        authUser = supabaseUser;
-        // Update cache
-        authCacheRef.current = { user: authUser, timestamp: now };
+      const stored = encryptedStorage.get("current-user");
+      if (!stored) {
+        setUser(null);
+        return;
       }
+
+      const sessionData = JSON.parse(stored);
+      // ✅ HANDSHAKE: Ensure session is synced on every app load
+      await syncAppSession(sessionData.email);
       
-      if (authUser?.email) {
-        const profile = await AuthService.getUserProfile(authUser.email);
-        setUser(profile);
-        return;
-      }
-
-      // Fallback to localStorage (legacy/redundant but kept for your flow)
-      const currentUser = AuthService.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        return;
-      }
-
-      // Check temp user
-      const tempUser = localStorage.getItem('temp-user');
-      if (tempUser) {
-        try {
-          const parsedTempUser = JSON.parse(tempUser);
-          const profile = await AuthService.getOrCreateUserProfile(parsedTempUser.email);
-          setUser(profile);
-          return;
-        } catch (e) {
-          localStorage.removeItem('temp-user');
-        }
-      }
-
-      setUser(null);
+      const profile = await AuthService.getUserProfile(sessionData.email);
+      setUser(profile);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch user');
+      console.error("Auth fetch error:", err);
       setUser(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // ... rest of the hook (login, logout, updateProfile, refetch, useEffects) remains the same
-  
-  const login = useCallback(async (email: string, otp: string) => {
+  const login = async (email: string, otp: string) => {
     try {
       setLoading(true);
       setError(null);
-      await AuthService.verifyOtp(email, otp);
-      const profile = await AuthService.getOrCreateUserProfile(email);
+
+      // 1. Verify OTP against your new table
+      const { data: otpData, error: otpError } = await supabase
+        .from('email_otps')
+        .select('*')
+        .eq('email', email)
+        .eq('otp', otp)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (otpError || !otpData) {
+        throw new Error("Invalid or expired OTP code.");
+      }
+
+      // 2. ✅ THE HANDSHAKE: Establish identity in DB immediately
+      await syncAppSession(email);
+
+      // 3. Fetch/Create User Profile
+      const profile = await AuthService.getUserProfile(email);
+      
+      // 4. Persist Session
+      encryptedStorage.set("current-user", JSON.stringify({ email, loginDate: new Date().toISOString() }));
       setUser(profile);
-      
-      toast({
-        title: 'Welcome!',
-        description: 'Successfully logged in.',
-      });
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      setError(errorMessage);
-      toast({
-        title: 'Login Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+
+      // 5. Cleanup: Delete used OTP
+      await supabase.from('email_otps').delete().eq('id', otpData.id);
+
+      toast({ title: "Login Successful", description: `Welcome back, ${profile?.first_name || 'User'}!` });
+    } catch (err: any) {
+      setError(err.message);
+      toast({ title: "Login Failed", description: err.message, variant: "destructive" });
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  };
 
   const logout = useCallback(() => {
-    // Clear the memory cache on logout
-    authCacheRef.current = null;
-    
-    AuthService.clearCurrentUser();
+    encryptedStorage.remove("current-user");
     setUser(null);
-    setError(null);
-    
-    supabase.auth.signOut().catch(console.warn);
-    
-    toast({
-      title: 'Logged Out',
-      description: 'You have been successfully logged out.',
-    });
-  }, [toast]);
+    window.location.href = "/"; // Force refresh to clear session variables
+  }, []);
 
-  const updateProfile = useCallback(async (updates: any) => {
-    if (!user?.email) throw new Error('No user logged in');
-
+  const updateProfile = async (updates: any) => {
+    if (!user?.email) return;
     try {
       setLoading(true);
+      await syncAppSession(user.email);
       const updatedProfile = await AuthService.updateProfile(user.email, updates);
       setUser(updatedProfile);
-      toast({
-        title: 'Profile Updated',
-        description: 'Your profile has been saved successfully.',
-      });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
-      setError(errorMessage);
-      toast({
-        title: 'Update Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      throw err;
+      toast({ title: "Profile Updated" });
+    } catch (err: any) {
+      toast({ title: "Update Failed", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
-
-  const refetch = useCallback(async () => {
-    // Force a cache bypass for explicit refetching
-    authCacheRef.current = null;
-    await fetchCurrentUser();
-  }, [fetchCurrentUser]);
+  };
 
   useEffect(() => {
     fetchCurrentUser();
   }, [fetchCurrentUser]);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user?.email) {
-          const profile = await AuthService.getUserProfile(session.user.email);
-          setUser(profile);
-          // Sync cache with new session
-          authCacheRef.current = { user: session.user, timestamp: Date.now() };
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          authCacheRef.current = null;
-        }
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   return {
     user,
@@ -185,6 +120,6 @@ export function useAuth(): UseAuthReturn {
     login,
     logout,
     updateProfile,
-    refetch,
+    refetch: fetchCurrentUser
   };
 }

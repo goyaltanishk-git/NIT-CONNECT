@@ -9,8 +9,7 @@ import { useProfiles, DatabaseProfile } from "@/hooks/useProfiles";
 import { useAuth } from "@/hooks/useAuth";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { encryptedStorage } from "@/utils/encryptedStorage";
+import { supabase, syncAppSession } from "@/integrations/supabase/client";import { encryptedStorage } from "@/utils/encryptedStorage";
 import { GlowCard } from "@/components/ui/GlowCard";
 import { DailyLimitAlert } from "./DailyLimitAlert";
 import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldDisplayAnonymously } from "@/utils/incognitoUtils";
@@ -53,57 +52,38 @@ export function DiscoveryScreenIntegrated() {
     prevCanLikeRef.current = canLike;
   }, [canLike]);
 
-  const handleSwipe = async (action: 'like' | 'pass') => {
-    if (currentIndex >= profiles.length) return;
+  const handleSwipe = async (direction: 'like' | 'pass') => {
+  const targetProfile = profiles[currentIndex];
+  const stored = encryptedStorage.get("current-user");
+  if (!targetProfile || !stored) return;
 
-    // ⭐ Set interaction flag to true on first click
-    hasUserInteracted.current = true;
+  const { email } = JSON.parse(stored);
 
-    const profile = profiles[currentIndex];
-    
-    // Check if blocked - Show Alert
-    if (action === 'like' && !canLike) {
-      setShowLimitAlert(true);
-      return;
-    }
+  try {
+    // Sync session so the RLS policy allows the Insert
+    await syncAppSession(email);
 
-    setSwipeAnimation(action === 'like' ? 'right' : 'left');
+    const { error } = await supabase
+      .from('user_interactions')
+      .insert({
+        user_id: email,
+        target_user_id: targetProfile.email, // Using email as the link
+        interaction_type: direction
+      });
 
-    try {
-      if (action === 'like') {
-        const success = await incrementLikes();
-        if (!success) {
-          // If backend rejects (limit hit instantly), stop and show alert
-          setSwipeAnimation(null);
-          setShowLimitAlert(true);
-          return;
-        }
-      }
+    if (error) throw error;
 
-      if (userEmail) {
-        const { error } = await supabase.from('user_interactions').insert({
-          user_id: userEmail,
-          target_user_id: profile.email,
-          interaction_type: action
-        });
-        
-      }
-      
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setSwipeAnimation(null);
-      }, 300);
-
-      if (action === 'like') {
-        toast({
-          title: "Like sent! 💖",
-          description: `You liked ${profile.first_name}. Hope they like you back!`,
-        });
-      }
-    } catch (error) {
+    // Trigger animation and move to next
+    setSwipeAnimation(direction === 'like' ? 'right' : 'left');
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
       setSwipeAnimation(null);
-    }
-  };
+    }, 300);
+
+  } catch (err) {
+    console.error("Swipe failed:", err);
+  }
+};
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
 

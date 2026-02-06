@@ -148,8 +148,7 @@ static async getOrCreateUserProfile(email: string, authUserId?: string): Promise
     throw error;
   }
 }
-
-  static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
+static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -157,6 +156,7 @@ static async getOrCreateUserProfile(email: string, authUserId?: string): Promise
         .eq('email', email)
         .select()
         .single();
+      
       if (error) throw error;
       encryptedStorage.set('current-user', JSON.stringify(data));
       return data;
@@ -167,8 +167,11 @@ static async getOrCreateUserProfile(email: string, authUserId?: string): Promise
 
   static async updateLastActive(email: string): Promise<void> {
     try {
-      await supabase.from('profiles').update({ last_active_at: new Date().toISOString() }).eq('email', email);
+      await supabase.from('profiles').update({ 
+        last_active_at: new Date().toISOString() 
+      }).eq('email', email);
     } catch (error) {
+      console.error("Last active update failed:", error);
     }
   }
 

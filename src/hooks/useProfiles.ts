@@ -1,6 +1,6 @@
 // @/hooks/useProfiles.ts
 import { useState, useEffect, useCallback } from "react";
-import { supabase, syncAppSession } from "@/integrations/supabase/client"; // Added syncAppSession
+import { supabase, syncAppSession } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { encryptedStorage } from "@/utils/encryptedStorage"
 
@@ -18,26 +18,17 @@ export interface DatabaseProfile {
   height: number | null;
   instagram_handle: string | null;
   phone_number: string | null;
-  verification_status: string | null;
-  verification_document_url: string | null;
   is_verified: boolean | null;
   is_active: boolean | null;
   incognito_mode: boolean | null;
   hide_year_branch: boolean | null;
-  latitude: number | null;
-  longitude: number | null;
-  last_active_at: string | null;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
   college: string;
 }
 
 export interface ExtendedProfile extends DatabaseProfile {
   photos: Array<{ url: string; order: number }>;
   interests: Array<string>;
-  age?: number;
-  name?: string;
+  age: number;
 }
 
 const PROFILES_PER_BATCH = 10;
@@ -51,72 +42,67 @@ export function useProfiles() {
   const { toast } = useToast();
 
   const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
-    try {
-      const stored = encryptedStorage.get("current-user");
-      if (!stored) return;
-      const currentUser = JSON.parse(stored);
+  try {
+    const stored = encryptedStorage.get("current-user");
+    if (!stored) return;
+    const currentUser = JSON.parse(stored);
 
-      // ✅ HANDSHAKE: Sync session before fetching any profile or photo data
-      await syncAppSession(currentUser.email);
+    await syncAppSession(currentUser.email);
 
-      // Fetch interactions to exclude swiped profiles
-      const { data: interactions } = await supabase
-        .from('user_interactions')
-        .select('target_user_id')
-        .eq('user_id', currentUser.email);
+    // ✅ STEP 1: Get ALL interactions related to you
+    // We fetch people you swiped OR people who swiped on you
+    const { data: interactions } = await supabase
+      .from('user_interactions')
+      .select('user_id, target_user_id')
+      .or(`user_id.eq.${currentUser.email},target_user_id.eq.${currentUser.email}`);
 
-      const swipedUserIds = interactions?.map(i => i.target_user_id) || [];
+    // Combine both columns into one list of "hidden" emails
+    const hiddenEmails = new Set<string>();
+    interactions?.forEach(inter => {
+      hiddenEmails.add(inter.user_id);
+      hiddenEmails.add(inter.target_user_id);
+    });
 
-      // Query profiles based on preferences
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .neq('email', currentUser.email)
-        .eq('is_active', true)
-        .eq('gender', currentUser.interested_in);
+    // ✅ STEP 2: Query Discovery Profiles
+    let query = supabase
+      .from('profiles')
+      .select(`*, user_photos(photo_url, photo_order), user_interests(interest)`)
+      .neq('email', currentUser.email)
+      .eq('is_active', true)
+      .eq('gender', currentUser.interested_in)
+      .eq('college', currentUser.college);
 
-      if (swipedUserIds.length > 0) {
-        query = query.not('email', 'in', `(${swipedUserIds.join(',')})`);
-      }
+    // Hide everyone in our interaction list
+    if (hiddenEmails.size > 0) {
+      query = query.not('email', 'in', `(${Array.from(hiddenEmails).join(',')})`);
+    }
 
-      const { data: profilesData, error: profilesError } = await query
-        .range(currentOffset, currentOffset + PROFILES_PER_BATCH - 1);
+    const { data, error } = await query.range(currentOffset, currentOffset + 9);
+    if (error) throw error;
 
-      if (profilesError) throw profilesError;
+    // ... formatting logic (.map) ...
 
-      const extendedProfiles = await Promise.all((profilesData || []).map(async (profile) => {
-        // These requests now work because of the Handshake performed above
-        const [photosRes, interestsRes] = await Promise.all([
-          supabase.from('user_photos').select('photo_url, photo_order').eq('user_email', profile.email).order('photo_order'),
-          supabase.from('user_interests').select('interest').eq('user_email', profile.email)
-        ]);
-
-        const today = new Date();
-        const birthDate = new Date(profile.date_of_birth);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        if (today.getMonth() < birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-
+      // 4. Format the data for the UI
+      const formatted: ExtendedProfile[] = (data || []).map(p => {
+        const birthDate = new Date(p.date_of_birth);
+        const age = new Date().getFullYear() - birthDate.getFullYear();
+        
         return {
-          ...profile,
-          photos: (photosRes.data || []).map(p => ({ url: p.photo_url, order: p.photo_order })),
-          interests: (interestsRes.data || []).map(i => i.interest),
-          age,
-          name: profile.first_name
+          ...p,
+          photos: (p.user_photos || []).map((ph: any) => ({ 
+            url: ph.photo_url, 
+            order: ph.photo_order 
+          })),
+          interests: (p.user_interests || []).map((i: any) => i.interest),
+          age
         };
-      }));
+      });
 
-      if (append) {
-        setProfiles(prev => [...prev, ...extendedProfiles]);
-      } else {
-        setProfiles(extendedProfiles);
-      }
-
-      setHasMore(extendedProfiles.length === PROFILES_PER_BATCH);
-    } catch (err) {
-      console.error('Fetch profiles error:', err);
-      setError('Failed to fetch profiles');
+      setProfiles(prev => append ? [...prev, ...formatted] : formatted);
+      setHasMore(formatted.length === PROFILES_PER_BATCH);
+    } catch (err: any) {
+      console.error('Discovery fetch error:', err);
+      setError(err.message);
     }
   };
 
@@ -126,18 +112,15 @@ export function useProfiles() {
     setLoading(false);
   }, []);
 
-  const fetchNextBatch = useCallback(async () => {
-    if (!hasMore || loading) return;
-    setLoading(true);
-    const nextOffset = offset + PROFILES_PER_BATCH;
-    await fetchProfilesWithExtendedData(nextOffset, true);
-    setOffset(nextOffset);
-    setLoading(false);
-  }, [offset, hasMore, loading]);
-
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
 
-  return { profiles, loading, error, hasMore, fetchNextBatch, refetch: fetchProfiles };
+  return { 
+    profiles, 
+    loading, 
+    error, 
+    hasMore, 
+    refetch: fetchProfiles 
+  };
 }
