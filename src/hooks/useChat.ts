@@ -116,7 +116,9 @@ export function useChat(user: Profile | null) {
   const [matchSubscription, setMatchSubscription] = useState<RealtimeSubscription | null>(null);
 
   const fetchConversations = useCallback(async () => {
-  if (!user?.email) return;
+  if (!user?.email) {
+    setLoading(false);
+    return;}
 
   try {
     setLoading(true);
@@ -136,9 +138,11 @@ export function useChat(user: Profile | null) {
 
       if (!matches || matches.length === 0) {
         setConversations([]);
-        setLoading(false);
-        return;
+        
+        
+
       }
+  
 
       // 3. Process each match into a conversation
       const conversationPromises = matches.map(async (match) => {
@@ -325,30 +329,30 @@ export function useChat(user: Profile | null) {
   // Inside useChat.ts -> sendMessage function
 // @/hooks/useChat.ts
 
-const sendMessage = async (content: string, type: string = 'text', attachmentUrl?: string) => {
-  // 1. Guard: Ensure we have a user, a match, and actual text
-  if (!user?.email || !currentMatchId || !content.trim()) return;
+const sendMessage = async (matchId: string, content: string, type: string = 'text', attachmentUrl?: string) => {
+  // 1. Guard: Ensure we have a user, a valid matchId from the component, and actual text
+  if (!user?.email || !matchId || !content.trim()) return;
 
   try {
     setSendingMessage(true);
     
-    // 2. Perform the Handshake
+    // 2. Perform the Handshake for RLS
     await syncAppSession(user.email);
 
-    // 3. Find the recipient
-    const conversation = conversations.find(c => c.match_id === currentMatchId);
-    const otherUserId = conversation?.user.id;
+    // 3. Find the recipient by parsing the matchId (e.g., "user1_user2")
+    const userIds = matchId.split('_');
+    const otherUserId = userIds.find(id => id.toLowerCase() !== user.email.toLowerCase());
 
     if (!otherUserId) {
-      console.error("Recipient not found");
+      console.error("Recipient not found in matchId:", matchId);
       return;
     }
 
     // 4. Construct the message for the DB
     const newMessage = {
-      content: content.trim(), // This is the "Hi" or "Hello"
+      content: content.trim(),
       sender: user.email.toLowerCase(),
-      reciever: otherUserId.toLowerCase(),
+      reciever: otherUserId.toLowerCase(), // This ensures the other person receives it
       type: type,
       attachment_url: attachmentUrl,
       is_read: false
@@ -358,16 +362,28 @@ const sendMessage = async (content: string, type: string = 'text', attachmentUrl
     const { data, error: insertError } = await supabase
       .from('messages')
       .insert(newMessage)
-      .select() // This gets the full row back from the DB
+      .select()
       .single();
 
     if (insertError) throw insertError;
 
-    // 6. ✅ THE CRITICAL FIX: Update the UI with the DB result
-    // This ensures 'msg.content' is available for IndividualChat.tsx
+    // 6. Update the UI state immediately with the returned DB row
     if (data) {
       setMessages(prev => [...prev, data as ChatMessage]);
+
+      setConversations(prevConversations => {
+        return prevConversations.map(conv => {
+          if (conv.match_id === matchId) {
+            return {
+              ...conv,
+              lastMessage: data // Updates the text preview in the list
+            };
+          }
+          return conv;
+        });
+      });
     }
+    
 
   } catch (err) {
     console.error('Send message error:', err);
@@ -549,7 +565,7 @@ const sendMessage = async (content: string, type: string = 'text', attachmentUrl
   return {
     conversations,
     messages,
-    loading: false,
+    loading,
     sendingMessage,
     error,
     unmatch,
