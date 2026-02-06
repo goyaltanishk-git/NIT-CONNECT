@@ -20,12 +20,20 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
   
   const totalLikesCount = getFilteredLikes().length;
 
-  const handleLikeBackClick = async (likeId: string, targetUserId: string) => {
-    await handleLikeBack(likeId, targetUserId);
+ // ✅ FIX: Ensure session is synced before the Like Back POST request
+  const handleLikeBackClick = async (targetUserId: string) => {
+    // 1. Get user from storage to ensure we have the email for the handshake
+    const stored = localStorage.getItem('current-user');
+    if (!stored) return;
+    const { email } = JSON.parse(stored);
+
+    // 2. The hook handleLikeBack already contains syncAppSession(email)
+    // By awaiting   it here, we ensure the handshake is valid before the POST hits Supabase
+    await handleLikeBack(targetUserId);
   };
 
-  const handlePassClick = async (likeId: string) => {
-    await handlePass(likeId);
+  const handlePassClick = async (targetUserId: string) => {
+    await handlePass(targetUserId);
   };
 
   const handleProfileClick = (profile: Profile | undefined) => {
@@ -177,8 +185,21 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
           setIsDialogOpen(false);
           setSelectedProfile(null);
         }}
-        onLikeBack={handleDialogLikeBack}
-        onPass={handleDialogPass}
+        // ✅ Use the email from the selected profile
+        onLikeBack={async () => {
+          if (selectedProfile?.email) {
+            await handleLikeBack(selectedProfile.email);
+            setIsDialogOpen(false);
+            setSelectedProfile(null);
+          }
+        }}
+        onPass={async () => {
+          if (selectedProfile?.email) {
+            await handlePass(selectedProfile.email);
+            setIsDialogOpen(false);
+            setSelectedProfile(null);
+          }
+        }}
         showActionButtons={true}
       />
     </>

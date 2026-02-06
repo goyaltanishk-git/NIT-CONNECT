@@ -36,8 +36,8 @@ interface UserProfileDialogProps {
   profile: Profile | null;
   isOpen: boolean;
   onClose: () => void;
-  onLikeBack?: (profileId: string) => void;
-  onPass?: (profileId: string) => void;
+ onLikeBack?: (email: string) => void; // ✅ Change from id to email
+  onPass?: (email: string) => void;
   showActionButtons?: boolean;
 }
 
@@ -135,8 +135,7 @@ export function UserProfileDialog({
   })();
   const profileAge = calculateAge(profile.date_of_birth);
   const profilePhotos = profile.photos || [];
-  const profileActionId = profile.user_id;
-
+const profileActionId = profile?.email || "";
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="    w-full max-w-[420px]
