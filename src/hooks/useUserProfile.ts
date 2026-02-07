@@ -66,7 +66,7 @@ export function useUserProfile() {
         setProfile(fullProfile);
       }
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
+      
       setProfile(null);
     } finally {
       setLoading(false);
@@ -89,7 +89,7 @@ const updateProfile = useCallback(async (updates: ProfileUpdate) => {
     await fetchProfile();
     toast({ title: 'Success', description: 'Profile updated.' });
   } catch (error: any) {
-    console.error("Update error:", error);
+   
     toast({ title: 'Error', description: 'Update failed.', variant: 'destructive' });
   } finally {
     setLoading(false);

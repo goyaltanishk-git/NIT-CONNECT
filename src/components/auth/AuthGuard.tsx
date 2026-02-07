@@ -141,10 +141,19 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="text-center animate-fade-in">
-          <div className="loading-heart mx-auto mb-4"></div>
-          <h3 className="text-xl font-bold text-white">Loading Experience...</h3>
+     <div className="flex items-center justify-center h-full bg-black">
+        <div className="text-center space-y-8 animate-fade-in">
+          <div className="relative">
+            <div className="loading-heart mx-auto"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Sparkles className="h-8 w-8 text-pink-500 animate-pulse" />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-4xl font-bold gradient-text-animated">NITConnect</h3>
+            <p className="text-white text-xl">The Dating and Connection App</p>
+          </div>
         </div>
       </div>
     );

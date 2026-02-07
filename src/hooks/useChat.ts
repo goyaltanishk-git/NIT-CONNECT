@@ -59,7 +59,7 @@ export function useChat(currentUser: any) {
         unreadCount: item.unreadCount || 0
       }));
       setConversations(formatted);
-    } catch (err) { console.error(err); } 
+    } catch (err) {  } 
     finally { setLoading(false); }
   }, [currentUser?.email]);
 
@@ -76,7 +76,7 @@ export function useChat(currentUser: any) {
       if (error) throw error;
       setMessages(data as ChatMessage[] || []);
       setConversations(prev => prev.map(c => c.match_id === matchId ? { ...c, unreadCount: 0 } : c));
-    } catch (err) { console.error(err); } 
+    } catch (err) {  } 
     finally { setMessagesLoading(false); }
   }, [currentUser?.email]);
 
@@ -108,7 +108,7 @@ export function useChat(currentUser: any) {
       if (error) throw error;
       fetchConversations();
     } catch (err) {
-      console.error(err);
+
       // Remove failed message by checking created_at
       setMessages(prev => prev.filter(m => m.created_at !== tempMessage.created_at));
     } finally {
@@ -141,7 +141,7 @@ export function useChat(currentUser: any) {
       
       toast({ title: "Unmatched", description: "User has been removed." });
     } catch (err) {
-      console.error("Unmatch error", err);
+
       toast({ title: "Error", description: "Failed to unmatch", variant: "destructive" });
     }
   }, [currentUser?.email, toast]);
@@ -171,7 +171,7 @@ export function useChat(currentUser: any) {
         },
         (payload) => {
           const newMsg = payload.new as ChatMessage;
-          console.log("🚀 Realtime msg:", newMsg);
+         
 
           // Check if this message belongs to the currently active chat
           if (currentMatchIdRef.current === newMsg.sender) {

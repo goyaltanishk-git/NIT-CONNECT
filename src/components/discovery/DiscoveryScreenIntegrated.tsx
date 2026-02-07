@@ -16,11 +16,14 @@ import { getDisplayBio,getDisplayDetails,getDisplayName,getDisplayPhotos,shouldD
 
 export function DiscoveryScreenIntegrated() {
 
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
-  const [actionLoading, setActionLoading] = useState<'like' | 'pass' | null>(null); // 👈 Add this
+
   // State for alert dialog
   const [showLimitAlert, setShowLimitAlert] = useState(false);
+ 
+
   
   // ⭐ NEW: Track if user has interacted to prevent popup on reload
   const hasUserInteracted = useRef(false);
@@ -53,11 +56,17 @@ export function DiscoveryScreenIntegrated() {
   }, [canLike]);
 
   const handleSwipe = async (direction: 'like' | 'pass') => {
-    
+  
+
+
+    await supabase.from('profiles').select('email').limit(1);
+
     if (direction === 'like' && !canLike) {
   setShowLimitAlert(true);
   return;
 }
+   
+   setSwipeAnimation(direction === 'like' ? 'right' : 'left');
 
   const targetProfile = profiles[currentIndex];
   const stored = encryptedStorage.get("current-user");
@@ -65,7 +74,7 @@ export function DiscoveryScreenIntegrated() {
 
   const { email } = JSON.parse(stored);
 
-  setActionLoading(direction);
+  
   try {
     // Sync session so the RLS policy allows the Insert
     await syncAppSession(email);
@@ -85,16 +94,17 @@ export function DiscoveryScreenIntegrated() {
     if (error) throw error;
 
     // Trigger animation and move to next
-    setSwipeAnimation(direction === 'like' ? 'right' : 'left');
+   
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1);
       setSwipeAnimation(null);
-      setActionLoading(null);
+
+        
     }, 300);
 
   } catch (err) {
-    console.error("Swipe failed:", err);
-    setActionLoading(null);
+       setSwipeAnimation(null);
+    
   }
 };
 
@@ -246,6 +256,7 @@ photos: (displayPhotos || []).map((url: string, index: number) => {
                 profile={transformProfileForCard(profiles[currentIndex + 1])}
                 onLike={() => {handleSwipe('like')}}
                 onPass={() => {handleSwipe('pass')}}
+                key={profiles[currentIndex+1].email}
               />
             </div>
           )}
@@ -283,6 +294,7 @@ photos: (displayPhotos || []).map((url: string, index: number) => {
                 profile={currentProfile}
                 onLike={() => handleSwipe('like')}
                 onPass={() => handleSwipe('pass')}
+                key={currentProfile.id}
               />
           
           </div>

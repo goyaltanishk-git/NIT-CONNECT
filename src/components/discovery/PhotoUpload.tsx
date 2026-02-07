@@ -88,7 +88,7 @@ export function PhotoUpload({
         description: "Photo saved successfully!",
       });
     } catch (error: any) {
-      console.error("Upload error:", error);
+     
       toast({
         title: "Upload Failed",
         description: error.message,

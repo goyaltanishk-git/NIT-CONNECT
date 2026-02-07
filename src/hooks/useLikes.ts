@@ -38,7 +38,7 @@ export function useLikes() {
       setPendingLikes(data as PendingLike[] || []);
         
     } catch (error) {
-      console.error('Error fetching likes:', error);
+     
     } finally {
       setLoading(false);
     }

@@ -48,7 +48,7 @@ export class RealtimeService {
         await syncAppSession(user.email);
       }
     } catch (e) {
-      console.error("Realtime identity sync failed:", e);
+     
     }
   }
 
@@ -62,7 +62,7 @@ export class RealtimeService {
           'postgres_changes', 
           { event: 'INSERT', schema: 'public', table: 'matches' }, 
           payload => {
-            console.log("🔥 New Match Received:", payload.new);
+           
             callback(payload.new as MatchRow);
           }
         )
@@ -79,7 +79,7 @@ export class RealtimeService {
           'postgres_changes', 
           { event: 'INSERT', schema: 'public', table: 'messages' }, 
           payload => {
-            console.log("💬 New Message Received:", payload.new);
+            
             callback(payload.new as MessageRow);
           }
         )

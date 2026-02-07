@@ -25,9 +25,24 @@ interface ProfileCardProps {
   profile: Profile;
   onLike: () => void;
   onPass: () => void;
+
 }
 
 const getFirstName = (fullName: string) => fullName.split(" ")[0];
+const heartVariants = {
+  idle: {
+    rotate: 0
+  },
+  loading: {
+    rotate: 360,
+    transition: {
+      repeat: Infinity,
+      duration: 0.8,
+      ease: "linear"
+    }
+  }
+};
+
 
 export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -38,6 +53,9 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
   const backTouchStart = useRef<number | null>(null);
   const backTouchEnd = useRef<number | null>(null);
   const [burst, setBurst] = useState(false);
+  const [Hello,setHello]=useState(false);
+  const resetTimer = useRef<NodeJS.Timeout | null>(null);
+
 
   const toggleFlip = () => setIsFlipped((prev) => !prev);
 
@@ -212,7 +230,14 @@ export function EnhancedProfileCard({ profile, onLike, onPass }: ProfileCardProp
               <motion.button
                 whileHover={{ scale: 1.12 }}
                 whileTap={{ scale: 0.88 }}
-                onClick={(e) => { e.stopPropagation(); triggerBurst(e); }}
+                variants={heartVariants}
+                animate={Hello ? "loading": "idle"}
+      
+                onClick={(e) => { e.stopPropagation(); triggerBurst(e); setHello(true);
+                  resetTimer.current = setTimeout(() => {
+    setHello(false);
+  }, 2000);
+                }}
                 className="
                    w-20 h-20 rounded-full overflow-hidden interactive
                   bg-gradient-to-br from-pink-700 to-purple-400

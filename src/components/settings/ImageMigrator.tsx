@@ -44,7 +44,7 @@ export function ImageMigrator() {
           .download(filePath);
 
         if (dlError || !blob) {
-          console.error(`Download failed for ${filePath}`, dlError);
+         
           continue;
         }
 
@@ -64,7 +64,7 @@ export function ImageMigrator() {
             cacheControl: '31536000' // Apply long-term 1-year cache
           });
 
-        if (ulError) console.error(`Upload failed for ${filePath}`, ulError);
+       
         
         setProgress(prev => ({ ...prev, current: i + 1 }));
       }

@@ -71,7 +71,7 @@ const incrementLikes = async () => {
     setDailyLikes(prev => (prev || 0) + 1);
     return true;
   } catch (err) {
-    console.error("Error updating daily limits:", err);
+    
     return false;
   }
 };

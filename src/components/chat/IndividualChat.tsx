@@ -126,7 +126,7 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
         } as any);
       }
     } catch (err) {
-      console.error("Failed to load full profile", err);
+      
     } finally {
       setLoadingProfile(false);
     }

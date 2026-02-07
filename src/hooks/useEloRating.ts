@@ -87,7 +87,7 @@ export function useEloRating() {
       };
 
       // Log the updates instead of saving to database
-      console.log('ELO Rating Update (Local Only):', { userUpdates, targetUpdates });
+      
 
       return {
         userRatingChange,
@@ -97,7 +97,7 @@ export function useEloRating() {
       };
 
     } catch (error) {
-      console.error('ELO rating calculation error:', error);
+      
       return null;
     }
   }, [calculateEloChange]);
@@ -113,10 +113,10 @@ export function useEloRating() {
         matches_count: 0
       };
 
-      console.log('Getting user rating (Local Only):', initialRating);
+     
       return initialRating;
     } catch (error) {
-      console.error('Get user rating error:', error);
+      
       return null;
     }
   }, []);

@@ -38,7 +38,7 @@ export function useNotifications(userId: string) {
       setUnreadCount(data?.filter(n => !n.is_read).length || 0);
       setLoading(false);
     } catch (error) {
-      console.error('Error loading notifications:', error);
+     
       setLoading(false);
     }
   }, [userId]);
@@ -58,7 +58,7 @@ export function useNotifications(userId: string) {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      
     }
   }, []);
 
@@ -76,7 +76,7 @@ export function useNotifications(userId: string) {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+    
     }
   }, [userId]);
 
@@ -101,7 +101,7 @@ export function useNotifications(userId: string) {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Error creating notification:', error);
+     
     }
   }, []);
 

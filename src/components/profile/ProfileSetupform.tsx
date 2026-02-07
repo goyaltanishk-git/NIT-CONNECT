@@ -177,7 +177,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
         };
         reader.readAsDataURL(compressedFile);
       } catch (err) {
-        console.error("Compression Error:", err);
+       
       }
     }
   }
