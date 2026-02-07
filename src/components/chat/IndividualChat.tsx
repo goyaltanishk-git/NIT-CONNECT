@@ -37,6 +37,7 @@ interface User {
   name: string;
   photos: string[];
   isOnline?: boolean;
+  match_id: string;
   lastSeen?: string;
   bio?: string | null;
   year_of_study?: string | null;
@@ -63,9 +64,73 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
-
+const [loadingProfile, setLoadingProfile] = useState(false); // Add this if missing
   const { toast } = useToast();
+  const [profileForDialog, setProfileForDialog] = useState<UserProfileType | null>(null);
 
+  const handleOpenProfile = async () => {
+    setProfileDialogOpen(true);
+    setLoadingProfile(true);
+
+    try {
+      // 1. Show basic info immediately (mapped correctly to Profile type)
+      const basicProfile: any = {
+        user_id: user.id,
+        email: user.match_id,
+        first_name: user.name.split(' ')[0],
+        last_name: user.name.split(' ').slice(1).join(' '),
+        full_name: user.name,
+        // Map string[] photos to the object structure UserProfileDialog expects
+        photos: user.photos.map((url, i) => ({
+          photo_id: `temp-${i}`,
+          photo_url: url,
+          photo_order: i,
+          is_primary: i === 0
+        })),
+        bio: user.bio || 'Loading details...',
+        college: user.college,
+        year_of_study: user.year_of_study,
+        branch: user.branch,
+        hometown: user.hometown,
+        interests: [],
+        gender: 'male', // Defaults required by type
+        interested_in: 'female',
+        is_verified: false
+      };
+      
+      setProfileForDialog(basicProfile);
+
+      // 2. Fetch the REAL full data from DB
+      const { data, error } = await supabase.rpc('get_full_profile_details', { 
+        p_email: user.match_id 
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        // ✅ FIX: Map the DB response to use 'photo_url' instead of 'url'
+        const fetchedPhotos = (data as any).photos?.map((p: any, i: number) => ({
+          photo_id: p.photo_id || `db-${i}`,
+          // The DB returns 'url', but UI needs 'photo_url'
+          photo_url: p.url || p.photo_url, 
+          photo_order: p.order ?? p.photo_order ?? i,
+          is_primary: p.is_primary ?? (i === 0)
+        }));
+
+        setProfileForDialog({
+          ...basicProfile,
+          ...data,
+          // Use the fixed photos, or fall back to basic ones
+          photos: fetchedPhotos || basicProfile.photos,
+          interests: (data as any).interests || []
+        } as any);
+      }
+    } catch (err) {
+      console.error("Failed to load full profile", err);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -117,39 +182,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
   // ⛔️ formatMessageTime function removed
 
   // 🆕 Create the complex Profile object that UserProfileDialog expects
-  const profileForDialog: UserProfileType = {
-    // --- Data from User prop ---
-    user_id: user.id,
-    first_name: user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name,
-    bio: user.bio,
-    year_of_study: user.year_of_study,
-    branch: user.branch,
-    hometown: user.hometown,
-    college: user.college,
-    
-    // --- Transform photos: string[] to ProfilePhoto[] ---
-    photos: user.photos.map((url, index) => ({
-      photo_id: `temp-${index}`, // Fake a photo_id
-      user_email: '', // Not available, but this is required by the type
-      photo_url: url,
-      photo_order: index + 1,
-      created_at: new Date().toISOString(),
-      is_primary: index === 0
-    })),
-    
-    // --- Faked/Empty data to satisfy the type ---
-    id: 0, // This is faked, UserProfileDialog should rely on user_id
-    last_name: '', // Not available
-    interests: [], // Not available from the 'user' prop
-    updated_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    email: '', // Not available
-    date_of_birth: '', // Not available
-    gender: 'male', // Not available, faking
-    interested_in: 'female', // Not available, faking
-  };
-
-
+ 
   return (
     <div className="  h-full flex flex-col bg-gradient-to-b from-background to-primary/5">
       {/* Enhanced Header */}
@@ -186,7 +219,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
             {/* 🆕 Made Name clickable */}
             <h2 
   className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
-  onClick={() => setProfileDialogOpen(true)}
+ onClick={handleOpenProfile}
 >
   {/* Filter out string variants of null from user.name if they exist */}
   {user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name}
@@ -204,7 +237,7 @@ export function IndividualChat({ user, messages, currentUser, onBack, onSendMess
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem 
-                  onSelect={() => setProfileDialogOpen(true)}
+                  onClick={handleOpenProfile}
                   className="hover:bg-primary/10"
                 >
                   <Heart className="h-4 w-4 mr-2" />

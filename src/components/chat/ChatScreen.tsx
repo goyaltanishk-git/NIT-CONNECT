@@ -55,6 +55,7 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
       : "";
     const chatUser = {
       id: selectedConversation.user.id,
+match_id: selectedConversation.match_id, //
      name: `${selectedConversation.user.first_name}${cleanLastName}`.trim(),
       photos: selectedConversation.user.photos?.map(p => p.photo_url) || [],
       lastSeen: selectedConversation.user.last_active_at,
