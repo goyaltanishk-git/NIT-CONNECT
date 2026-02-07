@@ -153,9 +153,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // PASS THE SUCCESS HANDLER TO LOGIN SCREEN
   if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
 
-  if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
-  
-  if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
+if (showHeroScreen && profile) {
+    return <HeroFuturistic onComplete={handleHeroComplete} userProfile={profile} />;
+  }  
+  if (showProfileSetup && userEmail && profile) {
+    return (
+      <ProfileSetupForm 
+        userEmail={userEmail} 
+        initialProfile={profile} 
+        onComplete={handleProfileSetupComplete} 
+      />
+    );
+  }
 
   return <>{children}</>;
 }

@@ -13,17 +13,16 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Heart } from 'lucide-react';
 import './HeroSection.css'; 
-
-import { useUserProfile } from '@/hooks/useUserProfile';
+import { Profile } from "@/lib/auth";
 
 gsap.registerPlugin(ScrollTrigger);
 
 interface ComponentProps {
   onComplete?: () => void;
+  userProfile?: Profile; // ✅ ADD THIS
 }
 
-export const Component = ({ onComplete }: ComponentProps) => {
-  const containerRef = useRef(null);
+export const Component = ({ onComplete, userProfile }: ComponentProps) => {  const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const titleRef = useRef(null);
   const subtitleRef = useRef(null);
@@ -31,7 +30,6 @@ export const Component = ({ onComplete }: ComponentProps) => {
   const menuRef = useRef(null);
   const ctaButtonRef = useRef(null);
 
-  const { profile, loading: profileLoading } = useUserProfile();
   const [userName, setUserName] = useState(""); 
 
   const smoothCameraPos = useRef({ x: 0, y: 30, z: 400 });
@@ -87,17 +85,18 @@ export const Component = ({ onComplete }: ComponentProps) => {
 
   // --- 2. DATA LOADING (Prevents "Welcome... Name" jump) ---
   useEffect(() => {
-    if (profileLoading) return;
+    // ❌ REMOVE checking for profileLoading
     
-    if (profile && profile.first_name) {
-      setUserName(profile.first_name.toUpperCase());
+    // ✅ USE THE PROP DIRECTLY
+    if (userProfile && userProfile.first_name) {
+      setUserName(userProfile.first_name.toUpperCase());
     } else {
-      setUserName("User"); 
+      setUserName("NITIAN"); // Fallback
     }
     
     // Only mark data as ready when we have the final name
     setIsDataReady(true);
-  }, [profile, profileLoading]);
+  }, [userProfile]); // ✅ UPDATE DEPENDENCY
 
   // --- 3. THREE.JS INIT ---
   useEffect(() => {

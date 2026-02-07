@@ -35,6 +35,7 @@ const POPULAR_INTERESTS = [
 interface ProfileSetupFormProps {
   userEmail: string;
   onComplete: (profile: Profile) => void;
+  initialProfile?: Profile | null; // ✅ ADD THIS
 }
 
 interface FormData {
@@ -54,18 +55,17 @@ interface PhotoFile {
 
 const MAX_PHOTOS = 3; 
 
-export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProps) {
-  const [formData, setFormData] = useState<FormData>({
+export function ProfileSetupForm({ userEmail, onComplete, initialProfile }: ProfileSetupFormProps) {
+    const [formData, setFormData] = useState<FormData>({
     date_of_birth: '', bio: '', height: '', hometown: '', phone_number: '', instagram_handle: ''
   });
-
+const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile || null);
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [currentInterest, setCurrentInterest] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   
   // Refs for inputs and scrolling
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +97,9 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   }, []);
 
   useEffect(() => {
+    // ✅ ADD THIS CHECK: If we have the prop, don't fetch again
+    if (initialProfile) return;
+
     const loadUserProfile = async () => {
       try {
         const profile = await AuthService.getUserProfile(userEmail);
@@ -105,7 +108,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
       }
     };
     loadUserProfile();
-  }, [userEmail]);
+  }, [userEmail, initialProfile]); // ✅ UPDATE DEPENDENCY
 
   // Helper to trigger the custom dialog
   const triggerError = (msg: string) => {
