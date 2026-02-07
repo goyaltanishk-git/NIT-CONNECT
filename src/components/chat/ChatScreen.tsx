@@ -47,6 +47,7 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
     if (!selectedConversation) return;
     await unmatch(selectedConversation.match_id);
     setSelectedConversation(null);
+    setischatopen(false);
   };
   
   if (selectedConversation && currentUser) {
