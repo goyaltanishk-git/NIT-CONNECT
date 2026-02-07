@@ -71,7 +71,7 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
         messages={messages}
         currentUser={currentUser}
         onBack={()=> {setSelectedConversation(null);setischatopen(false)}}
-        onSendMessage={handleSendMessage}
+        onSendMessage={sendMessage}
         onUnmatch={handleUnmatch}
       />
     );
@@ -145,7 +145,7 @@ export function ChatScreen({ onNavigateToDiscovery,setischatopen }: ChatScreenPr
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {conversations.map((conversation, index) => (
           <Card 
-            key={conversation.id} 
+            key={conversation.match_id} 
             className={`glass-light border-white/10 transition-all duration-500 hover:scale-[1.02] card-hover animate-fade-in interactive stagger-${index + 1}`}
             onClick={()=>{setSelectedConversation(conversation);setischatopen(true)}}
           >
