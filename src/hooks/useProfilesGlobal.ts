@@ -1,5 +1,6 @@
+// @/hooks/useProfilesGlobal.ts
 import { useState, useEffect, useCallback } from "react";
-import { supabase, syncAppSession } from "@/integrations/supabase/client"; // ✅ Added syncAppSession
+import { supabase } from "@/integrations/supabase/client"; 
 import { useToast } from "@/hooks/use-toast";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
@@ -28,7 +29,6 @@ export interface DatabaseProfile {
   last_active_at: string | null;
   created_at: string;
   updated_at: string;
-  user_id: string;
   college: string; 
 }
 
@@ -60,44 +60,19 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
   const [availableColleges, setAvailableColleges] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const calculateAge = (dateOfBirth: string): number => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age;
-  };
-
-  function seededRandom(seed: number) {
-    return function () {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
-  }
-
-  function shuffleWithSeed<T>(array: T[], seed: number): T[] {
-    const rand = seededRandom(seed);
-    const result = [...array];
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(rand() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
-  }
-
+  // Helper to fetch list of available colleges
   const fetchAvailableColleges = useCallback(async () => {
     try {
       const userd = encryptedStorage.get('current-user');
       if (!userd) return;
       const user = JSON.parse(userd);
 
+      // We still use a standard query here as it's just a list of colleges
+      // Race condition matters less for non-sensitive data, but RPC is safer if you want later
       const { data: colleges, error: collegesError } = await supabase
         .from("profiles")
         .select("college")
-        .neq("college", user.college) // 🌍 Exclude own college from available list
+        .neq("college", user.college)
         .eq("is_active", true);
 
       if (collegesError) throw collegesError;
@@ -109,106 +84,51 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
     }
   }, []);
 
-  // Inside @/hooks/useProfilesGlobal.ts
+  const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
+    try {
+      const stored = encryptedStorage.get("current-user");
+      if (!stored) return;
+      const currentUser = JSON.parse(stored);
 
-const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
-  try {
-    const stored = encryptedStorage.get("current-user");
-    if (!stored) return;
-    
-    // currentUserData contains email, interested_in, and their own college
-    const currentUser = JSON.parse(stored);
+      // ✅ Use RPC to fetch Global profiles atomically
+      const { data, error: fetchError } = await supabase.rpc('get_global_profiles', {
+        p_email: currentUser.email,
+        p_offset: currentOffset,
+        p_limit: PROFILES_PER_BATCH,
+        p_selected_colleges: selectedColleges.length > 0 ? selectedColleges : null
+      });
 
-    // 1. ✅ THE HANDSHAKE: Establish identity for RLS to prevent 401/406 errors
-    await syncAppSession(currentUser.email);
+      if (fetchError) throw fetchError;
 
-    // 2. Get the list of people the user has already swiped on to exclude them
-    const { data: swipedData } = await supabase
-      .from('user_interactions')
-    .select('user_id, target_user_id')
-      .or(`user_id.eq.${currentUser.email},target_user_id.eq.${currentUser.email}`);
-    
-    const swipedEmails = swipedData?.map(s => s.target_user_id) || [];
+      const fetchedProfiles = (data as any[]) || [];
 
-    const hiddenEmails = new Set<string>();
-    swipedData?.forEach(i => {
-      hiddenEmails.add(i.user_id);
-      hiddenEmails.add(i.target_user_id);
-    });
-    // 3. Build the Discovery Query using Joins for Photos and Interests
-    let query = supabase
-      .from('profiles')
-      .select(`
-        *,
-        user_photos(photo_url, photo_order),
-        user_interests(interest)
-      `)
-      .neq('email', currentUser.email)      // Don't show the user themselves
-      .eq('is_active', true)                 // Only active users
-      .eq('gender', currentUser.interested_in); // Match gender preference
+      // Format data
+      const extendedProfiles: ExtendedProfile[] = fetchedProfiles.map(profile => ({
+        ...profile,
+        photos: profile.photos.map((p: any) => ({ url: p.url, order: p.order })),
+        interests: profile.interests,
+        age: profile.age, // Age is now calculated in SQL
+        name: profile.first_name
+      }));
 
-      if (hiddenEmails.size > 0) {
-      query = query.not('email', 'in', `(${Array.from(hiddenEmails).join(',')})`);
-    }
-    // 4. ✅ COLLEGE FILTER: Global logic
-    // If specific colleges are selected via the UI, filter by them.
-    // Otherwise, show everyone (Global mode).
-    if (selectedColleges && selectedColleges.length > 0) {
-      query = query.in('college', selectedColleges);
-    }
-
-    // 5. Exclude people already swiped
-    if (swipedEmails.length > 0) {
-      query = query.not('email', 'in', `(${swipedEmails.join(',')})`);
-    }
-
-    // 6. Execute fetch with pagination
-    const { data, error: fetchError } = await query
-      .range(currentOffset, currentOffset + PROFILES_PER_BATCH - 1);
-
-    if (fetchError) throw fetchError;
-
-    // 7. Format the data for the UI
-    const extendedProfiles: ExtendedProfile[] = (data || []).map(profile => {
-      // Calculate age
-      const today = new Date();
-      const birthDate = new Date(profile.date_of_birth);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      if (today.getMonth() < birthDate.getMonth() || 
-         (today.getMonth() === birthDate.getMonth() && today.getDate() < birthDate.getDate())) {
-        age--;
+      if (append) {
+        setProfiles(prev => [...prev, ...extendedProfiles]);
+      } else {
+        setProfiles(extendedProfiles);
       }
 
-      return {
-        ...profile,
-        // Map joined data to the expected UI format
-        photos: (profile.user_photos || [])
-          .sort((a: any, b: any) => (a.photo_order || 0) - (b.photo_order || 0))
-          .map((p: any) => ({ url: p.photo_url, order: p.photo_order })),
-        interests: (profile.user_interests || []).map((i: any) => i.interest),
-        age,
-        name: profile.first_name
-      };
-    });
+      setHasMore(extendedProfiles.length === PROFILES_PER_BATCH);
 
-    // 8. Update State
-    if (append) {
-      setProfiles(prev => [...prev, ...extendedProfiles]);
-    } else {
-      setProfiles(extendedProfiles);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
+      setError(errorMessage);
+      toast({
+        title: 'Error Loading Profiles',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     }
-
-    setHasMore(extendedProfiles.length === PROFILES_PER_BATCH);
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
-    setError(errorMessage);
-    toast({
-      title: 'Error Loading Profiles',
-      description: errorMessage,
-      variant: 'destructive',
-    });
-  }
-};
+  };
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
@@ -220,7 +140,7 @@ const fetchProfilesWithExtendedData = async (currentOffset: number, append: bool
     } finally {
       setLoading(false);
     }
-  }, [selectedColleges]);
+  }, [selectedColleges]); // Re-fetch when college filter changes
 
   const fetchNextBatch = useCallback(async () => {
     if (!hasMore || loading) return;

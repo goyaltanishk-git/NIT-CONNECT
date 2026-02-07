@@ -1,6 +1,6 @@
 // @/hooks/useProfiles.ts
 import { useState, useEffect, useCallback } from "react";
-import { supabase, syncAppSession } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { encryptedStorage } from "@/utils/encryptedStorage"
 
@@ -42,64 +42,35 @@ export function useProfiles() {
   const { toast } = useToast();
 
   const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
-  try {
-    const stored = encryptedStorage.get("current-user");
-    if (!stored) return;
-    const currentUser = JSON.parse(stored);
+    try {
+      const stored = encryptedStorage.get("current-user");
+      if (!stored) return;
+      const currentUser = JSON.parse(stored);
 
-    await syncAppSession(currentUser.email);
-
-    // ✅ STEP 1: Get ALL interactions related to you
-    // We fetch people you swiped OR people who swiped on you
-    const { data: interactions } = await supabase
-      .from('user_interactions')
-      .select('user_id, target_user_id')
-      .or(`user_id.eq.${currentUser.email},target_user_id.eq.${currentUser.email}`);
-
-    // Combine both columns into one list of "hidden" emails
-    const hiddenEmails = new Set<string>();
-    interactions?.forEach(inter => {
-      hiddenEmails.add(inter.user_id);
-      hiddenEmails.add(inter.target_user_id);
-    });
-
-    // ✅ STEP 2: Query Discovery Profiles
-    let query = supabase
-      .from('profiles')
-      .select(`*, user_photos(photo_url, photo_order), user_interests(interest)`)
-      .neq('email', currentUser.email)
-      .eq('is_active', true)
-      .eq('gender', currentUser.interested_in)
-      .eq('college', currentUser.college);
-
-    // Hide everyone in our interaction list
-    if (hiddenEmails.size > 0) {
-      query = query.not('email', 'in', `(${Array.from(hiddenEmails).join(',')})`);
-    }
-
-    const { data, error } = await query.range(currentOffset, currentOffset + 9);
-    if (error) throw error;
-
-    // ... formatting logic (.map) ...
-
-      // 4. Format the data for the UI
-      const formatted: ExtendedProfile[] = (data || []).map(p => {
-        const birthDate = new Date(p.date_of_birth);
-        const age = new Date().getFullYear() - birthDate.getFullYear();
-        
-        return {
-          ...p,
-          photos: (p.user_photos || []).map((ph: any) => ({ 
-            url: ph.photo_url, 
-            order: ph.photo_order 
-          })),
-          interests: (p.user_interests || []).map((i: any) => i.interest),
-          age
-        };
+      // ✅ Use RPC to fetch profiles atomically (Prevents Race Condition)
+      const { data, error } = await supabase.rpc('get_discovery_profiles', {
+        p_email: currentUser.email,
+        p_offset: currentOffset,
+        p_limit: PROFILES_PER_BATCH
       });
+
+      if (error) throw error;
+
+      // The RPC returns properly formatted JSON, but we cast it to our type
+      // We also handle the case where data might be null (though the RPC handles coalesce)
+      const fetchedProfiles = (data as any[]) || [];
+
+      // Map to ensure types match exactly if needed (RPC returns 'photos' as array of objects)
+      const formatted: ExtendedProfile[] = fetchedProfiles.map((p: any) => ({
+        ...p,
+        // Ensure photos map correctly just in case
+        photos: p.photos.map((ph: any) => ({ url: ph.url, order: ph.order })),
+        interests: p.interests
+      }));
 
       setProfiles(prev => append ? [...prev, ...formatted] : formatted);
       setHasMore(formatted.length === PROFILES_PER_BATCH);
+      
     } catch (err: any) {
       console.error('Discovery fetch error:', err);
       setError(err.message);
