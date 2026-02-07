@@ -18,7 +18,7 @@ export function DiscoveryScreenIntegrated() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
-  
+  const [actionLoading, setActionLoading] = useState<'like' | 'pass' | null>(null); // 👈 Add this
   // State for alert dialog
   const [showLimitAlert, setShowLimitAlert] = useState(false);
   
@@ -53,6 +53,7 @@ export function DiscoveryScreenIntegrated() {
   }, [canLike]);
 
   const handleSwipe = async (direction: 'like' | 'pass') => {
+    
     if (direction === 'like' && !canLike) {
   setShowLimitAlert(true);
   return;
@@ -64,6 +65,7 @@ export function DiscoveryScreenIntegrated() {
 
   const { email } = JSON.parse(stored);
 
+  setActionLoading(direction);
   try {
     // Sync session so the RLS policy allows the Insert
     await syncAppSession(email);
@@ -87,10 +89,12 @@ export function DiscoveryScreenIntegrated() {
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1);
       setSwipeAnimation(null);
+      setActionLoading(null);
     }, 300);
 
   } catch (err) {
     console.error("Swipe failed:", err);
+    setActionLoading(null);
   }
 };
 
