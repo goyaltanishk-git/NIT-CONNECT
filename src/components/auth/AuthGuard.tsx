@@ -6,7 +6,7 @@ import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from '@/integrations/supabase/client'; 
-
+import { Heart, Sparkles } from "lucide-react";
 interface AuthGuardProps { 
   children: React.ReactNode;
 }
