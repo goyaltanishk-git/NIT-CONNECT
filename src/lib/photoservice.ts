@@ -30,7 +30,7 @@ export class PhotoService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error("Error in PhotoService.getUserPhotos:", error);
+     
       return [];
     }
   }

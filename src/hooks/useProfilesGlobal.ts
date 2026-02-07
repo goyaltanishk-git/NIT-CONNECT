@@ -80,7 +80,7 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
       const uniqueColleges = [...new Set(colleges?.map(c => c.college) || [])];
       setAvailableColleges(uniqueColleges.sort());
     } catch (err) {
-      console.error("Error fetching colleges:", err);
+      
     }
   }, []);
 

@@ -180,7 +180,7 @@ const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile ||
         };
         reader.readAsDataURL(compressedFile);
       } catch (err) {
-        console.error("Compression Error:", err);
+       
       }
     }
   }

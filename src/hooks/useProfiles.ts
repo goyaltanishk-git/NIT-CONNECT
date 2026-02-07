@@ -72,7 +72,7 @@ export function useProfiles() {
       setHasMore(formatted.length === PROFILES_PER_BATCH);
       
     } catch (err: any) {
-      console.error('Discovery fetch error:', err);
+
       setError(err.message);
     }
   };

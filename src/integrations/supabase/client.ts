@@ -23,5 +23,5 @@ export const syncAppSession = async (email: string | undefined) => {
   const { error } = await supabase.rpc('set_app_session_user', { 
     user_email: email.toLowerCase() 
   });
-  if (error) console.error("Handshake Error:", error);
+
 };

@@ -193,7 +193,7 @@ export class AuthService {
         if (error) console.error("Background active update failed", error);
       });
     } catch (error) {
-      console.error("Last active update failed:", error);
+     
     }
   }
 

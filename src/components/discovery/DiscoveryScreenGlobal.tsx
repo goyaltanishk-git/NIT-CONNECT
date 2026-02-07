@@ -82,7 +82,7 @@ export function DiscoveryScreenGlobal() {
         });
       }
     } catch (error) {
-      console.error("Swipe error:", error);
+      
       setSwipeAnimation(null);
       toast({
         title: "Action failed",

@@ -38,7 +38,7 @@ export function useAuth(): UseAuthReturn {
       const profile = await AuthService.getUserProfile(sessionData.email);
       setUser(profile);
     } catch (err) {
-      console.error("Auth fetch error:", err);
+      
       setUser(null);
     } finally {
       setLoading(false);

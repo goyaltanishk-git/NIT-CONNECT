@@ -189,7 +189,7 @@ const [isSaving, setIsSaving] = useState(false);
 const handleSave = async () => {
     setIsSaving(true); // ✅ 1. START LOADING
     try {
-      console.log("Starting save process...");
+     
       
       // 1. Authorize session
       await syncAppSession(formData.email);
@@ -217,7 +217,7 @@ const handleSave = async () => {
       if (profileError) throw profileError;
 
       // 3. Update Interests
-      console.log("Cleaning old interests for:", formData.email);
+   
       const { error: deleteError } = await supabase
         .from('user_interests')
         .delete()
@@ -226,7 +226,7 @@ const handleSave = async () => {
       if (deleteError) throw deleteError;
 
       if (interests.length > 0) {
-        console.log("Inserting new interests:", interests);
+        
         const payload = interests.map(i => ({ 
           user_email: formData.email, 
           interest: i.trim() 
@@ -248,13 +248,13 @@ const handleSave = async () => {
       try {
         await onSave(profileUpdates);
       } catch (e) {
-        console.error("Parent sync failed, but DB saved:", e);
+    
       }
       
       setIsOpen(false);
       
     } catch (error: any) {
-      console.error("HandleSave Full Error:", error);
+     
       toast({
         title: "Update Failed",
         description: error.message || "Unique constraint error on interests.",
