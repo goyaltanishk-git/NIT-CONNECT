@@ -164,7 +164,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
 if (showHeroScreen && profile) {
     return <HeroFuturistic onComplete={handleHeroComplete} userProfile={profile} />;
-  }  
+  }   
   if (showProfileSetup && userEmail && profile) {
     return (
       <ProfileSetupForm 
