@@ -236,6 +236,30 @@ export function DiscoveryScreenGlobal() {
               swipeAnimation === 'left' ? 'swipe-left' :
               swipeAnimation === 'right' ? 'swipe-right' : ''
             }`}>
+               
+               {/* 👇 PASTE THIS CODE BLOCK HERE 👇 */}
+               <div className={`absolute inset-0 rounded-3xl border-4 transition-all duration-200 z-10 pointer-events-none ${
+                swipeAnimation === 'right' ? 'border-green-500 bg-green-500/20 animate-pulse-glow' :
+                swipeAnimation === 'left' ? 'border-red-500 bg-red-500/20 animate-pulse-glow' :
+                'border-transparent'
+              }`}>
+                {swipeAnimation === 'right' && (
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="bg-gradient-to-r from-green-400 to-green-600 text-white px-6 py-3 rounded-full font-bold text-xl rotate-12 shadow-lg animate-bounce">
+                      LIKE 💖
+                    </div>
+                  </div>
+                )}
+                {swipeAnimation === 'left' && (
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="bg-gradient-to-r from-red-400 to-red-600 text-white px-6 py-3 rounded-full font-bold text-xl -rotate-12 shadow-lg animate-bounce">
+                      NOPE ❌
+                    </div>
+                  </div>
+                )}
+              </div>
+              {/* 👆 END PASTE 👆 */}
+
                <EnhancedProfileCard
                 profile={transformProfileForCard(profiles[currentIndex])}
                 onLike={() => handleSwipe('like')}

@@ -6,11 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, Tag, ArrowLeft } from "lucide-react"; 
 import { UserPhoto } from "@/lib/photoservice";
 import { InterestsService } from "../../lib/interests-service";
 import { useToast } from "@/hooks/use-toast";
 import {  supabase,syncAppSession } from '@/integrations/supabase/client'; 
+// At the top of EditProfileModal.tsx
+import { Plus, X, Tag, ArrowLeft, Loader2 } from "lucide-react";
 
 // Define the profile type that matches your database schema
 export interface ProfileType {
@@ -81,7 +82,7 @@ export function EditProfileModal({
   const { toast } = useToast();
   
   const [phoneError, setPhoneError] = useState<string | null>(null);
-
+const [isSaving, setIsSaving] = useState(false);
   // Initialize form data from profile with safe defaults
   const [formData, setFormData] = useState<Partial<ProfileType>>({
     ...profile,
@@ -186,86 +187,83 @@ export function EditProfileModal({
 // @/components/profile/EditProfileModal.tsx
 
 const handleSave = async () => {
-  try {
-    console.log("Starting save process...");
-    
-    // 1. Authorize session
-    await syncAppSession(formData.email);
-
-    // 2. Update Profiles Table
-    const profileUpdates = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      date_of_birth: formData.date_of_birth, // ✅ ADD THIS LINE
-      bio: formData.bio || "",
-      hometown: formData.hometown || "",
-      branch: formData.branch || "",
-      year_of_study: formData.year_of_study || "",
-      height: formData.height ? Number(formData.height) : null,
-      phone_number: formData.phone_number || null,
-      instagram_handle: formData.instagram_handle || null,
-    };
-
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update(profileUpdates)
-      .eq('email', formData.email)
-      .select();
-
-    if (profileError) throw profileError;
-
-    // 3. ✅ THE FIX FOR 23505: Inline Delete-then-Insert Logic
-    // We do it directly here to ensure perfect timing
-    console.log("Cleaning old interests for:", formData.email);
-    const { error: deleteError } = await supabase
-      .from('user_interests')
-      .delete()
-      .eq('user_email', formData.email);
-
-    if (deleteError) throw deleteError;
-
-    // 4. Insert New Interests (Only if list isn't empty)
-    if (interests.length > 0) {
-      console.log("Inserting new interests:", interests);
-      const payload = interests.map(i => ({ 
-        user_email: formData.email, 
-        interest: i.trim() 
-      }));
-
-      const { error: insertError } = await supabase
-        .from('user_interests')
-        .insert(payload);
-
-      if (insertError) {
-        // If it still says 23505, it means the delete failed or hasn't propagated
-        console.error("Insert failed after delete attempt:", insertError);
-        throw insertError;
-      }
-    }
-
-    toast({
-      title: "Success",
-      description: "Profile updated successfully!",
-    });
-
-    // 5. Parent update and Close
+    setIsSaving(true); // ✅ 1. START LOADING
     try {
-      await onSave(profileUpdates);
-    } catch (e) {
-      console.error("Parent sync failed, but DB saved:", e);
+      console.log("Starting save process...");
+      
+      // 1. Authorize session
+      await syncAppSession(formData.email);
+
+      // 2. Update Profiles Table
+      const profileUpdates = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        date_of_birth: formData.date_of_birth,
+        bio: formData.bio || "",
+        hometown: formData.hometown || "",
+        branch: formData.branch || "",
+        year_of_study: formData.year_of_study || "",
+        height: formData.height ? Number(formData.height) : null,
+        phone_number: formData.phone_number || null,
+        instagram_handle: formData.instagram_handle || null,
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(profileUpdates)
+        .eq('email', formData.email)
+        .select();
+
+      if (profileError) throw profileError;
+
+      // 3. Update Interests
+      console.log("Cleaning old interests for:", formData.email);
+      const { error: deleteError } = await supabase
+        .from('user_interests')
+        .delete()
+        .eq('user_email', formData.email);
+
+      if (deleteError) throw deleteError;
+
+      if (interests.length > 0) {
+        console.log("Inserting new interests:", interests);
+        const payload = interests.map(i => ({ 
+          user_email: formData.email, 
+          interest: i.trim() 
+        }));
+
+        const { error: insertError } = await supabase
+          .from('user_interests')
+          .insert(payload);
+
+        if (insertError) throw insertError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!",
+      });
+
+      // 4. Parent update
+      try {
+        await onSave(profileUpdates);
+      } catch (e) {
+        console.error("Parent sync failed, but DB saved:", e);
+      }
+      
+      setIsOpen(false);
+      
+    } catch (error: any) {
+      console.error("HandleSave Full Error:", error);
+      toast({
+        title: "Update Failed",
+        description: error.message || "Unique constraint error on interests.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false); // ✅ 2. STOP LOADING (This was missing/broken)
     }
-    
-    setIsOpen(false);
-    
-  } catch (error: any) {
-    console.error("HandleSave Full Error:", error);
-    toast({
-      title: "Update Failed",
-      description: error.message || "Unique constraint error on interests.",
-      variant: "destructive",
-    });
-  }
-};
+  };
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -537,12 +535,24 @@ const handleSave = async () => {
               variant="outline" 
               onClick={() => setIsOpen(false)} 
               className="flex-1"
+              disabled={isSaving}
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} className="flex-1" disabled={!!phoneError}>
-              Save Changes
-            </Button>
+            <Button 
+    onClick={handleSave} 
+    className="flex-1" 
+    disabled={!!phoneError || isSaving} // ✅ Disable if error OR saving
+  >
+    {isSaving ? (
+      <>
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Saving...
+      </>
+    ) : (
+      "Save Changes"
+    )}
+  </Button>
           </div>
         </div>
       </DialogContent>
