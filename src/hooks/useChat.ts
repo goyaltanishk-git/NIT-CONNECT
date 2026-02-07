@@ -5,10 +5,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { encryptedStorage } from "@/utils/encryptedStorage";
 
 export interface ChatMessage {
-  // Schema has no ID, so we remove it to avoid confusion
+  // Schema has NO 'id', so we remove it to prevent TypeScript errors
   content: string;
   sender: string;
-  reciever: string; // Matches your schema spelling
+  reciever: string; // Matches your DB spelling
   created_at: string;
   is_read: boolean;
   type: string;
@@ -109,7 +109,7 @@ export function useChat(currentUser: any) {
       fetchConversations();
     } catch (err) {
       console.error(err);
-      // Remove failed message by checking created_at, not ID
+      // Remove failed message by checking created_at
       setMessages(prev => prev.filter(m => m.created_at !== tempMessage.created_at));
     } finally {
       setSendingMessage(false);
@@ -130,21 +130,21 @@ export function useChat(currentUser: any) {
     setMessages([]);
   }, []);
 
-  // ✅ REALTIME SUBSCRIPTION (Fixed for Schema with no ID)
+  // ✅ REALTIME SUBSCRIPTION (Schema-Aware)
   useEffect(() => {
     if (!currentUser?.email) return;
 
     fetchConversations();
 
     const channel = supabase
-      .channel('global_chat')
+      .channel('global_chat_v2')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `reciever=eq.${currentUser.email}` // Matches your DB spelling
+          filter: `reciever=eq.${currentUser.email}` 
         },
         (payload) => {
           const newMsg = payload.new as ChatMessage;
@@ -153,7 +153,7 @@ export function useChat(currentUser: any) {
           // Check if this message belongs to the currently active chat
           if (currentMatchIdRef.current === newMsg.sender) {
              setMessages(prev => {
-                // ✅ FIX: Deduplicate using created_at + content (since there is no ID)
+                // ✅ FIX: Deduplicate using created_at + content (since no ID)
                 const exists = prev.some(m => 
                   m.created_at === newMsg.created_at && m.content === newMsg.content
                 );
