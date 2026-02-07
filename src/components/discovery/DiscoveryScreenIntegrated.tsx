@@ -53,6 +53,11 @@ export function DiscoveryScreenIntegrated() {
   }, [canLike]);
 
   const handleSwipe = async (direction: 'like' | 'pass') => {
+    if (direction === 'like' && !canLike) {
+  setShowLimitAlert(true);
+  return;
+}
+
   const targetProfile = profiles[currentIndex];
   const stored = encryptedStorage.get("current-user");
   if (!targetProfile || !stored) return;
@@ -70,6 +75,10 @@ export function DiscoveryScreenIntegrated() {
         target_user_id: targetProfile.email, // Using email as the link
         interaction_type: direction
       });
+    
+    if(direction=='like'){
+     await incrementLikes();
+    }
 
     if (error) throw error;
 
