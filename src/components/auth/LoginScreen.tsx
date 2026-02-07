@@ -8,19 +8,23 @@ import { useToast } from "@/hooks/use-toast";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { AuthService } from "@/lib/auth";
 import { Heart, Mail, Sparkles, Zap, ShieldCheck } from "lucide-react";
+import { syncAppSession } from '@/integrations/supabase/client';
 
-export function LoginScreen() {
+interface LoginScreenProps {
+  onLoginSuccess?: () => void;
+}
+
+export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"email" | "otp">("email");
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0); // Anti-spam timer state
+  const [countdown, setCountdown] = useState(0); 
   const { toast } = useToast();
+  
   const nitkkrEmailRegex = /^[0-9]{8,10}@nitkkr\.ac\.in$/;
-  const nithEmailRegex =/^(1[9]|2[0-8])[a-z]+\d+@nith\.ac\.in$/;
+  const nithEmailRegex = /^(1[9]|2[0-8])[a-z]+\d+@nith\.ac\.in$/;
 
-
-  // Timer logic: Counts down every second if countdown > 0
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -31,7 +35,8 @@ export function LoginScreen() {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(nitkkrEmailRegex.test(email)||nithEmailRegex.test(email))) {
+    
+    if (!(nitkkrEmailRegex.test(email) || nithEmailRegex.test(email))) {
       toast({ 
         title: "Invalid Email", 
         description: "Please use your NIT Kurukshetra email (@nitkkr.ac.in)", 
@@ -42,7 +47,6 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      // Logic: Send ONLY the email address. OTP is generated/stored on the backend.
       const response = await fetch("https://portfoliotrial-omega.vercel.app/api/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -56,7 +60,7 @@ export function LoginScreen() {
       }
 
       setStep("otp"); 
-      setCountdown(60); // Start 60-second cooldown on success
+      setCountdown(60);
       toast({ 
         title: "OTP Sent", 
         description: "Check your college email for the secure code." 
@@ -76,28 +80,33 @@ export function LoginScreen() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Verify OTP against the database
+      // 1. Verify OTP using AuthService (uses RPC, so no RLS issues)
       const otpVerified = await AuthService.verifyOtp(email, otp);
       if (!otpVerified) throw new Error("Invalid or expired code.");
 
-      // ✅ FIX #9: PRESERVE needsSetup FLAG
-      // getOrCreateUserProfile already sets needsSetup: true for inactive users
-      // We must NOT overwrite it here, otherwise AuthGuard won't show the hero
+      // 2. Sync Session (Unlocks RLS for profile read)
+      await syncAppSession(email);
+
+      // 3. Get Profile (Handles Active/Inactive/New logic)
       const userProfile = await AuthService.getOrCreateUserProfile(email);
-      await AuthService.updateLastActive(email);
       
-      // ✅ CRITICAL: Store the profile AS-IS from getOrCreateUserProfile
-      // This preserves the needsSetup flag that was set in auth.ts (lines 103, 133)
-      // DO NOT modify or strip any properties here
+      // 4. Update Storage
       encryptedStorage.set("current-user", JSON.stringify(userProfile));
       
-      // Note: The profile returned from getOrCreateUserProfile already contains:
-      // - needsSetup: true (if is_active is false)
-      // - All other profile data
-      // AuthGuard will check this flag to decide: Hero Screen vs Setup Form
-      
-      window.location.reload();
+      toast({ 
+        title: "Login Successful", 
+        description: "Welcome back!",
+      });
+
+      // 5. Trigger AuthGuard update without reload
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      } else {
+        window.location.reload(); 
+      }
+
     } catch (error: any) {
+      console.error("Login Error:", error);
       toast({ 
         title: "Login Failed", 
         description: error.message, 
@@ -159,7 +168,7 @@ export function LoginScreen() {
                     <span>Sending...</span>
                   </div>
                 ) : countdown > 0 ? (
-                  <span>Resend in {countdown}s</span> // Visible countdown timer
+                  <span>Resend in {countdown}s</span> 
                 ) : (
                   "Send OTP"
                 )}

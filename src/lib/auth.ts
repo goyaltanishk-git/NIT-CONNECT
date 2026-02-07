@@ -1,13 +1,15 @@
+// src/lib/auth.ts
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { encryptedStorage } from '@/utils/encryptedStorage';
-import { string } from "three/tsl";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
 export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export class AuthService {
+  // --- OTP Management ---
+
   static async generateOtp(email: string, otp: string, expiresAt: string) {
     try {
       const { data, error } = await supabase.from("email_otps").insert({
@@ -24,32 +26,55 @@ export class AuthService {
 
   static async verifyOtp(email: string, otp: string) {
     try {
-      const { data, error } = await supabase
-        .from("email_otps")
-        .select("*")
-        .eq("email", email)
-        .eq("otp", otp.trim())
-        .order("created_at", { ascending: false })
-        .limit(1);
+      // Use the Secure RPC function (Bypasses RLS)
+      const { data, error } = await supabase.rpc('verify_custom_otp', {
+        p_email: email,
+        p_otp: otp
+      });
 
       if (error) throw error;
-      const record = data?.[0];
-      if (!record) throw new Error("Invalid OTP");
-      if (new Date(record.expires_at) < new Date()) throw new Error("OTP expired");
-      await supabase.from("email_otps").delete().eq("id", record.id);
-      return true;
+      if (data === true) return true;
+      
+      throw new Error("Invalid or expired OTP");
     } catch (error) {
+      console.error("OTP Verification Error:", error);
       throw error;
+    }
+  }
+
+  // --- User Profile Management ---
+
+  /**
+   * ✅ CRITICAL FIX: Uses RPC to check existence.
+   * This bypasses RLS policies that hide inactive users.
+   */
+  static async checkUserExists(email: string): Promise<Profile | null> {
+    try {
+      const { data, error } = await supabase.rpc('get_profile_by_email_unsecure', { 
+        p_email: email 
+      });
+
+      if (error) {
+        console.error("Error checking user existence:", error);
+        return null;
+      }
+
+      // RPC returns an array (SETOF profiles)
+      return data && data.length > 0 ? data[0] : null;
+    } catch (error) {
+      return null;
     }
   }
 
   static async getUserProfile(email: string): Promise<Profile | null> {
     try {
+      // Standard fetch - subject to RLS (Requires syncAppSession first)
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("email", email)
         .single();
+        
       if (error) {
         if (error.code === "PGRST116") return null;
         throw error;
@@ -60,14 +85,10 @@ export class AuthService {
     }
   }
 
-  static async checkUserExists(email: string): Promise<Profile | null> {
-    try {
-      return await this.getUserProfile(email);
-    } catch (error) {
-      return null;
-    }
-  }
-
+  /**
+   * ✅ CRITICAL FIX: Removed 'user_id' from Insert object.
+   * Fixes the PGRST204 error.
+   */
   static async createNewUser(email: string, userId?: string): Promise<Profile> {
     try {
       const now = new Date().toISOString();
@@ -75,80 +96,79 @@ export class AuthService {
       const parts = emailPrefix.split('.');
       const firstName = parts[0] || 'User';
       const lastName = parts[1] || 'Name';
-      const generatedUserId = userId || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const userData: ProfileInsert = {
-        user_id: generatedUserId,
+        // REMOVED: user_id field (Column does not exist in DB)
         email: email,
         first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
         last_name: lastName.charAt(0).toUpperCase() + lastName.slice(1),
-        date_of_birth: '2000-01-01',
+        date_of_birth: '2000-01-01', 
         gender: 'male',
         interested_in: 'female',
         verification_status: 'pending',
         is_verified: false,
-        is_active: false,
+        is_active: false, // Start inactive until setup is done
         incognito_mode: false,
         hide_year_branch: false,
         created_at: now,
         updated_at: now,
         last_active_at: now,
-      
-      
-        
+        college: 'NIT Kurukshetra'
       };
 
       const { data, error } = await supabase.from('profiles').insert(userData).select().single();
+      
       if (error) throw error;
+      
+      // Store locally with needsSetup flag
       const storageData = { ...data, needsSetup: true }; 
-
-    encryptedStorage.set('current-user', JSON.stringify(storageData));
+      encryptedStorage.set('current-user', JSON.stringify(storageData));
+      
       return data;
+    } catch (error) {
+      console.error("Create User Error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Main Login Logic
+   * Handles Active Users, Soft-Deleted Users, and New Users
+   */
+  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
+    try {
+      // 1. Check if user exists using the Secure RPC (Bypasses RLS)
+      const existingUser = await this.checkUserExists(email);
+      
+      if (existingUser) {
+        // 2. SOFT DELETED USER DETECTED
+        if (existingUser.is_active === false) {
+          console.log("Soft deleted user found. Initiating reactivation flow.");
+          
+          await this.updateLastActive(email);
+          
+          // Important: We return the profile AS IS (is_active: false)
+          // The AuthGuard will see this and trigger the Hero Screen.
+          const storageData = { ...existingUser, needsSetup: true };
+          encryptedStorage.set('current-user', JSON.stringify(storageData));
+          
+          return existingUser; 
+        }
+
+        // 3. Active User
+        await this.updateLastActive(email);
+        encryptedStorage.set('current-user', JSON.stringify(existingUser));
+        return existingUser;
+      } else {
+        // 4. Brand New User -> Create
+        return await this.createNewUser(email, authUserId);
+      }
     } catch (error) {
       throw error;
     }
   }
 
-  // src/lib/auth.ts -> Replace getOrCreateUserProfile method
-
-static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
-  try {
-    const existingUser = await this.checkUserExists(email);
-    
-    if (existingUser) {
-      // If the account was deactivated (is_active is false)
-      if (existingUser.is_active === false) {
-        // We keep is_active as FALSE in the database so the AuthGuard forces setup
-        // But we update the last_active_at to show they are trying to return
-        const { data: updatedUser, error } = await supabase
-          .from('profiles')
-          .update({ last_active_at: new Date().toISOString() })
-          .eq("email", email)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // CRITICAL: Flag as needing setup so the Guard shows the Hero screen
-        const storageData = { ...updatedUser, needsSetup: true };
-        encryptedStorage.set('current-user', JSON.stringify(storageData));
-        
-        return updatedUser;
-      }
-
-      // Normal login for an already active user
-      await this.updateLastActive(email);
-      encryptedStorage.set('current-user', JSON.stringify(existingUser));
-      return existingUser;
-    } else {
-      // Completely new user flow
-      return await this.createNewUser(email, authUserId);
-    }
-  } catch (error) {
-    throw error;
-  }
-}
-static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
+  static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -167,9 +187,11 @@ static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profi
 
   static async updateLastActive(email: string): Promise<void> {
     try {
-      await supabase.from('profiles').update({ 
+      supabase.from('profiles').update({ 
         last_active_at: new Date().toISOString() 
-      }).eq('email', email);
+      }).eq('email', email).then(({ error }) => {
+        if (error) console.error("Background active update failed", error);
+      });
     } catch (error) {
       console.error("Last active update failed:", error);
     }
@@ -182,7 +204,10 @@ static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profi
 
   static clearCurrentUser(): void {
     localStorage.removeItem('current-user');
-    localStorage.removeItem('temp-user');
-    localStorage.removeItem('user-profile');
+    localStorage.removeItem('active-session');
+    // ✅ SAFE REMOVE CHECK
+    if (typeof encryptedStorage.remove === 'function') {
+      encryptedStorage.remove('current-user');
+    }
   }
 }

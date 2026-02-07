@@ -1,7 +1,7 @@
 // @/hooks/useAuth.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AuthService, Profile } from '@/lib/auth';
-import { supabase, syncAppSession } from '@/integrations/supabase/client'; // Added syncAppSession
+import { syncAppSession } from '@/integrations/supabase/client'; 
 import { useToast } from '@/hooks/use-toast';
 import { encryptedStorage } from '@/utils/encryptedStorage';
 
@@ -21,7 +21,6 @@ export function useAuth(): UseAuthReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const authCacheRef = useRef<{ user: any; timestamp: number } | null>(null);
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -33,7 +32,7 @@ export function useAuth(): UseAuthReturn {
       }
 
       const sessionData = JSON.parse(stored);
-      // ✅ HANDSHAKE: Ensure session is synced on every app load
+      // ✅ Sync session on load
       await syncAppSession(sessionData.email);
       
       const profile = await AuthService.getUserProfile(sessionData.email);
@@ -51,31 +50,19 @@ export function useAuth(): UseAuthReturn {
       setLoading(true);
       setError(null);
 
-      // 1. Verify OTP against your new table
-      const { data: otpData, error: otpError } = await supabase
-        .from('email_otps')
-        .select('*')
-        .eq('email', email)
-        .eq('otp', otp)
-        .gt('expires_at', new Date().toISOString())
-        .single();
+      // 1. Verify OTP using RPC (Bypasses RLS)
+      const verified = await AuthService.verifyOtp(email, otp);
+      if (!verified) throw new Error("Invalid or expired OTP code.");
 
-      if (otpError || !otpData) {
-        throw new Error("Invalid or expired OTP code.");
-      }
-
-      // 2. ✅ THE HANDSHAKE: Establish identity in DB immediately
+      // 2. Sync Session
       await syncAppSession(email);
 
-      // 3. Fetch/Create User Profile
-      const profile = await AuthService.getUserProfile(email);
+      // 3. Get Profile (via AuthService logic which handles soft-deletes)
+      const profile = await AuthService.getOrCreateUserProfile(email);
       
-      // 4. Persist Session
-      encryptedStorage.set("current-user", JSON.stringify({ email, loginDate: new Date().toISOString() }));
+      // 4. Persist
+      encryptedStorage.set("current-user", JSON.stringify(profile));
       setUser(profile);
-
-      // 5. Cleanup: Delete used OTP
-      await supabase.from('email_otps').delete().eq('id', otpData.id);
 
       toast({ title: "Login Successful", description: `Welcome back, ${profile?.first_name || 'User'}!` });
     } catch (err: any) {
@@ -88,9 +75,10 @@ export function useAuth(): UseAuthReturn {
   };
 
   const logout = useCallback(() => {
-    encryptedStorage.remove("current-user");
+    // ✅ Fixes crash by using safe AuthService clear method
+    AuthService.clearCurrentUser();
     setUser(null);
-    window.location.href = "/"; // Force refresh to clear session variables
+    window.location.href = "/";
   }, []);
 
   const updateProfile = async (updates: any) => {

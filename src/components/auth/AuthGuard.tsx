@@ -1,11 +1,11 @@
 // src/components/auth/AuthGuard.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
 import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
-import { Heart, Sparkles } from "lucide-react";
 import { encryptedStorage } from "@/utils/encryptedStorage";
+import { syncAppSession } from '@/integrations/supabase/client'; 
 
 interface AuthGuardProps { 
   children: React.ReactNode;
@@ -17,108 +17,126 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showHeroScreen, setShowHeroScreen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  
+  // Ref to track if we are intentionally in the setup flow to prevent race-condition kicks
+  const isSetupMode = useRef(false);
 
-  useEffect(() => {
-    let mounted = true;
+  // Define the initialization logic as a reusable function
+  const initializeAuth = useCallback(async () => {
+    try {
+      setLoading(true);
+      const localUser = AuthService.getCurrentUser();
+      const emailToCheck = localUser?.email;
 
-    const initializeAuth = async () => {
-      try {
-        const localUser = AuthService.getCurrentUser();
-        const tempUser = encryptedStorage.get("temp-user");
-        const emailToCheck = localUser?.email || (tempUser ? JSON.parse(tempUser).email : null);
+      if (emailToCheck) {
+        // 1. SYNC SESSION
+        await syncAppSession(emailToCheck);
 
-        if (emailToCheck) {
-          const liveProfile = await AuthService.getUserProfile(emailToCheck);
+        // 2. USE RPC HERE (checkUserExists) instead of getUserProfile
+        // This prevents RLS from returning null if the session sync dropped
+        const liveProfile = await AuthService.checkUserExists(emailToCheck);
 
-          if (mounted) {
-            if (!liveProfile) {
-              AuthService.clearCurrentUser();
-              setUserEmail(null);
-              setProfile(null);
-            } 
-            // ✅ FIX: Trigger Hero Screen for all inactive profiles
-            else if (liveProfile.is_active === false) {
-              setUserEmail(liveProfile.email);
-              setProfile(liveProfile);
-              
-              // Secure Session Token to prevent ghost logins
-              const newSessionToken = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-              setSessionToken(newSessionToken);
-              
-              const sessionData = {
-                email: liveProfile.email,
-                sessionToken: newSessionToken,
-                timestamp: Date.now()
-              };
-              encryptedStorage.set('active-session', JSON.stringify(sessionData));
-              
-              // Force Hero Screen visibility for setup flow
-              setShowHeroScreen(true);
-            } 
-            else {
-              setUserEmail(liveProfile.email);
-              setProfile(liveProfile);
-              await AuthService.updateLastActive(liveProfile.email);
-            }
-          }
-        } else {
+        if (!liveProfile) {
           AuthService.clearCurrentUser();
+          setUserEmail(null);
+          setProfile(null);
+        } 
+        // 3. DETECT SOFT DELETE -> TRIGGER HERO
+        else if (liveProfile.is_active === false) {
+          console.log("Inactive user detected. Locking to Hero/Setup flow.");
+          
+          isSetupMode.current = true; // ✅ LOCK THE MODE
+          setUserEmail(liveProfile.email);
+          setProfile(liveProfile);
+          setShowHeroScreen(true);
+          
+          encryptedStorage.set('active-session', JSON.stringify({
+            email: liveProfile.email,
+            timestamp: Date.now()
+          }));
+        } 
+        // 4. ACTIVE USER
+        else {
+          setUserEmail(liveProfile.email);
+          setProfile(liveProfile);
+          setShowHeroScreen(false); 
+          isSetupMode.current = false;
+          await AuthService.updateLastActive(liveProfile.email);
         }
-
-        if (mounted) setLoading(false);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (mounted) setLoading(false);
+      } else {
+        AuthService.clearCurrentUser();
+        setUserEmail(null);
       }
-    };
-
-    initializeAuth();
-    return () => { mounted = false; };
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      AuthService.clearCurrentUser();
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  // ✅ FIXED SYNC INTERVAL
   useEffect(() => {
     if (!userEmail) return;
 
     const syncInterval = setInterval(async () => {
-      const liveStatus = await AuthService.getUserProfile(userEmail);
+      // Don't poll if we are loading or locked in setup mode
+      if (loading) return; 
+
+      // ✅ CRITICAL FIX: Use checkUserExists (RPC) instead of getUserProfile
+      // This bypasses RLS so we don't get a false "null" result
+      const liveStatus = await AuthService.checkUserExists(userEmail);
       
       if (!liveStatus) {
+        // User genuinely deleted from DB
+        console.log("User not found in background check. Logging out.");
         AuthService.clearCurrentUser();    
         setUserEmail(null);
-        setProfile(null);
         return;   
       }
  
-      // Ghost Login Prevention: If account becomes active elsewhere, hide hero/setup
-      if (liveStatus.is_active === true && (showProfileSetup || showHeroScreen)) {
-        setProfile(liveStatus);
-        setShowProfileSetup(false);
-        setShowHeroScreen(false);
-      }
-      
-      // Deactivation Sync: Kick to login if deactivated elsewhere
-      if (liveStatus.is_active === false && !showProfileSetup && !showHeroScreen) {
+      // If user is Inactive in DB, BUT we are already in Setup Mode -> DO NOT KICK
+      if (liveStatus.is_active === false) {
+         if (showHeroScreen || showProfileSetup || isSetupMode.current) {
+             // We are safe. Do nothing. User is reactivating.
+             return; 
+         }
+         
+         // If we are NOT in setup mode, but DB says inactive -> Remote Ban/Deactivation
+         console.log("Remote deactivation detected. Logging out.");
          AuthService.clearCurrentUser();
-         encryptedStorage.set('active-session', '');
          setUserEmail(null);
-         setProfile(null);
       }
     }, 5000); 
 
     return () => clearInterval(syncInterval);
-  }, [userEmail, showHeroScreen, showProfileSetup]);
+  }, [userEmail, showHeroScreen, showProfileSetup, loading]);
 
   const handleHeroComplete = () => {
     setShowHeroScreen(false);
     setShowProfileSetup(true);
+    isSetupMode.current = true; // Keep lock active
   };
 
-  const handleProfileSetupComplete = (updatedProfile: Profile) => {
-    setProfile(updatedProfile);
-    setShowProfileSetup(false);
-    encryptedStorage.set("current-user", JSON.stringify(updatedProfile));
-    encryptedStorage.set('active-session', ''); 
+  const handleProfileSetupComplete = async (updatedProfile: Profile) => {
+    try {
+      // FINAL ACTIVATION
+      const finalProfile = await AuthService.updateProfile(updatedProfile.email, {
+        ...updatedProfile,
+        is_active: true 
+      });
+      
+      setProfile(finalProfile);
+      setShowProfileSetup(false);
+      isSetupMode.current = false; // Release lock
+      encryptedStorage.set("current-user", JSON.stringify(finalProfile));
+    } catch (e) {
+      console.error("Activation failed", e);
+    }
   };
 
   if (loading) {
@@ -132,12 +150,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  if (!userEmail) return <LoginScreen />;
+  // PASS THE SUCCESS HANDLER TO LOGIN SCREEN
+  if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
 
-  // ✅ Hero must be checked before children to block the main app
   if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
-
-  if (showProfileSetup) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
+  
+  if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
 
   return <>{children}</>;
 }

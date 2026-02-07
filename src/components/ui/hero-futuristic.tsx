@@ -92,7 +92,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
     if (profile && profile.first_name) {
       setUserName(profile.first_name.toUpperCase());
     } else {
-      setUserName("RISHUL"); 
+      setUserName("User"); 
     }
     
     // Only mark data as ready when we have the final name
