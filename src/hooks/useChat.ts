@@ -116,14 +116,37 @@ export function useChat(currentUser: any) {
     }
   }, [currentUser?.email, currentMatchId, fetchConversations]);
 
+  // ... inside useChat function ...
+
   const unmatch = useCallback(async (targetUserId: string) => {
     if (!currentUser?.email) return;
     try {
-      await supabase.rpc('process_interaction', { p_actor_email: currentUser.email, p_target_user_id: targetUserId, p_action: 'pass' });
-      await supabase.from('matches').delete().or(`and(user1_id.eq.${currentUser.email},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${currentUser.email})`);
+      // 1. Log the 'pass' interaction
+      await supabase.rpc('process_interaction', {
+          p_actor_email: currentUser.email,
+          p_target_user_id: targetUserId,
+          p_action: 'pass'
+      });
+
+      // 2. ✅ SOFT DELETE: Set is_active = false instead of deleting
+      const { error } = await supabase
+        .from('matches')
+        .update({ is_active: false }) // <--- CHANGED THIS
+        .or(`and(user1_id.eq.${currentUser.email},user2_id.eq.${targetUserId}),and(user1_id.eq.${targetUserId},user2_id.eq.${currentUser.email})`);
+
+      if (error) throw error;
+
+      // 3. Update UI locally (Remove from list immediately)
       setConversations(prev => prev.filter(c => c.match_id !== targetUserId));
-    } catch (err) { console.error(err); }
-  }, [currentUser?.email]);
+      
+      toast({ title: "Unmatched", description: "User has been removed." });
+    } catch (err) {
+      console.error("Unmatch error", err);
+      toast({ title: "Error", description: "Failed to unmatch", variant: "destructive" });
+    }
+  }, [currentUser?.email, toast]);
+
+// ... rest of the file
 
   const clearCurrentChat = useCallback(() => {
     setCurrentMatchId(null);
