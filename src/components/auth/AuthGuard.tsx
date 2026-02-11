@@ -117,19 +117,26 @@ export function AuthGuard({ children }: AuthGuardProps) {
     isSetupMode.current = true; 
   };
 
-  const handleProfileSetupComplete = async (updatedProfile: Profile) => {
-    try {
-      const finalProfile = await AuthService.updateProfile(updatedProfile.email, {
-        ...updatedProfile,
-        is_active: true 
-      });
-      
-      setProfile(finalProfile);
-      setShowProfileSetup(false);
-      isSetupMode.current = false; 
-      encryptedStorage.set("current-user", JSON.stringify(finalProfile));
-    } catch (e) {
-      console.error("Activation failed", e);
+  // src/components/auth/AuthGuard.tsx
+
+  const handleProfileSetupComplete = (updatedProfile: Profile) => {
+    // ✅ FIX: Do NOT call AuthService.updateProfile here.
+    // The RPC in ProfileSetupForm already updated the DB and set is_active = true.
+    // We just need to update the local state to match.
+    
+    // 1. Update State
+    setProfile(updatedProfile);
+    setShowProfileSetup(false);
+    
+    // 2. Release the 'Setup Mode' lock so background sync resumes normally
+    isSetupMode.current = false; 
+
+    // 3. Persist to Storage
+    encryptedStorage.set("current-user", JSON.stringify(updatedProfile));
+    
+    // 4. Clear the active session marker (optional cleanup)
+    if (typeof encryptedStorage.remove === 'function') {
+        encryptedStorage.remove('active-session');
     }
   };
 
