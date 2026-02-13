@@ -81,7 +81,7 @@ export function DiscoveryScreenIntegrated() {
 
     const { error } = await supabase
       .from('user_interactions')
-      .insert({
+      .upsert({
         user_id: email,
         target_user_id: targetProfile.email, // Using email as the link
         interaction_type: direction
