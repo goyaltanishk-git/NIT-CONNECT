@@ -29,12 +29,12 @@ export function DiscoveryScreenGlobal() {
 
   const { canLike, loading: limitsLoading, incrementLikes } = useDailyLimits(userEmail);
 
+
   const handleSwipe = async (action: 'like' | 'pass') => {
     if (currentIndex >= profiles.length) return;
     hasUserInteracted.current = true;
     const profile = profiles[currentIndex];
 
-    // Check limits for likes
     if (action === 'like' && !canLike) { 
       setShowLimitAlert(true);
       return;
@@ -43,12 +43,6 @@ export function DiscoveryScreenGlobal() {
     setSwipeAnimation(action === 'like' ? 'right' : 'left');
 
     try {
-      // 1. ✅ THE HANDSHAKE: Establish identity before the POST request
-      // This is what fixes the 401 Unauthorized error
-      if (userEmail) {
-        await syncAppSession(userEmail);
-      }
-
       if (action === 'like') {
         const success = await incrementLikes();
         if (!success) {
@@ -58,18 +52,17 @@ export function DiscoveryScreenGlobal() {
         }
       }
 
-      // 2. Insert the interaction
       if (userEmail) {
-        const { error } = await supabase.from('user_interactions').insert({
-          user_id: userEmail,
-          target_user_id: profile.email,
-          interaction_type: action
+        // ✅ CALL THE SECURE RPC INSTEAD OF .insert()
+        const { error } = await supabase.rpc('record_swipe', {
+          p_user_id: userEmail,
+          p_target_user_id: profile.email,
+          p_action: action
         });
 
         if (error) throw error;
       }
 
-      // 3. UI Update
       setTimeout(() => {
         setCurrentIndex(prev => prev + 1);
         setSwipeAnimation(null);
@@ -82,7 +75,7 @@ export function DiscoveryScreenGlobal() {
         });
       }
     } catch (error) {
-      
+      console.error(error);
       setSwipeAnimation(null);
       toast({
         title: "Action failed",
