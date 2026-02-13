@@ -5,11 +5,17 @@ import { LoginScreen } from "./LoginScreen";
 import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { encryptedStorage } from "@/utils/encryptedStorage";
-import { syncAppSession } from '@/integrations/supabase/client'; 
+import { syncAppSession } from '@/integrations/supabase/client';
+import { Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
 
 interface AuthGuardProps { 
   children: React.ReactNode;
 }
+// ⛔ CRITICAL: wait until Supabase session really exists
+
+
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -25,6 +31,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const initializeAuth = useCallback(async () => {
     try {
       setLoading(true);
+      
       const localUser = AuthService.getCurrentUser();
       const emailToCheck = localUser?.email;
 
@@ -34,6 +41,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         // 2. USE RPC HERE (checkUserExists) instead of getUserProfile
         // This prevents RLS from returning null if the session sync dropped
+       
+       
+
         const liveProfile = await AuthService.checkUserExists(emailToCheck);
 
         if (!liveProfile) {

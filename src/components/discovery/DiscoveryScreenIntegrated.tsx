@@ -102,10 +102,16 @@ export function DiscoveryScreenIntegrated() {
         
     }, 300);
 
-  } catch (err) {
-       setSwipeAnimation(null);
-    
-  }
+  } // Change this in DiscoveryScreenGlobal.tsx or Integrated.tsx
+
+catch (error: any) {
+  setSwipeAnimation(null);
+  toast({
+    title: "Debug Error",
+    description: error.message || "Something went wrong", // This will tell you if it's a DB or Auth error
+    variant: "destructive",
+  });
+}
 };
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
