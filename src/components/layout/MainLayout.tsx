@@ -109,10 +109,6 @@ export function MainLayout() {
             <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")} />
           </TabsContent>
 
-          <TabsContent value="leaderboard" className="h-full animate-fade-in">
-            <LeaderboardScreen />
-          </TabsContent>
-
           <TabsContent value="chat" className="h-full animate-fade-in">
             <ChatScreen  setischatopen={setischatopen}/>
           </TabsContent>
@@ -136,7 +132,7 @@ export function MainLayout() {
               
               { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
               { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
-              { tab: "leaderboard", icon: Trophy, label: "Spotlight", gradient: "from-red-400 to-red-500" },
+             
                { tab: "settings", icon: Settings, label: "settings", gradient: "from-grey-400 to-grey-500" },
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
