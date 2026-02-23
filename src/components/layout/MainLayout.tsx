@@ -133,6 +133,7 @@ export function MainLayout() {
               { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
               { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
              
+            
                { tab: "settings", icon: Settings, label: "settings", gradient: "from-grey-400 to-grey-500" },
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button

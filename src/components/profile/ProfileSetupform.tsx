@@ -156,7 +156,7 @@ const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile ||
 
   // Compression options
   const compressionOptions = {
-    maxSizeMB: 0.4,          // Shrink to under 1MB
+    maxSizeMB: 0.1,          // Shrink to under 1MB
     maxWidthOrHeight: 1200, // Reasonable social media resolution
     useWebWorker: true,
     initialQuality: 0.7,
