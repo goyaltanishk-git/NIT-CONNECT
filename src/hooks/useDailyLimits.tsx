@@ -19,6 +19,8 @@ export function useDailyLimits(userEmail?: string): UseDailyLimitsReturn {
 
   const getCurrentDate = () => new Date().toISOString().split('T')[0];
 
+ // Inside src/hooks/useDailyLimits.tsx
+
   const loadDailyLimits = useCallback(async () => {
     if (!userEmail) {
       setLoading(false);
@@ -26,55 +28,32 @@ export function useDailyLimits(userEmail?: string): UseDailyLimitsReturn {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('daily_limits')
-        .select('likes_used')
-        .eq('email', userEmail)
-        .eq('date', getCurrentDate())
-        .single();
-
-      if (data) {
-        setDailyLikes(data.likes_used || 0);
-      } else if (error && error.code !== 'PGRST116') {
-      } else {
-        setDailyLikes(0);
-      }
+      // ✅ Use the new Secure RPC
+      const { data, error } = await supabase.rpc('get_daily_limits', { p_email: userEmail });
+      if (error) throw error;
+      setDailyLikes(data as number);
     } catch (error) {
+      console.error("Error loading limits", error);
+      setDailyLikes(0);
     } finally {
       setLoading(false);
     }
   }, [userEmail]);
 
- // @/hooks/useDailyLimits.ts
-
-const incrementLikes = async () => {
-  if (!userEmail) return false;
-
-  try {
-    // ✅ STEP 1: Establish identity for RLS
-    // This removes the 401 Unauthorized error
-    await syncAppSession(userEmail);
-
-    const today = new Date().toISOString().split('T')[0];
-
-    // ✅ STEP 2: Use an 'upsert' to either update today's count or create it
-    const { error } = await supabase
-      .from('daily_limits')
-      .upsert({ 
-        email: userEmail, 
-        date: today,
-        likes_used: (dailyLikes || 0) + 1 
-      }, { onConflict: 'email,date' });
-
-    if (error) throw error;
-    
-    setDailyLikes(prev => (prev || 0) + 1);
-    return true;
-  } catch (err) {
-    
-    return false;
-  }
-};
+  const incrementLikes = async () => {
+    if (!userEmail) return false;
+    try {
+      // ✅ Use the new Secure RPC
+      const { error } = await supabase.rpc('increment_daily_limit', { p_email: userEmail });
+      if (error) throw error;
+      
+      setDailyLikes(prev => (prev || 0) + 1);
+      return true;
+    } catch (err) {
+      console.error("Error incrementing limits", err);
+      return false;
+    }
+  };
 
   const refreshLimits = async () => {
     await loadDailyLimits();

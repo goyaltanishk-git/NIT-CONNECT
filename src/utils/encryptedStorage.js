@@ -23,7 +23,7 @@ export const encryptedStorage = {
     }
   },
 
-  // ✅ ADDED THIS MISSING METHOD
+  // ✅ ADD THIS MISSING METHOD
   remove(key) {
     try {
       localStorage.removeItem(key);

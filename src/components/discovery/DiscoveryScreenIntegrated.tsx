@@ -55,53 +55,20 @@ export function DiscoveryScreenIntegrated() {
     prevCanLikeRef.current = canLike;
   }, [canLike]);
 
+
   const handleSwipe = async (direction: 'like' | 'pass') => {
-  
-
-
-    await supabase.from('profiles').select('email').limit(1);
-
     if (direction === 'like' && !canLike) {
-  setShowLimitAlert(true);
-  return;
-}
-   
-   setSwipeAnimation(direction === 'like' ? 'right' : 'left');
-
-  const targetProfile = profiles[currentIndex];
-  const stored = encryptedStorage.get("current-user");
-  if (!targetProfile || !stored) return;
-
-  const { email } = JSON.parse(stored);
-
-  
-  try {
-    // Sync session so the RLS policy allows the Insert
-    await syncAppSession(email);
-
-    const { error } = await supabase
-      .from('user_interactions')
-      .insert({
-        user_id: email,
-        target_user_id: targetProfile.email, // Using email as the link
-        interaction_type: direction
-      });
-    
-    if(direction=='like'){
-     await incrementLikes();
+      setShowLimitAlert(true);
+      return;
     }
-
-    if (error) throw error;
-
-    // Trigger animation and move to next
    
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
-      setSwipeAnimation(null);
+    setSwipeAnimation(direction === 'like' ? 'right' : 'left');
 
-        
-    }, 300);
+    const targetProfile = profiles[currentIndex];
+    const stored = encryptedStorage.get("current-user");
+    if (!targetProfile || !stored) return;
 
+<<<<<<< HEAD
   } // Change this in DiscoveryScreenGlobal.tsx or Integrated.tsx
 
 catch (error: any) {
@@ -113,6 +80,33 @@ catch (error: any) {
   });
 }
 };
+=======
+    const { email } = JSON.parse(stored);
+  
+    try {
+      // ✅ CALL THE SECURE RPC INSTEAD OF .upsert()
+      const { error: swipeError } = await supabase.rpc('record_swipe', {
+        p_user_id: email,
+        p_target_user_id: targetProfile.email,
+        p_action: direction
+      });
+      
+      if (swipeError) throw swipeError;
+
+      if (direction === 'like') {
+        await incrementLikes();
+      }
+    } catch (err) {
+      console.error("Swipe recording failed:", err);
+    } finally {
+      // Always move to next profile
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setSwipeAnimation(null);
+      }, 300);
+    }
+  };
+>>>>>>> ce83e1c351908cadf926dd214480385c6f5eb829
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
 

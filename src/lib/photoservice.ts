@@ -64,14 +64,32 @@ export class PhotoService {
 
   static async deletePhoto(userEmail: string, photoOrder: number): Promise<void> {
     await syncAppSession(userEmail);
+    
+    // 1. Fetch the URL of the photo we are about to delete
+    const { data: photoData } = await supabase
+      .from('user_photos')
+      .select('photo_url')
+      .eq('user_email', userEmail)
+      .eq('photo_order', photoOrder)
+      .single();
+
+    // 2. ✅ Delete the actual file from the storage bucket
+    if (photoData?.photo_url) {
+      const filePath = photoData.photo_url.split('/user-photos/')[1]?.split('?')[0];
+      if (filePath) {
+        await supabase.storage.from('user-photos').remove([filePath]);
+      }
+    }
+
+    // 3. Delete the database row
     const { error } = await supabase
       .from('user_photos')
       .delete()
       .eq('user_email', userEmail)
       .eq('photo_order', photoOrder);
+      
     if (error) throw error;
   }
-
   static async setPrimaryPhoto(userEmail: string, photoOrder: number): Promise<void> {
     await syncAppSession(userEmail);
     

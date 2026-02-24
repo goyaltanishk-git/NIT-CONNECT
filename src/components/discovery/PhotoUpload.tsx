@@ -17,7 +17,7 @@ interface PhotoUploadProps {
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
 
 const compressionOptions = {
-  maxSizeMB: 0.4,
+  maxSizeMB: 0.1,
   maxWidthOrHeight: 1200,
   useWebWorker: true,
   initialQuality: 0.7,
@@ -51,10 +51,22 @@ export function PhotoUpload({
 
       // ✅ FIX: Robust Order Calculation
       // If replacing, use that order. If new, find the highest current order and add 1.
+      // ✅ FIX: Robust Order Calculation & File Cleanup
       let newOrder: number;
       if (replacingOrder !== null) {
         newOrder = replacingOrder;
-        // Clean up the specific slot before inserting to be safe
+        
+        // 1. Find the old photo URL so we can delete the actual file
+        const oldPhoto = photos.find(p => p.photo_order === replacingOrder);
+        if (oldPhoto) {
+          const oldPath = oldPhoto.photo_url.split('/user-photos/')[1]?.split('?')[0];
+          if (oldPath) {
+            // ✅ ACTUALLY DELETE THE OLD FILE FROM STORAGE
+            await supabase.storage.from('user-photos').remove([oldPath]);
+          }
+        }
+
+        // 2. Clean up the specific slot before inserting to be safe
         await supabase
           .from('user_photos')
           .delete()

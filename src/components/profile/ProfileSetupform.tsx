@@ -35,6 +35,7 @@ const POPULAR_INTERESTS = [
 interface ProfileSetupFormProps {
   userEmail: string;
   onComplete: (profile: Profile) => void;
+  initialProfile?: Profile | null; // ✅ ADD THIS
 }
 
 interface FormData {
@@ -54,18 +55,17 @@ interface PhotoFile {
 
 const MAX_PHOTOS = 3; 
 
-export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProps) {
-  const [formData, setFormData] = useState<FormData>({
+export function ProfileSetupForm({ userEmail, onComplete, initialProfile }: ProfileSetupFormProps) {
+    const [formData, setFormData] = useState<FormData>({
     date_of_birth: '', bio: '', height: '', hometown: '', phone_number: '', instagram_handle: ''
   });
-
+const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile || null);
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [interests, setInterests] = useState<string[]>([]);
   const [currentInterest, setCurrentInterest] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
-  const [userProfile, setUserProfile] = useState<Profile | null>(null);
   
   // Refs for inputs and scrolling
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +97,9 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   }, []);
 
   useEffect(() => {
+    // ✅ ADD THIS CHECK: If we have the prop, don't fetch again
+    if (initialProfile) return;
+
     const loadUserProfile = async () => {
       try {
         const profile = await AuthService.getUserProfile(userEmail);
@@ -105,7 +108,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
       }
     };
     loadUserProfile();
-  }, [userEmail]);
+  }, [userEmail, initialProfile]); // ✅ UPDATE DEPENDENCY
 
   // Helper to trigger the custom dialog
   const triggerError = (msg: string) => {
@@ -153,7 +156,7 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
 
   // Compression options
   const compressionOptions = {
-    maxSizeMB: 0.4,          // Shrink to under 1MB
+    maxSizeMB: 0.1,          // Shrink to under 1MB
     maxWidthOrHeight: 1200, // Reasonable social media resolution
     useWebWorker: true,
     initialQuality: 0.7,
@@ -277,6 +280,8 @@ export function ProfileSetupForm({ userEmail, onComplete }: ProfileSetupFormProp
   const ALLOWED_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'heic'];
 
 // Replace your existing handleSubmit with this version
+// src/components/profile/ProfileSetupform.tsx
+
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!validateForm()) return;
@@ -285,12 +290,17 @@ const handleSubmit = async (e: React.FormEvent) => {
   const uploadedPaths: string[] = [];
   
   try {
-    // ✅ FIX 1: Sync Identity Handshake before ANY requests are made
-    // This provides the identity needed for the 401 Unauthorized errors
+    // 1. Sync Session (Just in case, keeps connection alive)
     await syncAppSession(userEmail);
 
-    // 1. UPLOAD PHOTOS TO STORAGE FIRST
+    // 2. Upload Photos to Storage 
+    // (Storage is separate from DB RLS, so this usually works fine)
     const uploadedPhotos = await Promise.all(photos.map(async (p) => {
+      // Logic to handle if photo is already a URL (editing) or a File (new)
+      if (typeof p.file === 'string' || !p.file) {
+         return { url: p.preview, order: p.order };
+      }
+
       const ext = p.file.name.split('.').pop()?.toLowerCase();
       if (!ext || !ALLOWED_EXTS.includes(ext)) throw new Error("Invalid file type.");
       
@@ -303,46 +313,42 @@ const handleSubmit = async (e: React.FormEvent) => {
       return { url: publicUrl, order: p.order };
     }));
 
-    // 2. SAVE INTERESTS
-    // Now that syncAppSession is called, this will no longer return 401
-    await InterestsService.updateUserInterests(userEmail, interests);
-
-    // 3. SAVE PHOTO DB RECORDS
-    const photoPayload = uploadedPhotos.map((p, i) => ({
-      user_email: userEmail,
+    // 3. Prepare Data for the Secure Function
+    const photoRpcPayload = uploadedPhotos.map((p, i) => ({
       photo_url: p.url,
       photo_order: p.order,
       is_primary: i === 0,
     }));
-    
-    await supabase.from('user_photos').delete().eq('user_email', userEmail);
-    const { error: photoErr } = await supabase.from('user_photos').insert(photoPayload);
-    if (photoErr) throw photoErr;
 
-    // 4. LAST STEP: UPDATE PROFILE
-    // ✅ FIX 2: Add .select() to satisfy the 'Accept' header requirement and fix 406 error
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({
-        date_of_birth: formData.date_of_birth,
-        bio: formData.bio.trim(),
-        height: parseInt(formData.height),
-        hometown: formData.hometown.trim(),
-        phone_number: formData.phone_number.trim() || null,
-        instagram_handle: formData.instagram_handle.trim() || null,
-        is_active: true 
-      })
-      .eq('email', userEmail)
-      .select(); // 👈 This line fixes the 406 Not Acceptable error
-    
-    if (profileErr) throw profileErr;
+    const profileUpdates = {
+      date_of_birth: formData.date_of_birth,
+      bio: formData.bio.trim(),
+      height: parseInt(formData.height),
+      hometown: formData.hometown.trim(),
+      phone_number: formData.phone_number.trim() || null,
+      instagram_handle: formData.instagram_handle.trim() || null
+    };
 
-    // Load final profile and move user to main app
-    const finalProfile = await AuthService.getUserProfile(userEmail);
-    onComplete(finalProfile as any);
+    // 4. ✅ CALL THE SECURE FUNCTION (Replaces the crashing Inserts)
+    const { data: updatedProfileData, error: rpcError } = await supabase.rpc('complete_profile_setup', {
+      p_email: userEmail,
+      p_profile_updates: profileUpdates,
+      p_photos: photoRpcPayload,
+      p_interests: interests
+    });
+
+    if (rpcError) throw rpcError;
+
+    // 5. Success! Pass the data back to AuthGuard
+    if (updatedProfileData) {
+      onComplete(updatedProfileData as unknown as Profile);
+    } else {
+      throw new Error("Setup completed but no profile data returned.");
+    }
 
   } catch (error: any) {
-    // ROLLBACK: Cleanup orphan photos in storage if DB update failed
+    console.error("Setup Error:", error);
+    // Cleanup photos if it fails, so we don't leave junk files
     if (uploadedPaths.length > 0) {
       await supabase.storage.from('user-photos').remove(uploadedPaths);
     }
