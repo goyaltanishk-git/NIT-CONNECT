@@ -38,15 +38,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         // 1. SYNC SESSION
         await syncAppSession(emailToCheck);
 
-<<<<<<< HEAD
-        // 2. USE RPC HERE (checkUserExists) instead of getUserProfile
-        // This prevents RLS from returning null if the session sync dropped
-       
-       
-
-=======
         // 2. USE RPC to find user (Bypasses RLS)
->>>>>>> ce83e1c351908cadf926dd214480385c6f5eb829
         const liveProfile = await AuthService.checkUserExists(emailToCheck);
 
         if (!liveProfile) {
@@ -178,24 +170,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // PASS THE SUCCESS HANDLER TO LOGIN SCREEN
   if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
 
-<<<<<<< HEAD
-  if (showHeroScreen) return <Verify onComplete={handleHeroComplete} />;
+  if (showHeroScreen&&!userEmail) return <Verify onComplete={handleHeroComplete} />;
+
+  if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
   
   if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
-=======
-  if (showHeroScreen && profile) {
-    return <HeroFuturistic onComplete={handleHeroComplete} userProfile={profile} />;
-  }   
-  if (showProfileSetup && userEmail && profile) {
-    return (
-      <ProfileSetupForm 
-        userEmail={userEmail} 
-        initialProfile={profile} 
-        onComplete={handleProfileSetupComplete} 
-      />
-    );
-  }
->>>>>>> ce83e1c351908cadf926dd214480385c6f5eb829
 
   return <>{children}</>;
 }

@@ -68,19 +68,6 @@ export function DiscoveryScreenIntegrated() {
     const stored = encryptedStorage.get("current-user");
     if (!targetProfile || !stored) return;
 
-<<<<<<< HEAD
-  } // Change this in DiscoveryScreenGlobal.tsx or Integrated.tsx
-
-catch (error: any) {
-  setSwipeAnimation(null);
-  toast({
-    title: "Debug Error",
-    description: error.message || "Something went wrong", // This will tell you if it's a DB or Auth error
-    variant: "destructive",
-  });
-}
-};
-=======
     const { email } = JSON.parse(stored);
   
     try {
@@ -106,7 +93,6 @@ catch (error: any) {
       }, 300);
     }
   };
->>>>>>> ce83e1c351908cadf926dd214480385c6f5eb829
 
   const transformProfileForCard = (profile: DatabaseProfile) => {
 
