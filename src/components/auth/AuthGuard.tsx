@@ -8,6 +8,7 @@ import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from '@/integrations/supabase/client';
 import { Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import Verify from "../verify/verfiy";
 
 
 interface AuthGuardProps { 
@@ -172,7 +173,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // PASS THE SUCCESS HANDLER TO LOGIN SCREEN
   if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
 
-  if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
+  if (showHeroScreen) return <Verify onComplete={handleHeroComplete} />;
   
   if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
 
