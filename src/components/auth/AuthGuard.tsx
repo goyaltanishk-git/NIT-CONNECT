@@ -24,6 +24,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showHeroScreen, setShowHeroScreen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
   
   const isSetupMode = useRef(false);
 
@@ -43,10 +44,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
         if (!liveProfile) {
           // Only logout if we are SURE the user is gone (and it wasn't just a network error)
-          console.warn("User not found in DB. Logging out.");
-          AuthService.clearCurrentUser();
-          setUserEmail(null);
-          setProfile(null);
+          setIsNewUser(true);
+  setUserEmail(emailToCheck);
+  setShowHeroScreen(true); // We use this to trigger the conditional render below
+  setLoading(false);
+  return;
         } 
         // 3. DETECT SOFT DELETE -> TRIGGER HERO
         else if (liveProfile.is_active === false) {
@@ -76,6 +78,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         // No local user found
         AuthService.clearCurrentUser();
         setUserEmail(null);
+        
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
@@ -170,7 +173,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // PASS THE SUCCESS HANDLER TO LOGIN SCREEN
   if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
 
-  if (showHeroScreen&&!userEmail) return <Verify onComplete={handleHeroComplete} />;
+  if (showHeroScreen&&isNewUser) return <Verify onComplete={handleHeroComplete} />;
 
   if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
   

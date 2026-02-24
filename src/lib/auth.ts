@@ -149,7 +149,7 @@ export class AuthService {
           
           // Important: We return the profile AS IS (is_active: false)
           // The AuthGuard will see this and trigger the Hero Screen.
-          const storageData = { ...existingUser, needsSetup: true };
+          const storageData = { ...existingUser, needsSetup: true,isNewUser:false };
           encryptedStorage.set('current-user', JSON.stringify(storageData));
           
           return existingUser; 
@@ -161,7 +161,14 @@ export class AuthService {
         return existingUser;
       } else {
         // 4. Brand New User -> Create
-        return await this.createNewUser(email, authUserId);
+        const emailPrefix = email.split('@')[0];
+    const tempUser: any = {
+      email: email,
+      first_name: emailPrefix,
+      is_active: false,
+      isNewUser: true // This flag tells AuthGuard to show the Verify component
+    };
+    return tempUser;
       }
     } catch (error) {
       throw error;
