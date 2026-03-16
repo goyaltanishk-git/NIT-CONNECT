@@ -1,4 +1,4 @@
-// src/components/auth/AuthGuard.tsx
+ // src/components/auth/AuthGuard.tsx
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
@@ -9,7 +9,7 @@ import { syncAppSession } from '@/integrations/supabase/client';
 import { Sparkles } from "lucide-react";
 import Verify from "../verify/verfiy"; // Ensure this matches your exact file name
 
-interface AuthGuardProps { 
+interface AuthGuardProps {  
   children: React.ReactNode;
 }
 
