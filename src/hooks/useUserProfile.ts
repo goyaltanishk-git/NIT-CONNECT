@@ -124,4 +124,4 @@ const updateProfile = useCallback(async (updates: ProfileUpdate) => {
   }, [fetchProfile]);
 
   return { profile, loading, updateProfile, refetch: fetchProfile };
-} 
+}  
