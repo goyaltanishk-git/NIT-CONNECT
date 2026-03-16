@@ -24,6 +24,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   
   const nitkkrEmailRegex = /^[0-9]{8,10}@nitkkr\.ac\.in$/;
   const nithEmailRegex = /^(1[9]|2[0-8])[a-z]+\d+@nith\.ac\.in$/;
+  const nitjsrEmailRegex = /^202[1-9]ug[a-zA-Z]{2}\d+@nitjsr\.ac\.in$/;
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -36,10 +37,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!(nitkkrEmailRegex.test(email) || nithEmailRegex.test(email))) {
-      toast({ 
+if (!(nitkkrEmailRegex.test(email) || nithEmailRegex.test(email) || nitjsrEmailRegex.test(email))) {
+        toast({ 
         title: "Invalid Email", 
-        description: "Please use your NIT Kurukshetra email (@nitkkr.ac.in)", 
+        description: "Please use a valid NIT Kurukshetra, Hamirpur, or Jamshedpur email.", 
         variant: "destructive" 
       });
       return;
@@ -87,15 +88,21 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       // 2. Sync Session (Unlocks RLS for profile read)
       await syncAppSession(email);
 
-      // 3. Get Profile (Handles Active/Inactive/New logic)
+      // 3. Get Profile (Returns null if brand new user)
       const userProfile = await AuthService.getOrCreateUserProfile(email);
       
-      // 4. Update Storage
-      encryptedStorage.set("current-user", JSON.stringify(userProfile));
+      // 4. Update Storage intelligently based on whether profile exists
+      if (userProfile) {
+        // Returning user (active or inactive)
+        encryptedStorage.set("current-user", JSON.stringify(userProfile));
+      } else {
+        // Brand new user -> Needs ID Verification
+        encryptedStorage.set("current-user", JSON.stringify({ email, needsVerification: true }));
+      }
       
       toast({ 
         title: "Login Successful", 
-        description: "Welcome back!",
+        description: userProfile ? "Welcome back!" : "Please verify your Student ID.",
       });
 
       // 5. Trigger AuthGuard update without reload

@@ -57,7 +57,12 @@ const MAX_PHOTOS = 3;
 
 export function ProfileSetupForm({ userEmail, onComplete, initialProfile }: ProfileSetupFormProps) {
     const [formData, setFormData] = useState<FormData>({
-    date_of_birth: '', bio: '', height: '', hometown: '', phone_number: '', instagram_handle: ''
+    date_of_birth: '',
+    bio: initialProfile?.bio || '',
+    height: initialProfile?.height?.toString() || '',
+    hometown: initialProfile?.hometown || '',
+    phone_number: initialProfile?.phone_number || '',
+    instagram_handle: initialProfile?.instagram_handle || ''
   });
 const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile || null);
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
@@ -156,7 +161,7 @@ const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile ||
 
   // Compression options
   const compressionOptions = {
-    maxSizeMB: 0.1,          // Shrink to under 1MB
+    maxSizeMB: 0.15,          // Shrink to under 1MB
     maxWidthOrHeight: 1200, // Reasonable social media resolution
     useWebWorker: true,
     initialQuality: 0.7,

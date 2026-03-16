@@ -17,7 +17,7 @@ interface PhotoUploadProps {
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
 
 const compressionOptions = {
-  maxSizeMB: 0.1,
+  maxSizeMB: 0.15,
   maxWidthOrHeight: 1200,
   useWebWorker: true,
   initialQuality: 0.7,

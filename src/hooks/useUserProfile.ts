@@ -52,10 +52,33 @@ export function useUserProfile() {
       const userProfile = await AuthService.getUserProfile(userEmail);
 
       if (userProfile) {
-        const [{ data: photosData }, interests] = await Promise.all([
-          supabase.from('user_photos').select('photo_url').eq('user_email', userProfile.email).order('photo_order', { ascending: true }),
-          InterestsService.getUserInterests(userProfile.email)
-        ]);
+        // Fetch interests (no RLS session needed)
+        const interests = await InterestsService.getUserInterests(userProfile.email);
+
+        // ✅ FIX: Retry loop for photos — Supabase uses a connection pool, so
+        // syncAppSession (SET session variable) and the photos query can land on
+        // DIFFERENT connections, making RLS block the query silently.
+        // Each retry re-syncs AND re-queries together, maximising the chance they
+        // share the same connection.
+        let photosData: { photo_url: string }[] | null = null;
+        const MAX_RETRIES = 4;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+          await syncAppSession(userProfile.email);
+          const { data } = await supabase
+            .from('user_photos')
+            .select('photo_url')
+            .eq('user_email', userProfile.email)
+            .order('photo_order', { ascending: true });
+
+          if (data && data.length > 0) {
+            photosData = data;
+            break; // got photos — stop retrying
+          }
+          // Got 0 rows — could be a pool miss; wait briefly before next attempt
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, 80));
+          }
+        }
 
         const fullProfile: FullProfile = {
           ...userProfile,

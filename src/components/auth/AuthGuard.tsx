@@ -7,24 +7,21 @@ import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from '@/integrations/supabase/client';
 import { Sparkles } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import Verify from "../verify/verfiy";
-
+import Verify from "../verify/verfiy"; // Ensure this matches your exact file name
 
 interface AuthGuardProps { 
   children: React.ReactNode;
 }
-// ⛔ CRITICAL: wait until Supabase session really exists
-
-
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  
+  // Strict Routing States
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [showHeroScreen, setShowHeroScreen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [isNewUser, setIsNewUser] = useState(false);
   
   const isSetupMode = useRef(false);
 
@@ -43,21 +40,22 @@ export function AuthGuard({ children }: AuthGuardProps) {
         const liveProfile = await AuthService.checkUserExists(emailToCheck);
 
         if (!liveProfile) {
-          // Only logout if we are SURE the user is gone (and it wasn't just a network error)
-          setIsNewUser(true);
-  setUserEmail(emailToCheck);
-  setShowHeroScreen(true); // We use this to trigger the conditional render below
-  setLoading(false);
-  return;
+          // CONDITION A: Passed OTP, but no profile -> Go to Verify
+          setUserEmail(emailToCheck);
+          setNeedsVerification(true);
+          setShowHeroScreen(false);
+          setShowProfileSetup(false);
         } 
-        // 3. DETECT SOFT DELETE -> TRIGGER HERO
         else if (liveProfile.is_active === false) {
+          // CONDITION B: Profile exists but inactive -> Go to Hero/Setup
           console.log("Inactive user detected. Locking to Hero/Setup flow.");
           
           isSetupMode.current = true;
           setUserEmail(liveProfile.email);
           setProfile(liveProfile);
+          setNeedsVerification(false);
           setShowHeroScreen(true);
+          setShowProfileSetup(false);
           
           // Ensure session is fresh
           encryptedStorage.set('active-session', JSON.stringify({
@@ -65,12 +63,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
             timestamp: Date.now()
           }));
         } 
-        // 4. ACTIVE USER
         else {
+          // CONDITION C: Active User -> Go to Main App
           setUserEmail(liveProfile.email);
           setProfile(liveProfile);
+          setNeedsVerification(false);
           setShowHeroScreen(false); 
+          setShowProfileSetup(false);
           isSetupMode.current = false;
+          
           // Background update
           AuthService.updateLastActive(liveProfile.email);
         }
@@ -78,13 +79,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
         // No local user found
         AuthService.clearCurrentUser();
         setUserEmail(null);
-        
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      // DO NOT LOGOUT ON GENERIC ERRORS (like network)
-      // Just stop loading so the user can see if something is wrong
-      // or implement a retry mechanism
     } finally {
       setLoading(false);
     }
@@ -94,19 +91,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
     initializeAuth();
   }, [initializeAuth]);
 
-  // Sync Interval
+  // Sync Interval for Soft-Deletes
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || needsVerification) return; // Skip if they are currently verifying
 
     const syncInterval = setInterval(async () => {
       if (loading) return; 
 
       const liveStatus = await AuthService.checkUserExists(userEmail);
       
-      if (!liveStatus) {
-        // Only logout if explicitly null (User deleted)
-        return;   
-      }
+      if (!liveStatus) return;   
  
       if (liveStatus.is_active === false) {
          if (showHeroScreen || showProfileSetup || isSetupMode.current) {
@@ -119,7 +113,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }, 5000); 
 
     return () => clearInterval(syncInterval);
-  }, [userEmail, showHeroScreen, showProfileSetup, loading]);
+  }, [userEmail, showHeroScreen, showProfileSetup, loading, needsVerification]);
+
+
+  // --- Event Handlers ---
+
+  const handleVerifyComplete = () => {
+    // When AI approves the ID, re-run init. It will find the new profile and route to Hero.
+    initializeAuth(); 
+  };
 
   const handleHeroComplete = () => {
     setShowHeroScreen(false);
@@ -127,28 +129,25 @@ export function AuthGuard({ children }: AuthGuardProps) {
     isSetupMode.current = true; 
   };
 
-  // src/components/auth/AuthGuard.tsx
-
   const handleProfileSetupComplete = (updatedProfile: Profile) => {
-    // ✅ FIX: Do NOT call AuthService.updateProfile here.
-    // The RPC in ProfileSetupForm already updated the DB and set is_active = true.
-    // We just need to update the local state to match.
-    
     // 1. Update State
     setProfile(updatedProfile);
     setShowProfileSetup(false);
     
-    // 2. Release the 'Setup Mode' lock so background sync resumes normally
+    // 2. Release the 'Setup Mode' lock
     isSetupMode.current = false; 
 
     // 3. Persist to Storage
     encryptedStorage.set("current-user", JSON.stringify(updatedProfile));
     
-    // 4. Clear the active session marker (optional cleanup)
+    // 4. Clear active session marker
     if (typeof encryptedStorage.remove === 'function') {
         encryptedStorage.remove('active-session');
     }
   };
+
+
+  // --- Strict Routing Render Logic ---
 
   if (loading) {
     return (
@@ -170,14 +169,18 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // PASS THE SUCCESS HANDLER TO LOGIN SCREEN
+  // 0. Not Logged In
   if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
 
-  if (showHeroScreen&&isNewUser) return <Verify onComplete={handleHeroComplete} />;
+  // 1. Unverified -> Send to ID Upload Component
+  if (needsVerification) return <Verify userEmail={userEmail} onComplete={handleVerifyComplete} />;
 
-  if (showHeroScreen) return <HeroFuturistic onComplete={handleHeroComplete} />;
+  // 2. Verified but Inactive -> Send to Hero Screen
+  if (showHeroScreen && profile) return <HeroFuturistic onComplete={handleHeroComplete} userProfile={profile} />;
   
-  if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} />;
+  // 3. Hero Done -> Profile Setup
+  if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} initialProfile={profile} />;
 
+  // 4. Fully Active & Setup -> Enter App
   return <>{children}</>;
 }

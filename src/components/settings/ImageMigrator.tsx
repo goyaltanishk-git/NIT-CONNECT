@@ -81,7 +81,7 @@ export function ImageMigrator() {
               const imageFile = new File([blob], file.name, { type: blob.type });
 
               const compressed = await imageCompression(imageFile, {
-                maxSizeMB: 0.1,
+                maxSizeMB: 0.15,
                 maxWidthOrHeight: 1200, 
                 useWebWorker: true,
                 fileType: 'image/webp'

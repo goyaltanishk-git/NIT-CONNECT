@@ -135,23 +135,22 @@ export class AuthService {
    * Main Login Logic
    * Handles Active Users, Soft-Deleted Users, and New Users
    */
-  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile> {
+  /**
+   * Main Login Logic
+   * Handles Active Users, Soft-Deleted Users, and Unverified Users
+   */
+  static async getOrCreateUserProfile(email: string, authUserId?: string): Promise<Profile | null> {
     try {
       // 1. Check if user exists using the Secure RPC (Bypasses RLS)
       const existingUser = await this.checkUserExists(email);
       
       if (existingUser) {
-        // 2. SOFT DELETED USER DETECTED
+        // 2. SOFT DELETED/INACTIVE USER DETECTED
         if (existingUser.is_active === false) {
-          console.log("Soft deleted user found. Initiating reactivation flow.");
-          
+          console.log("Inactive user found. Initiating setup flow.");
           await this.updateLastActive(email);
-          
-          // Important: We return the profile AS IS (is_active: false)
-          // The AuthGuard will see this and trigger the Hero Screen.
-          const storageData = { ...existingUser, needsSetup: true,isNewUser:false };
+          const storageData = { ...existingUser, needsSetup: true, isNewUser: false };
           encryptedStorage.set('current-user', JSON.stringify(storageData));
-          
           return existingUser; 
         }
 
@@ -160,15 +159,8 @@ export class AuthService {
         encryptedStorage.set('current-user', JSON.stringify(existingUser));
         return existingUser;
       } else {
-        // 4. Brand New User -> Create
-        const emailPrefix = email.split('@')[0];
-    const tempUser: any = {
-      email: email,
-      first_name: emailPrefix,
-      is_active: false,
-      isNewUser: true // This flag tells AuthGuard to show the Verify component
-    };
-    return tempUser;
+        // 4. Brand New User -> Return null to trigger Verification Flow
+        return null;
       }
     } catch (error) {
       throw error;

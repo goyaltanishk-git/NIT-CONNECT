@@ -48,6 +48,24 @@ export function ProfileScreen() {
   const [photos, setPhotos] = useState<UserPhoto[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
 
+  // ✅ FIX: Always mirror profile.photos into local UserPhoto[] state.
+  // No photos.length guard — we want this to overwrite if profile re-fetches.
+  // The retry loop in useUserProfile guarantees profile.photos is correct,
+  // so we should always trust it over any locally-fetched result.
+  useEffect(() => {
+    if (profile?.photos) {
+      const seeded: UserPhoto[] = profile.photos.map((url, i) => ({
+        user_email: profile.email,
+        photo_url: url,
+        photo_order: i,
+        is_primary: i === 0,
+        is_verified: false,
+        created_at: '',
+      }));
+      setPhotos(seeded);
+    }
+  }, [profile?.photos]);
+
   const getUIProfile = (dbProfile: FullProfile | null): UIProfile => {
     if (!dbProfile) {
       return {
@@ -89,30 +107,22 @@ export function ProfileScreen() {
 
   const user = getUIProfile(profile);
 
-  useEffect(() => {
-    if (profile?.email) {
-      loadPhotos();
-    }
-  }, [profile]);
-
+  // loadPhotos is kept for manual refresh after uploads (called from handlePhotosUpdate)
   const loadPhotos = async () => {
     if (!profile?.email) return;
-    
     setPhotosLoading(true);
     try {
       const userPhotos = await PhotoService.getUserPhotos(profile.email);
-      setPhotos(userPhotos);
+      if (userPhotos && userPhotos.length > 0) {
+        setPhotos(userPhotos);
+      }
     } catch (error) {
-      toast({
-        title: "Error loading photos",
-        description: "Could not load your photos. Please try again.",
-        variant: "destructive",
-      });
+      // silently ignore — photos from profile.photos are still shown
     } finally {
       setPhotosLoading(false);
     }
   };
- 
+
   const handlePhotosUpdate = useCallback((updatedPhotos: UserPhoto[]) => {
     setPhotos(updatedPhotos);
   }, []);
