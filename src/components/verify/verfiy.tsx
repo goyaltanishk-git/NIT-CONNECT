@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,9 +14,22 @@ const Verify = ({ userEmail, onComplete }: VerifyProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0); // Added cooldown state
   const { toast } = useToast();
 
+  // Added useEffect for the countdown timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldown > 0) {
+      timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Prevent file selection if cooldown is active
+    if (cooldown > 0) return; 
+    
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
@@ -71,6 +84,7 @@ const Verify = ({ userEmail, onComplete }: VerifyProps) => {
       setErrorMsg(err.message);
       setFile(null);
       setPreviewUrl(null);
+      setCooldown(30); // Trigger the 30-second cooldown on failure
     } finally {
       setIsProcessing(false);
     }
@@ -97,18 +111,30 @@ const Verify = ({ userEmail, onComplete }: VerifyProps) => {
         )}
 
         {!previewUrl ? (
-          <label className="border-2 border-dashed border-white/20 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-pink-500/50 transition-colors bg-white/5">
-            <UploadCloud className="w-10 h-10 text-gray-400 mb-3" />
-            <span className="text-white font-medium">Tap to upload ID</span>
-            <span className="text-xs text-gray-500 mt-1">JPEG, PNG, or WEBP</span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-          </label>
+          cooldown > 0 ? (
+            // Show this block when the cooldown is active
+            <div className="border-2 border-dashed border-red-500/20 rounded-xl p-8 flex flex-col items-center justify-center bg-red-500/5 cursor-not-allowed opacity-80">
+              <AlertCircle className="w-10 h-10 text-red-400 mb-3 animate-pulse" />
+              <span className="text-white font-medium">Please Wait</span>
+              <span className="text-sm text-red-400 mt-1">
+                You can try again in <strong className="text-red-300">{cooldown}s</strong>
+              </span>
+            </div>
+          ) : (
+            // Normal upload block
+            <label className="border-2 border-dashed border-white/20 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-pink-500/50 transition-colors bg-white/5">
+              <UploadCloud className="w-10 h-10 text-gray-400 mb-3" />
+              <span className="text-white font-medium">Tap to upload ID</span>
+              <span className="text-xs text-gray-500 mt-1">JPEG, PNG, or WEBP</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={cooldown > 0} />
+            </label>
+          )
         ) : (
           <div className="space-y-4">
             <img src={previewUrl} alt="ID Preview" className="w-full h-48 object-cover rounded-xl border border-white/10" />
             <Button 
               onClick={handleVerification} 
-              disabled={isProcessing}
+              disabled={isProcessing || cooldown > 0}
               className="w-full bg-pink-600 hover:bg-pink-700 h-12 text-white font-bold"
             >
               {isProcessing ? <><Loader2 className="animate-spin mr-2" /> AI Verifying...</> : "Submit for Verification"}
