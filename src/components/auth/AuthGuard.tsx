@@ -9,7 +9,7 @@ import { syncAppSession } from '@/integrations/supabase/client';
 import { Sparkles } from "lucide-react";
 import Verify from "../verify/verfiy"; // Ensure this matches your exact file name
 
-interface AuthGuardProps { 
+interface AuthGuardProps {  
   children: React.ReactNode;
 }
 
