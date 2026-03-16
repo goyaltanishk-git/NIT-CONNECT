@@ -33,7 +33,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     }
     return () => clearTimeout(timer);
   }, [countdown]);
-
+  
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
