@@ -120,7 +120,7 @@ const Verify = ({ userEmail, onComplete }: VerifyProps) => {
                 You can try again in <strong className="text-red-300">{cooldown}s</strong>
               </span>
             </div>
-          ) : (
+          ) : ( 
             // Normal upload block
             <label className="border-2 border-dashed border-white/20 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-pink-500/50 transition-colors bg-white/5">
               <UploadCloud className="w-10 h-10 text-gray-400 mb-3" />
