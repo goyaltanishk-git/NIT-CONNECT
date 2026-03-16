@@ -1,4 +1,4 @@
-// src/components/auth/AuthGuard.tsx
+ // src/components/auth/AuthGuard.tsx
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
