@@ -18,7 +18,7 @@ const Verify = ({ userEmail, onComplete }: VerifyProps) => {
   const { toast } = useToast();
 
   // Added useEffect for the countdown timer
-  useEffect(() => {
+  useEffect(() => { 
     let timer: NodeJS.Timeout;
     if (cooldown > 0) {
       timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
