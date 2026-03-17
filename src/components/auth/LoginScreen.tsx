@@ -22,9 +22,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [countdown, setCountdown] = useState(0); 
   const { toast } = useToast();
   
-  const nitkkrEmailRegex = /^[0-9]{8,10}@nitkkr\.ac\.in$/;
-  const nithEmailRegex = /^(1[9]|2[0-8])[a-z]+\d+@nith\.ac\.in$/;
-  const nitjsrEmailRegex = /^202[1-9]ug[a-zA-Z]{2}\d+@nitjsr\.ac\.in$/;
+  const nitkkrEmailRegex = /^[0-9]{8,10}@nitkkr\.ac\.in$/i;
+  const nithEmailRegex = /^(1[9]|2[0-8])[a-z]+\d+@nith\.ac\.in$/i;
+  const nitjsrEmailRegex = /^202[1-9]ug[a-z]{2}\d+@nitjsr\.ac\.in$/i;
+  const mnitEmailRegex = /^202[0-9][a-z]{3}\d+@mnit\.ac\.in$/i;
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -37,10 +38,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-if (!(nitkkrEmailRegex.test(email) || nithEmailRegex.test(email) || nitjsrEmailRegex.test(email))) {
+if (!(nitkkrEmailRegex.test(email) || nithEmailRegex.test(email) || nitjsrEmailRegex.test(email) || mnitEmailRegex.test(email))) {
         toast({ 
         title: "Invalid Email", 
-        description: "Please use a valid NIT Kurukshetra, Hamirpur, or Jamshedpur email.", 
+        description: "Please use a valid NIT Kurukshetra, Hamirpur, Jamshedpur, or MNIT Jaipur email.", 
         variant: "destructive" 
       });
       return;
