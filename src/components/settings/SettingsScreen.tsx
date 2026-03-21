@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Heart,Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -286,14 +287,22 @@ export function SettingsScreen({
           <div className="p-6">
             <div className="flex items-center gap-3">
               {/* REMOVED: Back Button */}
+               <button
+    onClick={onBack}
+    className="p-2 rounded-xl glass-light border border-white/10 hover:bg-white/10 transition"
+  >
+    <ArrowLeft className="h-5 w-5 text-white" />
+  </button>
               
               <div className="relative">
+                
                 <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
                   <Settings className="h-6 w-6 text-pink-500" />
                 </div>
                 <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
               </div>
               <div>
+                
                 <h1 className="text-2xl font-bold gradient-text-animated">
                   Settings
                 </h1>
