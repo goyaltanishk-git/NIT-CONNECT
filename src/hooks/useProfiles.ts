@@ -47,8 +47,7 @@ export function useProfiles() {
       if (!stored) return;
       const currentUser = JSON.parse(stored);
 
-      // ✅ Use RPC to fetch profiles atomically (Prevents Race Condition)
-      const { data, error } = await supabase.rpc('get_discovery_profiles', {
+      const { data, error } = await (supabase as any).rpc('get_discovery_profiles_v2', {
         p_email: currentUser.email,
         p_offset: currentOffset,
         p_limit: PROFILES_PER_BATCH
@@ -56,16 +55,13 @@ export function useProfiles() {
 
       if (error) throw error;
 
-      // The RPC returns properly formatted JSON, but we cast it to our type
-      // We also handle the case where data might be null (though the RPC handles coalesce)
-      const fetchedProfiles = (data as any[]) || [];
+      const fetchedProfiles = (Array.isArray(data) ? data : []) as ExtendedProfile[];
 
-      // Map to ensure types match exactly if needed (RPC returns 'photos' as array of objects)
-      const formatted: ExtendedProfile[] = fetchedProfiles.map((p: any) => ({
-        ...p,
-        // Ensure photos map correctly just in case
-        photos: p.photos.map((ph: any) => ({ url: ph.url, order: ph.order })),
-        interests: p.interests
+      const formatted: ExtendedProfile[] = fetchedProfiles.map((profile: any) => ({
+        ...profile,
+        photos: Array.isArray(profile.photos) ? profile.photos : [],
+        interests: Array.isArray(profile.interests) ? profile.interests : [],
+        age: profile.age ?? 18,
       }));
 
       setProfiles(prev => append ? [...prev, ...formatted] : formatted);

@@ -8,6 +8,7 @@ import { LikesScreenIntegrated } from "@/components/matches/LikesScreenIntegrate
 import { ChatScreen } from "@/components/chat/ChatScreen";
 import { ProfileScreen } from "@/components/profile/ProfileScreen";
 import { SettingsScreen } from "@/components/settings/SettingsScreen";
+import { DatingSettingsScreen } from "@/components/settings/DatingSettingsScreen";
 import { LeaderboardScreen } from "@/components/leaderboard/LeaderboardScreen";
 import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -17,7 +18,7 @@ import type { Tables } from "@/integrations/supabase/types";
 type Profile = Tables<"profiles">;
 
 export function MainLayout() {
-  const [activeTab, setActiveTab] = useState("discovery");
+  const [activeTab, setActiveTab] = useState("discovery-global");
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -102,15 +103,19 @@ export function MainLayout() {
 
           {/* NEW: Discover Global Tab */}
           <TabsContent value="discovery-global" className="h-full animate-fade-in">
-            <DiscoveryScreenGlobal />
+            <DiscoveryScreenGlobal 
+              onNavigateToLikes={() => setActiveTab("likes")} 
+              onNavigateToChat={() => setActiveTab("chat")}
+              onNavigateToDatingSettings={() => setActiveTab("dating-settings")}
+            />
           </TabsContent>
 
           <TabsContent value="likes" className="h-full animate-fade-in">
-            <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery")} />
+            <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery-global")} />
           </TabsContent>
 
           <TabsContent value="chat" className="h-full animate-fade-in">
-            <ChatScreen  setischatopen={setischatopen}/>
+            <ChatScreen onNavigateToDiscovery={() => setActiveTab("discovery-global")} setischatopen={setischatopen}/>
           </TabsContent>
 
           <TabsContent value="profile" className="h-full animate-fade-in">
@@ -120,21 +125,19 @@ export function MainLayout() {
           <TabsContent value="settings" className="h-full animate-fade-in">
             <SettingsScreen onBack={() => setActiveTab("profile")} />
           </TabsContent>
+
+          <TabsContent value="dating-settings" className="h-full animate-fade-in">
+            <DatingSettingsScreen onBack={() => setActiveTab("discovery-global")} />
+          </TabsContent>
         </div>
 
         {/* Enhanced Bottom Navigation */}
        { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 p-2">
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
-              { tab: "discovery", icon: Heart, label: "Discover", gradient: "from-pink-400 to-pink-600" },
               { tab: "discovery-global", icon: Globe, label: "Global", gradient: "from-blue-400 to-purple-500" },
-              { tab: "likes", icon: Sparkles, label: "Likes", gradient: "from-purple-400 to-pink-500" },
-              
-              { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
               { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
-             
-            
-               { tab: "settings", icon: Settings, label: "settings", gradient: "from-grey-400 to-grey-500" },
+              { tab: "settings", icon: Settings, label: "Settings", gradient: "from-grey-400 to-grey-500" },
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
                 key={tab}
