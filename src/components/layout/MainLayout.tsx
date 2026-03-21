@@ -117,9 +117,7 @@ export function MainLayout() {
             <ProfileScreen />
           </TabsContent>
 
-          <TabsContent value="settings" className="h-full animate-fade-in">
-            <SettingsScreen onBack={() => setActiveTab("profile")} />
-          </TabsContent>
+          
         </div>
 
         {/* Enhanced Bottom Navigation */}
@@ -131,10 +129,9 @@ export function MainLayout() {
               { tab: "likes", icon: Sparkles, label: "Likes", gradient: "from-purple-400 to-pink-500" },
               
               { tab: "chat", icon: MessageCircle, label: "Chat", gradient: "from-blue-400 to-purple-500" },
-              { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
+              { tab: "profile", icon: User, label: "Account", gradient: "from-green-400 to-blue-500" },
              
-            
-               { tab: "settings", icon: Settings, label: "settings", gradient: "from-grey-400 to-grey-500" },
+         
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
                 key={tab}

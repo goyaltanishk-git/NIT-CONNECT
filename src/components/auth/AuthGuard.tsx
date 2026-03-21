@@ -170,7 +170,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // 0. Not Logged In
-  if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
+  // if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
+  if (!userEmail) return <LoginScreen  />;
 
   // 1. Unverified -> Send to ID Upload Component
   if (needsVerification) return <Verify userEmail={userEmail} onComplete={handleVerifyComplete} />;
