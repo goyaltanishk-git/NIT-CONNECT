@@ -129,7 +129,7 @@ export function MainLayout() {
           <TabsContent value="dating-settings" className="h-full animate-fade-in">
             <DatingSettingsScreen onBack={() => setActiveTab("discovery-global")} />
           </TabsContent>
-        </div>
+        </div> 
 
         {/* Enhanced Bottom Navigation */}
        { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 p-2">
