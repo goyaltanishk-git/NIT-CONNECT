@@ -198,6 +198,32 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.join_dating_mode(
+  p_email text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_profile jsonb;
+BEGIN
+  UPDATE public.profiles
+  SET is_dating = true,
+      updated_at = now()
+  WHERE email = p_email
+  RETURNING to_jsonb(profiles.*) INTO v_profile;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'is_dating', true,
+    'profile', v_profile
+  );
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.get_discovery_profiles_v2(text, integer, integer) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_global_profiles_v2(text, integer, integer, text[]) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.join_dating_mode(text) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.leave_dating_mode(text) TO anon, authenticated;

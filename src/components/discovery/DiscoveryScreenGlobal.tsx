@@ -49,13 +49,21 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
       setJoinLoading(true);
       await syncAppSession(userEmail);
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_dating: true } as any)
-        .eq("email", userEmail);
+      // Call the RPC function to join dating mode
+      const { data, error } = await (supabase as any).rpc('join_dating_mode', { 
+        p_email: userEmail 
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error:", error);
+        throw new Error(`Failed to join dating: ${error.message}`);
+      }
 
+      if (!data?.success) {
+        throw new Error("Failed to join dating mode");
+      }
+
+      // Update local storage
       const stored = encryptedStorage.get("current-user");
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -63,15 +71,17 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
         encryptedStorage.set("current-user", JSON.stringify(parsed));
       }
 
+      // Force UI update
       setIsDatingEnabled(true);
       toast({
         title: "Dating mode enabled",
         description: "You can now discover and interact with other active dating users.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Join dating error:", error);
       toast({
         title: "Could not enable dating",
-        description: "Please try again in a moment.",
+        description: error?.message || "Please try again in a moment.",
         variant: "destructive",
       });
     } finally {
