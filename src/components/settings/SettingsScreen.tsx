@@ -47,6 +47,7 @@ import { ReportConcernScreen } from "@/components/profile/privacyandsafety/Repor
 import { PrivacyPolicyScreen } from "@/components/profile/privacyandsafety/PrivacyPolicyScreen";
 import { TermsScreen } from "@/components/profile/privacyandsafety/TermsScreen";
 import { SafetyCenterScreen } from "@/components/profile/privacyandsafety/SafetyCenterScreen";
+import { Section } from "../profile/privacyandsafety/Section";
 
 import { useNavigate } from "react-router-dom";
 
@@ -210,7 +211,7 @@ export function SettingsScreen({
       />
     );
   if (showSafetyCenter)
-    return <SafetyCenterScreen onBack={() => setShowSafetyCenter(false)} />;
+    return <SafetyCenterScreen  onBack={() => setShowSafetyCenter(false)}/>;
   if (showPrivacyHub)
     return (
       <PrivacyScreen
@@ -348,26 +349,7 @@ export function SettingsScreen({
                 </div>
               </Button>
 
-              {profile && profile.gender === "female" && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
-                  onClick={() => setShowIncognitoDialog(true)}
-                >
-                  {profile.incognito_mode ? (
-                    <EyeOff className="h-5 w-5 mr-3 text-purple-400 flex-shrink-0" />
-                  ) : (
-                    <Eye className="h-5 w-5 mr-3 text-gray-400 flex-shrink-0" />
-                  )}
-                  <div className="text-left whitespace-normal break-words">
-                    <p className="font-medium">Incognito Mode</p>
-                    <p className="text-sm text-gray-400 leading-tight">
-                      {profile.incognito_mode ? "Active" : "Inactive"} -
-                      Browse anonymously
-                    </p>
-                  </div>
-                </Button>
-              )}
+            
 
               <Button
                 variant="ghost"

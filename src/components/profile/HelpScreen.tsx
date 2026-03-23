@@ -9,38 +9,53 @@ interface HelpScreenProps {
 }
 
 export function HelpScreen({ onBack }: HelpScreenProps) {
-  const faqs = [
-    {
-      question: "How can I improve my match rate?",
-      answer:
-        "To improve your match rate, make sure you have a complete profile with at least 4-6 high-quality photos, a detailed bio, and listed interests. Being active on the app also helps!",
-    },
-    {
-      question: "What happens when I run out of likes?",
-      answer:
-        "Free users have a limited number of likes that reset every 24 hours. This encourages more thoughtful swiping. If you want unlimited likes, you can upgrade to our premium subscription.",
-    },
-    {
-      question: "How does the matching process work?",
-      answer:
-        "You are shown profiles based on your preferences and location. If you like someone and they like you back, it's a match! You can then start a conversation in the messages tab.",
-    },
-    {
-      question: "How do I edit my profile?",
-      answer:
-        "You can edit your profile information, including your bio, photos, interests, and personal details, by tapping the 'Edit Profile' button on your profile screen.",
-    },
-    {
-      question: "How can I report or block someone?",
-      answer:
-        "If you encounter a profile that violates our guidelines or makes you feel uncomfortable, you can report or block them by tapping the menu on their profile. Reporting helps keep our community safe.",
-    },
-    {
-      question: "How do I delete my account?",
-      answer:
-        "To permanently delete your account, go to 'Account Settings' from your profile page. Please be aware that this action is irreversible and will erase all your matches and conversations.",
-    },
-  ];
+ const faqs = [
+  {
+    question: "What is NIT Connect (NITVerse)?",
+    answer:
+      "NIT Connect is an all-in-one platform exclusively for NIT students. It combines social networking, dating, communities, and career opportunities in a single app built for the NIT ecosystem.",
+  },
+  {
+    question: "What is the NIT News section?",
+    answer:
+      "NIT News is like an Instagram-style feed where students can share updates, events, and important news related to NIT campuses. You can browse, engage, and stay updated with campus activities.",
+  },
+  {
+    question: "How does the community/Discord section work?",
+    answer:
+      "The community section allows you to join groups based on interests, branches, or topics. It works similar to Discord where you can interact, chat, and collaborate with other students.",
+  },
+  {
+    question: "How many communities can I join?",
+    answer:
+      "You can join multiple communities based on your interests. There is no strict limit, so feel free to explore and be part of different groups across academics, hobbies, and discussions.",
+  },
+  {
+    question: "How does the dating feature work?",
+    answer:
+      "The dating section allows you to discover and connect with other verified NIT students. If both users like each other, it's a match and you can start chatting securely within the app.",
+  },
+  {
+    question: "Is NIT Connect safe and verified?",
+    answer:
+      "Yes, only users with valid NIT institute email IDs can register. This ensures that all profiles are genuine and part of the NIT community.",
+  },
+  {
+    question: "What is the Jobs/Internships section?",
+    answer:
+      "The jobs section provides curated internship and full-time opportunities for NIT students. You can find companies, explore roles, and directly access application links.",
+  },
+  {
+    question: "Can I apply to companies directly through the app?",
+    answer:
+      "Yes, each job or internship listing includes a direct link to apply on the company's official portal.",
+  },
+  {
+    question: "How do I report inappropriate content or users?",
+    answer:
+      "You can report posts, profiles, or messages directly from the app. Our team reviews reports and takes strict action to maintain a safe environment.",
+  },
+];
 
   return (
     <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
