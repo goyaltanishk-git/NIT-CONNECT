@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Filter, X } from "lucide-react";
+import { Sparkles, Filter, X, Heart, MessageCircle, Settings } from "lucide-react";
 import { EnhancedProfileCard} from "./EnhancedProfileCard";
 import { useProfilesGlobal, DatabaseProfile } from "@/hooks/useProfilesGlobal";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,23 +11,83 @@ import { encryptedStorage } from "@/utils/encryptedStorage";
 import { DailyLimitAlert } from "./DailyLimitAlert";
 import { getDisplayBio, getDisplayDetails, getDisplayName, getDisplayPhotos } from "@/utils/incognitoUtils";
 
-export function DiscoveryScreenGlobal() {
+interface DiscoveryScreenGlobalProps {
+  onNavigateToLikes?: () => void;
+  onNavigateToChat?: () => void;
+  onNavigateToDatingSettings?: () => void;
+}
+
+export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onNavigateToDatingSettings }: DiscoveryScreenGlobalProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
   const [showLimitAlert, setShowLimitAlert] = useState(false);
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [showCollegeFilter, setShowCollegeFilter] = useState(false);
+  const [isDatingEnabled, setIsDatingEnabled] = useState(false);
+  const [joinLoading, setJoinLoading] = useState(false);
 
   const hasUserInteracted = useRef(false);
-  const { profiles, loading, availableColleges } = useProfilesGlobal(selectedColleges);
+  const { profiles, loading, availableColleges } = useProfilesGlobal(selectedColleges, isDatingEnabled);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const currentUserData = encryptedStorage.get('current-user');
   const currentUser = currentUserData ? JSON.parse(currentUserData) : null;
   const userEmail = currentUser?.email || user?.email;
+  const userCollege = currentUser?.college;
 
   const { canLike, loading: limitsLoading, incrementLikes } = useDailyLimits(userEmail);
+
+  useEffect(() => {
+    setIsDatingEnabled(Boolean(currentUser?.is_dating));
+  }, [currentUser?.is_dating]);
+
+  const handleJoinDating = async () => {
+    if (!userEmail || joinLoading) return;
+
+    try {
+      setJoinLoading(true);
+      await syncAppSession(userEmail);
+
+      // Call the RPC function to join dating mode
+      const { data, error } = await (supabase as any).rpc('join_dating_mode', { 
+        p_email: userEmail 
+      });
+
+      if (error) {
+        console.error("RPC error:", error);
+        throw new Error(`Failed to join dating: ${error.message}`);
+      }
+
+      if (!data?.success) {
+        throw new Error("Failed to join dating mode");
+      }
+
+      // Update local storage
+      const stored = encryptedStorage.get("current-user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        parsed.is_dating = true;
+        encryptedStorage.set("current-user", JSON.stringify(parsed));
+      }
+
+      // Force UI update
+      setIsDatingEnabled(true);
+      toast({
+        title: "Dating mode enabled",
+        description: "You can now discover and interact with other active dating users.",
+      });
+    } catch (error: any) {
+      console.error("Join dating error:", error);
+      toast({
+        title: "Could not enable dating",
+        description: error?.message || "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setJoinLoading(false);
+    }
+  };
 
 
   const handleSwipe = async (action: 'like' | 'pass') => {
@@ -54,7 +114,7 @@ export function DiscoveryScreenGlobal() {
 
       if (userEmail) {
         // ✅ CALL THE SECURE RPC INSTEAD OF .insert()
-        const { error } = await supabase.rpc('record_swipe', {
+        const { error } = await (supabase as any).rpc('record_swipe', {
           p_user_id: userEmail,
           p_target_user_id: profile.email,
           p_action: action
@@ -105,7 +165,7 @@ export function DiscoveryScreenGlobal() {
         url,
         order: index,
       })),
-      height: displayDetails.height || 'Not specified',
+      height: String(displayDetails.height || 'Not specified'),
       looking_for: profile.interested_in || 'Anyone',
       verified: profile.is_verified || false,
       lives_in: profile.hometown || '',
@@ -125,7 +185,17 @@ export function DiscoveryScreenGlobal() {
   };
 
   const toggleCollegeSelection = (college: string) => {
-    setSelectedColleges(prev => (prev.includes(college) ? [] : [college]));
+    if (!college || college.trim() === '') return;
+    
+    const trimmedCollege = college.trim();
+    setSelectedColleges(prev => {
+      // If this college is already selected, deselect it
+      if (prev.some(c => c.trim() === trimmedCollege)) {
+        return [];
+      }
+      // Otherwise, select only this college
+      return [trimmedCollege];
+    });
     setCurrentIndex(0);
     setShowCollegeFilter(false);
   };
@@ -149,12 +219,83 @@ export function DiscoveryScreenGlobal() {
     );
   }
 
+  if (!isDatingEnabled) {
+    return (
+      <div className="relative flex flex-col h-full bg-black text-white overflow-hidden">
+        <div className="w-full flex justify-end items-center px-4 py-2 z-50">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNavigateToDatingSettings}
+            className="h-8 px-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10"
+            title="Dating Settings"
+          >
+            <Settings className="h-3.5 w-3.5 mr-1.5 text-purple-400" />
+            <span className="text-[11px] font-medium text-white">Dating Settings</span>
+          </Button>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 text-center space-y-4">
+            <Sparkles className="h-8 w-8 text-pink-400 mx-auto" />
+            <h2 className="text-xl font-bold">Join Dating</h2>
+            <p className="text-sm text-gray-300">
+              Enable dating mode to access Global Discovery. You can still use Profile and Settings without joining.
+            </p>
+            <Button
+              onClick={handleJoinDating}
+              disabled={joinLoading}
+              className="w-full rounded-full bg-pink-600 hover:bg-pink-500 text-white"
+            >
+              {joinLoading ? "Joining..." : "Join Dating"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex flex-col h-full bg-black text-white overflow-hidden">
       <DailyLimitAlert isOpen={showLimitAlert} onClose={() => setShowLimitAlert(false)} />
 
       {/* Top Bar - Independent Filter Area */}
-      <div className="w-full flex justify-end items-center px-4 py-1.5 z-50">
+      <div className="w-full flex justify-between items-center px-4 py-1.5 z-50">
+        {/* Left Side Navigation Buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNavigateToLikes}
+            className="h-7 px-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+            title="Go to Likes"
+          >
+            <Heart className="h-3 w-3 mr-1.5 text-pink-400" />
+            <span className="text-[10px] font-medium tracking-tight text-white">Likes</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNavigateToChat}
+            className="h-7 px-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+            title="Go to Chat"
+          >
+            <MessageCircle className="h-3 w-3 mr-1.5 text-blue-400" />
+            <span className="text-[10px] font-medium tracking-tight text-white">Chat</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onNavigateToDatingSettings}
+            className="h-7 px-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
+            title="Dating Settings"
+          >
+            <Settings className="h-3 w-3 mr-1.5 text-purple-400" />
+            <span className="text-[10px] font-medium tracking-tight text-white">Dating Settings</span>
+          </Button>
+        </div>
+
+        {/* Right Side Filter Button */}
         <Button
           variant="ghost"
           size="sm"
@@ -190,19 +331,31 @@ export function DiscoveryScreenGlobal() {
                     : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
                 }`}
               >
-                All (Excl. Yours)
+                All Colleges
               </button>
+              {userCollege && (
+                <button
+                  onClick={() => toggleCollegeSelection(userCollege)}
+                  className={`px-3 py-1.5 rounded-full text-[11px] transition-all border ${
+                    selectedColleges.some(c => c.trim() === userCollege.trim())
+                      ? 'bg-green-600/80 text-white border-green-500/50'
+                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  {userCollege.trim()} (Yours)
+                </button>
+              )}
               {availableColleges.map((college) => (
                 <button
                   key={college}
                   onClick={() => toggleCollegeSelection(college)}
                   className={`px-3 py-1.5 rounded-full text-[11px] transition-all border ${
-                    selectedColleges.includes(college)
+                    selectedColleges.some(c => c.trim() === college.trim())
                       ? 'bg-pink-600/80 text-white border-pink-500/50'
                       : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
                   }`}
                 >
-                  {college}
+                  {college.trim()}
                 </button>
               ))}
             </div>

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, Sparkles, X, Filter } from "lucide-react";
+import { Heart, Sparkles, X, Filter, ArrowLeft } from "lucide-react";
 import { useLikes } from "@/hooks/useLikes";
 import { UserProfileDialog, Profile } from "../profile/UserProfileDialog";
 
@@ -111,12 +111,22 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
     <>
       <div className="h-full overflow-y-auto bg-black text-white [&::-webkit-scrollbar]:hidden">
         
-        {/* Minimal "Likes You" Header */}
-        {/* UPDATED: Increased pb-2 to pb-6 for more gap */}
-        <div className="px-4 pt-2 pb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold gradient-text-animated">Likes You</h1>
+        {/* Header with back button and title */}
+        <div className="sticky top-0 z-40 glass border-b border-white/10 p-4 mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNavigateToDiscovery}
+              className="h-10 w-10 rounded-full hover:bg-white/20 transition-all flex-shrink-0"
+              title="Back to Global"
+            >
+              <ArrowLeft className="h-5 w-5 text-white" />
+            </Button>
+            <h1 className="text-2xl font-bold gradient-text-animated">Likes You</h1>
+          </div>
           
-          <Badge className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-3 py-1 rounded-full">
+          <Badge className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border-pink-500/30 px-3 py-1 rounded-full flex-shrink-0">
             <Heart className="h-3.5 w-3.5 mr-1.5 animate-heartbeat" />
             {totalLikesCount}
           </Badge>
@@ -175,6 +185,16 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        </div>
+
+        <div className="sticky bottom-0 z-40 p-4 bg-gradient-to-t from-black to-transparent">
+          <Button
+            onClick={onNavigateToDiscovery}
+            className="w-full rounded-full bg-white/10 hover:bg-white/20 border border-white/20"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Global
+          </Button>
         </div>
       </div>
 

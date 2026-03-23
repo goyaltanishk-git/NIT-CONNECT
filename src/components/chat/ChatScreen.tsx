@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Send, Sparkles } from "lucide-react";
+import { Button as UIButton } from "@/components/ui/button";
+import { MessageCircle, Send, Sparkles, ArrowLeft } from "lucide-react";
 import { IndividualChat } from "./IndividualChat";
 import { useChat, ChatConversation } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
@@ -114,34 +115,43 @@ match_id: selectedConversation.match_id, //
             Start matching with people to begin conversations!
           </p>
         </div>
-        {/* Button removed from here */}
+        <UIButton
+          onClick={onNavigateToDiscovery}
+          className="mt-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Global
+        </UIButton>
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col bg-black text-white">
-       <div className="glass h-[12%] border-b border-white/10 sticky top-0 z-40 animate-slide-up
-       flex flex-column  items-center">
-        <div className="p-6"> 
-          <div className="flex items-center gap-4 animate-slide-in-left"> 
-            <div className="relative">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light">
-                <MessageCircle className="h-6 w-6 text-pink-500 animate-pulse" />
-              </div>
-              <div className="absolute inset-0 bg-pink-500/20 rounded-2xl animate-pulse-glow"></div>
+       <div className="glass border-b border-white/10 sticky top-0 z-40 p-4">
+          <div className="flex items-center gap-4">
+            <UIButton
+              variant="ghost"
+              size="icon"
+              onClick={onNavigateToDiscovery}
+              className="h-10 w-10 rounded-full hover:bg-white/20 transition-all flex-shrink-0"
+              title="Back to Global"
+            >
+              <ArrowLeft className="h-5 w-5 text-white" />
+            </UIButton>
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 glass-light flex-shrink-0">
+              <MessageCircle className="h-6 w-6 text-pink-500" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-xl font-bold gradient-text-animated">Messages</h1>
               <p className="text-sm text-gray-400">{conversations.length} conversations</p>
             </div>
-            <div className="flex space-x-1 ml-auto">
-              <Sparkles className="h-5 w-5 text-purple-400 animate-pulse stagger-1" />
-              <Sparkles className="h-3 w-3 text-pink-400 animate-pulse stagger-2" />
-              <Sparkles className="h-4 w-4 text-blue-400 animate-pulse stagger-3" />
+            <div className="flex space-x-1 flex-shrink-0">
+              <Sparkles className="h-5 w-5 text-purple-400 animate-pulse" />
+              <Sparkles className="h-3 w-3 text-pink-400 animate-pulse" />
+              <Sparkles className="h-4 w-4 text-blue-400 animate-pulse" />
             </div>
           </div>
-        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -208,6 +218,16 @@ match_id: selectedConversation.match_id, //
             </CardContent>
           </Card>
         ))}  
+      </div>
+
+      <div className="sticky bottom-0 z-40 p-4 bg-gradient-to-t from-black to-transparent">
+        <UIButton
+          onClick={onNavigateToDiscovery}
+          className="w-full rounded-full bg-white/10 hover:bg-white/20 border border-white/20"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Global
+        </UIButton>
       </div>
 
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">

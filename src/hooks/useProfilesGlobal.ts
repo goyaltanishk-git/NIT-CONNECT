@@ -29,7 +29,8 @@ export interface DatabaseProfile {
   last_active_at: string | null;
   created_at: string;
   updated_at: string;
-  college: string; 
+  college: string;
+  is_dating?: boolean | null;
 }
 
 export interface ExtendedProfile extends DatabaseProfile {
@@ -51,7 +52,7 @@ interface UseProfilesGlobalReturn {
 
 const PROFILES_PER_BATCH = 10;
 
-export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesGlobalReturn {
+export function useProfilesGlobal(selectedColleges: string[] = [], enabled: boolean = true): UseProfilesGlobalReturn {
   const [profiles, setProfiles] = useState<ExtendedProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,54 +61,79 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
   const [availableColleges, setAvailableColleges] = useState<string[]>([]);
   const { toast } = useToast();
 
-  // Helper to fetch list of available colleges
+  // Helper to fetch list of available colleges (including user's college)
   const fetchAvailableColleges = useCallback(async () => {
     try {
+      if (!enabled) {
+        setAvailableColleges([]);
+        return;
+      }
+
       const userd = encryptedStorage.get('current-user');
       if (!userd) return;
       const user = JSON.parse(userd);
 
-      // We still use a standard query here as it's just a list of colleges
-      // Race condition matters less for non-sensitive data, but RPC is safer if you want later
+      // Fetch all unique colleges
       const { data: colleges, error: collegesError } = await supabase
         .from("profiles")
         .select("college")
-        .neq("college", user.college)
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_verified", true)
+        .eq("is_dating", true);
 
       if (collegesError) throw collegesError;
 
       const uniqueColleges = [...new Set(colleges?.map(c => c.college) || [])];
-      setAvailableColleges(uniqueColleges.sort());
+      // Filter OUT the user's own college from the available list
+      const otherColleges = uniqueColleges.filter(c => c !== user.college).sort();
+      setAvailableColleges(otherColleges);
     } catch (err) {
-      
+      console.error('Failed to fetch colleges:', err);
     }
-  }, []);
+  }, [enabled]);
 
   const fetchProfilesWithExtendedData = async (currentOffset: number, append: boolean) => {
     try {
+      if (!enabled) {
+        setProfiles([]);
+        setHasMore(false);
+        return;
+      }
+
       const stored = encryptedStorage.get("current-user");
       if (!stored) return;
       const currentUser = JSON.parse(stored);
 
-      // ✅ Use RPC to fetch Global profiles atomically
-      const { data, error: fetchError } = await supabase.rpc('get_global_profiles', {
+      const cleanColleges = selectedColleges
+        .map((college) => college.trim())
+        .filter(Boolean);
+
+      const { data, error: fetchError } = await (supabase as any).rpc('get_global_profiles_v2', {
         p_email: currentUser.email,
         p_offset: currentOffset,
         p_limit: PROFILES_PER_BATCH,
-        p_selected_colleges: selectedColleges.length > 0 ? selectedColleges : null
+        p_selected_colleges: cleanColleges.length > 0 ? cleanColleges : null,
       });
-
       if (fetchError) throw fetchError;
 
-      const fetchedProfiles = (data as any[]) || [];
+      const fetchedProfiles = (Array.isArray(data) ? data : []) as ExtendedProfile[];
+
+      if (fetchedProfiles.length === 0) {
+        if (append) {
+          setProfiles((prev) => prev);
+        } else {
+          setProfiles([]);
+        }
+        setHasMore(false);
+        return;
+      }
 
       // Format data
-      const extendedProfiles: ExtendedProfile[] = fetchedProfiles.map(profile => ({
+      const extendedProfiles: ExtendedProfile[] = fetchedProfiles.map((profile: any) => ({
         ...profile,
-        photos: profile.photos.map((p: any) => ({ url: p.url, order: p.order })),
-        interests: profile.interests,
-        age: profile.age, // Age is now calculated in SQL
+        photos: Array.isArray(profile.photos) ? profile.photos : [],
+        interests: Array.isArray(profile.interests) ? profile.interests : [],
+        age: profile.age,
         name: profile.first_name
       }));
 
@@ -131,6 +157,15 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
   };
 
   const fetchProfiles = useCallback(async () => {
+    if (!enabled) {
+      setProfiles([]);
+      setLoading(false);
+      setError(null);
+      setOffset(0);
+      setHasMore(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setOffset(0);
@@ -140,7 +175,7 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
     } finally {
       setLoading(false);
     }
-  }, [selectedColleges]); // Re-fetch when college filter changes
+  }, [selectedColleges, enabled]); // Re-fetch when college filter changes
 
   const fetchNextBatch = useCallback(async () => {
     if (!hasMore || loading) return;
@@ -152,7 +187,7 @@ export function useProfilesGlobal(selectedColleges: string[] = []): UseProfilesG
     } finally {
       setLoading(false);
     }
-  }, [offset, hasMore, loading, selectedColleges]);
+  }, [offset, hasMore, loading, selectedColleges, enabled]);
 
   const refetch = useCallback(async () => {
     setOffset(0);

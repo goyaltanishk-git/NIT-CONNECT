@@ -170,6 +170,7 @@ export type Database = {
           instagram_handle: string | null
           interested_in: Database["public"]["Enums"]["gender_type"]
           is_active: boolean | null
+          is_dating: boolean | null
           is_verified: boolean | null
           last_active_at: string | null
           last_name: string
@@ -201,6 +202,7 @@ export type Database = {
           instagram_handle?: string | null
           interested_in?: Database["public"]["Enums"]["gender_type"]
           is_active?: boolean | null
+          is_dating?: boolean | null
           is_verified?: boolean | null
           last_active_at?: string | null
           last_name: string
@@ -232,6 +234,7 @@ export type Database = {
           instagram_handle?: string | null
           interested_in?: Database["public"]["Enums"]["gender_type"]
           is_active?: boolean | null
+          is_dating?: boolean | null
           is_verified?: boolean | null
           last_active_at?: string | null
           last_name?: string
