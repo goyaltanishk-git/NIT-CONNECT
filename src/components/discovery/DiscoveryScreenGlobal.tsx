@@ -70,7 +70,7 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
         parsed.is_dating = true;
         encryptedStorage.set("current-user", JSON.stringify(parsed));
       }
-
+ 
       // Force UI update
       setIsDatingEnabled(true);
       toast({
