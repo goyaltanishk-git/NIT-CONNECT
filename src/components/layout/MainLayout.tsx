@@ -135,9 +135,9 @@ export function MainLayout() {
        { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 p-2">
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
-              { tab: "discovery-global", icon: Globe, label: "Global", gradient: "from-blue-400 to-purple-500" },
-              { tab: "profile", icon: User, label: "Profile", gradient: "from-green-400 to-blue-500" },
-              { tab: "settings", icon: Settings, label: "Settings", gradient: "from-grey-400 to-grey-500" },
+              { tab: "discovery-global", icon: Globe, label: "Dating", gradient: "from-blue-400 to-purple-500" },
+              { tab: "profile", icon: User, label: "Account", gradient: "from-green-400 to-blue-500" },
+              ,
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
                 key={tab}
