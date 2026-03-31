@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, User, Settings, Sparkles, Zap, Trophy, Globe } from "lucide-react";
+import { Heart, MessageCircle, User, Settings, Sparkles, Zap, Trophy, Globe, BriefcaseBusiness } from "lucide-react";
 import { DiscoveryScreenIntegrated } from "@/components/discovery/DiscoveryScreenIntegrated";
 import { DiscoveryScreenGlobal } from "@/components/discovery/DiscoveryScreenGlobal";
+import { JobSearchScreen } from "@/components/jobs/JobSearchScreen";
 import { LikesScreenIntegrated } from "@/components/matches/LikesScreenIntegrated";
 import { ChatScreen } from "@/components/chat/ChatScreen";
 import { ProfileScreen } from "@/components/profile/ProfileScreen";
@@ -110,6 +111,10 @@ export function MainLayout() {
             />
           </TabsContent>
 
+          <TabsContent value="job-search" className="h-full animate-fade-in">
+            <JobSearchScreen onNavigateToSettings={() => setActiveTab("settings")} />
+          </TabsContent>
+
           <TabsContent value="likes" className="h-full animate-fade-in">
             <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery-global")} />
           </TabsContent>
@@ -136,8 +141,8 @@ export function MainLayout() {
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
               { tab: "discovery-global", icon: Globe, label: "Dating", gradient: "from-blue-400 to-purple-500" },
+              { tab: "job-search", icon: BriefcaseBusiness, label: "Jobs", gradient: "from-cyan-400 to-emerald-500" },
               { tab: "profile", icon: User, label: "Account", gradient: "from-green-400 to-blue-500" },
-              ,
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
                 key={tab}
