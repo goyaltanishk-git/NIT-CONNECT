@@ -13,7 +13,7 @@ import { LeaderboardScreen } from "@/components/leaderboard/LeaderboardScreen";
 import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
-
+import { CommunityScreen } from "../Community/CommunityScreen";
 
 type Profile = Tables<"profiles">;
 
@@ -118,6 +118,10 @@ export function MainLayout() {
             <ChatScreen onNavigateToDiscovery={() => setActiveTab("discovery-global")} setischatopen={setischatopen}/>
           </TabsContent>
 
+           <TabsContent value="discord" className="h-full animate-fade-in">
+            <CommunityScreen/>
+          </TabsContent>
+
           <TabsContent value="profile" className="h-full animate-fade-in">
             <ProfileScreen />
           </TabsContent>
@@ -137,6 +141,7 @@ export function MainLayout() {
             {[
               { tab: "discovery-global", icon: Globe, label: "Dating", gradient: "from-blue-400 to-purple-500" },
               { tab: "profile", icon: User, label: "Account", gradient: "from-green-400 to-blue-500" },
+                { tab: "discord", icon: User, label: "Discord", gradient: "from-green-400 to-blue-500" },
               ,
             ].map(({ tab, icon: Icon, label, gradient }, index) => (
               <Button
