@@ -118,9 +118,6 @@ export function MainLayout() {
             <ChatScreen onNavigateToDiscovery={() => setActiveTab("discovery-global")} setischatopen={setischatopen}/>
           </TabsContent>
 
-           <TabsContent value="discord" className="h-full animate-fade-in">
-            <CommunityScreen/>
-          </TabsContent>
 
           <TabsContent value="profile" className="h-full animate-fade-in">
             <ProfileScreen />
