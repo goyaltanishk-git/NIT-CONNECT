@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button as UIButton } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { AdminPanel } from "./AdminPanel";
 import {
   Users,
   Sparkles,
@@ -34,6 +36,8 @@ export function CommunityScreen({
   const [selectedCommunity, setSelectedCommunity] = useState<any | null>(null);
   const { user: currentUser } = useAuth();
   const [showCreate, setShowCreate] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const {
     exploreCommunities,
@@ -44,9 +48,12 @@ export function CommunityScreen({
     joiningCommunity,
     pendingRequests,
     fetchCommunityMessages,
+    
     joinCommunity,
+    pendingCreatedCommunities,
     sendCommunityMessage,
     clearCurrentCommunityChat,
+    setMyCommunities
   } = useCommunity(currentUser);
 
   useEffect(() => {
@@ -57,6 +64,20 @@ export function CommunityScreen({
       clearCurrentCommunityChat();
     };
   }, [selectedCommunity, fetchCommunityMessages, clearCurrentCommunityChat]);
+
+  useEffect(() => {
+  const checkAdmin = async () => {
+    if (!currentUser?.email) return;
+
+    const { data } = await supabase.rpc("is_job_admin", {
+      p_email: currentUser.email,
+    });
+
+    setIsAdmin(data === true);
+  };
+
+  checkAdmin();
+}, [currentUser]);
 
   const handleSendMessage = async (content: string) => {
     if (!selectedCommunity) return;
@@ -85,12 +106,15 @@ export function CommunityScreen({
         messages={communityMessages}
         currentUserEmail={currentUser.email}
         role={selectedCommunity.role}
+        
         onBack={() => {
           setSelectedCommunity(null);
           setiscommunityopen?.(false);
         }}
+        
         onSendMessage={handleSendMessage}
         messagesLoading={messagesLoading}
+        setMyCommunities={setMyCommunities}
       />
     );
   }
@@ -120,6 +144,7 @@ export function CommunityScreen({
   return (
     <div className="h-full flex flex-col bg-black text-white">
       {/* Header */}
+
       <div className="bg-black/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-40 p-4">
         <div className="flex items-center gap-4">
           <UIButton
@@ -149,6 +174,14 @@ export function CommunityScreen({
             <Sparkles className="h-3 w-3 text-pink-400 animate-pulse" />
             <Sparkles className="h-4 w-4 text-blue-400 animate-pulse" />
           </div>
+          {isAdmin && (
+  <UIButton
+    onClick={() => setShowAdminPanel(true)}
+    className="bg-red-600 text-white px-3 py-1 rounded-lg"
+  >
+    Admin
+  </UIButton>
+)}
         </div>
 
         {/* Tab Switcher */}
@@ -191,6 +224,8 @@ export function CommunityScreen({
         ) : (
           <MyCommunitiesTab
             myCommunities={myCommunities}
+            pendingCreatedCommunities={pendingCreatedCommunities}
+         
             onSelectCommunity={(community) => {
               setSelectedCommunity(community);
               setiscommunityopen?.(true);
@@ -208,7 +243,12 @@ export function CommunityScreen({
   <Plus className="h-6 w-6" />
 </UIButton>
       </div>
-
+{showAdminPanel && (
+  <AdminPanel
+    email={currentUser.email}
+    onClose={() => setShowAdminPanel(false)}
+  />
+)}
       {/* Background decorations */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
@@ -384,14 +424,18 @@ function ExploreTab({
 // ==========================================
 interface MyCommunitiesTabProps {
   myCommunities: MyCommunity[];
+  pendingCreatedCommunities:any[];
   onSelectCommunity: (community: any) => void;
 }
 
 function MyCommunitiesTab({
   myCommunities,
   onSelectCommunity,
+  pendingCreatedCommunities
+  
 }: MyCommunitiesTabProps) {
-  if (myCommunities.length === 0) {
+   
+  if (myCommunities.length === 0&&pendingCreatedCommunities.length===0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="relative mb-8 animate-fade-in">
@@ -410,9 +454,51 @@ function MyCommunitiesTab({
       </div>
     );
   }
-
+ console.log(pendingCreatedCommunities);
   return (
     <>
+      {pendingCreatedCommunities.length > 0 && (
+  <>
+    
+
+    {pendingCreatedCommunities.map((pc, index) => (
+      <Card
+        key={pc.id}
+        className="bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
+      >
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+
+            <Avatar className="h-16 w-16 ring-2 ring-blue-500/30">
+              {pc.image_url ? (
+                <AvatarImage src={pc.image_url} />
+              ) : (
+                <AvatarFallback>
+                  {pc.name[0]?.toUpperCase()}
+                </AvatarFallback>
+              )}
+            </Avatar>
+
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-white">
+                {pc.name}
+              </h3>
+
+              <p className="text-sm text-gray-400">
+                {pc.description || "No description"}
+              </p>
+
+              <p className="text-xs text-blue-400 mt-1">
+                Waiting for admin approval
+              </p>
+            </div>
+
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </>
+)}
       {myCommunities.map((mc, index) => (
         <Card
           key={mc.community_id}
@@ -471,6 +557,7 @@ function MyCommunitiesTab({
           </CardContent>
         </Card>
       ))}
+      
     </>
   );
 }

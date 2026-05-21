@@ -28,11 +28,14 @@ interface CommunityInfo {
 interface Props {
   community: CommunityInfo;
   messages: CommunityMessage[];
+
   currentUserEmail: string;
   role: string;
   onBack: () => void;
+   
   onSendMessage: (content: string) => void;
   messagesLoading: boolean;
+  setMyCommunities: any;
 }
 
 export function CommunityChat({
@@ -41,19 +44,24 @@ export function CommunityChat({
   currentUserEmail,
   role,
   onBack,
+ 
   onSendMessage,
   messagesLoading,
+  setMyCommunities
 }: Props) {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const isModerator = role === "moderator";
+
 
   const [showDetails, setShowDetails] = useState(false);
   const [showRequests, setShowRequests] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
   const [requestsCount, setRequestsCount] = useState(0);
+  console.log(community);
 
   // 🔥 FETCH REQUEST COUNT
   const fetchRequestCount = async () => {
@@ -74,13 +82,42 @@ export function CommunityChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+  
+
+  const handleLeaveCommunity = async () => {
+  setShowMenu(false); // 👈 close menu
+
+  const confirmLeave = confirm("Are you sure you want to leave this community?");
+  if (!confirmLeave) return;
+
+  const { data, error } = await supabase.rpc("leave_community", {
+    p_community_id: community.id,
+    p_email: currentUserEmail,
+  });
+
+console.log("LEAVE RESULT:", data, error);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  if (data === "LEFT") {
+   
+  onBack();
+    
+  
+  }
+};
+
+
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
     onSendMessage(newMessage);
     setNewMessage("");
   };
-
+console.log(messages);
   return (
     <div className="h-full flex flex-col bg-black text-white">
 
@@ -111,45 +148,92 @@ export function CommunityChat({
               <h2 className="font-bold">{community.name}</h2>
               <p className="text-xs text-gray-400 flex items-center gap-1">
                 <Users className="h-3 w-3" />
-                {community.member_count || 0}
+                
               </p>
             </div>
           </div>
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="flex items-center gap-3 relative">
+        {/* RIGHT SIDE */}
+<div className="flex items-center gap-3 relative">
+
+  {/* MODERATOR VIEW */}
+  {isModerator ? (
+    <div className="relative">
+      <ShieldCheck
+        className="cursor-pointer text-pink-400"
+        onClick={() => setShowRequests(true)}
+      />
+      {requestsCount > 0 && (
+        <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+      )}
+    </div>
+  ) : (
+    <>
+      {/* MEMBER VIEW (ONLY MENU) */}
+      <MoreVertical
+        className="cursor-pointer"
+        onClick={() => setShowMenu(prev => !prev)}
+      />
+
+      {showMenu && (
+        <div className="absolute right-0 top-8 bg-black border border-white/10 rounded-lg p-2 space-y-2">
           
-          {/* MODERATOR BUTTON */}
-          {isModerator && (
-            <div className="relative">
-              <ShieldCheck
-                className="cursor-pointer text-pink-400"
-                onClick={() => setShowRequests(true)}
-              />
-              {requestsCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
-              )}
-            </div>
-          )}
+     {!confirmLeave ? (
+  <button
+    className="block w-full text-left text-sm hover:text-red-400"
+    onClick={() => setConfirmLeave(true)}
+  >
+    Leave Community
+  </button>
+) : (
+  <div className="space-y-2">
+    <p className="text-xs text-gray-400">Are you sure?</p>
 
-          {/* MENU */}
-          <MoreVertical
-            className="cursor-pointer"
-            onClick={() => setShowMenu(prev => !prev)}
-          />
+    <div className="flex gap-2">
+      <button
+        className="text-red-400 text-sm"
+        onClick={async () => {
+          const { data } = await supabase.rpc("leave_community", {
+            p_community_id: community.id,
+            p_email: currentUserEmail,
+          });
 
-          {showMenu && (
-            <div className="absolute right-0 top-8 bg-black border border-white/10 rounded-lg p-2 space-y-2">
-              <button className="block w-full text-left text-sm hover:text-red-400">
-                Leave Community
-              </button>
-              <button className="block w-full text-left text-sm hover:text-yellow-400">
-                Report Community
-              </button>
-            </div>
-          )}
+          if (data === "LEFT") {
+
+            onBack(); 
+             setMyCommunities((prev: any[]) =>
+    prev.filter(c => c.community_id !== community.id)
+  );
+
+            // go back
+          }
+        }}
+      >
+        Yes
+      </button>
+
+      <button
+        className="text-gray-400 text-sm"
+        onClick={() => setConfirmLeave(false)}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
+
+          <button className="block w-full text-left text-sm hover:text-yellow-400">
+            Report Community
+          </button>
+
         </div>
+      )}
+    </>
+  )}
+
+</div>
       </div>
 
       {/* CHAT */}
@@ -186,7 +270,7 @@ export function CommunityChat({
                 >
                   {!isMe && (
                     <p className="text-xs mb-1 text-pink-400">
-                      {msg.sender_email.split("@")[0]}
+                      {msg.first_name}
                     </p>
                   )}
                   <p>{msg.content}</p>
