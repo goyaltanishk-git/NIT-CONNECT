@@ -315,7 +315,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               </ul> 
             </div>
             <button onClick={onBack} className="mt-12 w-full py-4 rounded-full border border-white/20 hover:bg-white/10 font-bold transition-colors">
-              Current Plan
+              Current Plan 
             </button>
           </div>
 
