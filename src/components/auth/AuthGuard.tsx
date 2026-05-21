@@ -6,6 +6,7 @@ import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from '@/integrations/supabase/client';
+import { setSentryUser, clearSentryUser } from "@/sentry";
 import { Sparkles } from "lucide-react";
 import Verify from "../verify/verfiy"; // Ensure this matches your exact file name
 
@@ -68,16 +69,20 @@ export function AuthGuard({ children }: AuthGuardProps) {
           setUserEmail(liveProfile.email);
           setProfile(liveProfile);
           setNeedsVerification(false);
-          setShowHeroScreen(false); 
+          setShowHeroScreen(false);
           setShowProfileSetup(false);
           isSetupMode.current = false;
-          
+
+          // Tag all future Sentry errors with this user
+          setSentryUser(liveProfile.email);
+
           // Background update
           AuthService.updateLastActive(liveProfile.email);
         }
       } else {
         // No local user found
         AuthService.clearCurrentUser();
+        clearSentryUser();
         setUserEmail(null);
       }
     } catch (error) {
