@@ -144,9 +144,9 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
             </div>
           </div>
 
-          {/* Price */}
+          {/* Price — TEMP ₹1 for testing, change to ₹199 for production */}
           <div className="text-center">
-            <span className="text-3xl font-bold text-white">₹199</span>
+            <span className="text-3xl font-bold text-white">₹1</span>
             <span className="text-gray-400 text-sm"> / month</span>
           </div>
 
