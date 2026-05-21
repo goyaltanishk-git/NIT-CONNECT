@@ -312,7 +312,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Join all public societies & clubs</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Access to the Job Board</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Basic E2E Encrypted Chat</li>
-              </ul>
+              </ul> 
             </div>
             <button onClick={onBack} className="mt-12 w-full py-4 rounded-full border border-white/20 hover:bg-white/10 font-bold transition-colors">
               Current Plan
