@@ -42,6 +42,7 @@ import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
 
 // Import sub-screens
 import { HelpScreen } from "@/components/profile/HelpScreen";
+import { AboutScreen } from "@/components/profile/AboutScreen";
 import { PrivacyScreen } from "@/components/profile/privacyandsafety/PrivacyScreen";
 import { ReportConcernScreen } from "@/components/profile/privacyandsafety/ReportConcernScreen";
 import { PrivacyPolicyScreen } from "@/components/profile/privacyandsafety/PrivacyPolicyScreen";
@@ -76,6 +77,7 @@ export function SettingsScreen({
   const navigate = useNavigate();
   const [showPrivacyHub, setShowPrivacyHub] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [showReportConcern, setShowReportConcern] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -183,6 +185,7 @@ export function SettingsScreen({
   };
 
   if (showHelp) return <HelpScreen onBack={() => setShowHelp(false)} />;
+  if (showAbout) return <AboutScreen onBack={() => setShowAbout(false)} />;
   if (showReportConcern)
     return (
       <ReportConcernScreen
@@ -345,6 +348,20 @@ export function SettingsScreen({
                   <p className="font-medium">Help & Support</p>
                   <p className="text-sm text-gray-400">
                     Get help and contact support
+                  </p>
+                </div>
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
+                onClick={() => setShowAbout(true)}
+              >
+                <Info className="h-5 w-5 mr-3 text-purple-400 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
+                  <p className="font-medium">About App</p>
+                  <p className="text-sm text-gray-400">
+                    Learn more about NIT Connect
                   </p>
                 </div>
               </Button>
