@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Camera, Heart, Shield, User, Edit, Ruler, Home, BookOpen, GitBranch, Sparkles } from "lucide-react";
+import { Settings, Camera, Heart, Shield, User, Edit, Ruler, Home, BookOpen, GitBranch, Sparkles, Crown } from "lucide-react";
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
 import { SettingsScreen } from "../settings/SettingsScreen";
 import { useState, useEffect, useCallback } from "react";
@@ -19,6 +19,8 @@ import { PrivacyPolicyScreen } from "./privacyandsafety/PrivacyPolicyScreen";
 import { TermsScreen } from "./privacyandsafety/TermsScreen";
 import { SafetyCenterScreen } from "./privacyandsafety/SafetyCenterScreen";
 import { MyProfileDialog, Profile as MyProfileType } from "./MyProfileDialog";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface UIProfile {
   name: string;
@@ -44,6 +46,9 @@ export function ProfileScreen() {
   const [showSafetyCenter, setShowSafetyCenter] = useState(false);
   
   const [showMyProfileDialog, setShowMyProfileDialog] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal]       = useState(false);
+
+  const { isPremium, refresh: refreshSubscription } = useSubscription(profile?.email);
 
   const [photos, setPhotos] = useState<UserPhoto[]>([]);
   const [photosLoading, setPhotosLoading] = useState(false);
@@ -335,26 +340,39 @@ export function ProfileScreen() {
         </div>
 
         {/* Buttons Section */}
-        {/* RESTORED: Max width 270px */}
-        <div className="flex flex-col items-center gap-0 w-full max-w-[270px] mx-auto">
-          {/* Top Row: Settings & Safety */}
-          <div className="flex justify-between w-full px-0.5">
-            <button 
-              onClick={() => setShowSettings(true)} 
+        <div className="flex flex-col items-center gap-3 w-full max-w-[270px] mx-auto">
+          {/* Row 1: Settings | Edit Profile (centre) | Safety */}
+          <div className="flex justify-between items-end w-full px-0.5">
+            <button
+              onClick={() => setShowSettings(true)}
               className="flex flex-col items-center space-y-1.5 group interactive"
             >
-              {/* RESTORED: Size h-[60px] w-[60px] */}
               <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
                 <Settings className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
               </div>
               <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">SETTINGS</span>
             </button>
 
-            <button 
-              onClick={() => setShowSafetyCenter(true)} 
+            {/* Edit Profile — centre, slightly larger */}
+            <EditProfileModal
+              profile={profileForModal}
+              onSave={handleSaveProfile}
+              photos={photos}
+              onPhotosUpdate={handlePhotosUpdate}
+              photosLoading={photosLoading}
+            >
+              <div className="flex flex-col items-center space-y-1.5 group interactive cursor-pointer">
+                <div className="h-[68px] w-[68px] rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-500/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
+                  <Edit className="h-7 w-7 text-white" />
+                </div>
+                <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">EDIT PROFILE</span>
+              </div>
+            </EditProfileModal>
+
+            <button
+              onClick={() => setShowSafetyCenter(true)}
               className="flex flex-col items-center space-y-1.5 group interactive"
             >
-              {/* RESTORED: Size h-[60px] w-[60px] */}
               <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
                 <Shield className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
               </div>
@@ -362,23 +380,20 @@ export function ProfileScreen() {
             </button>
           </div>
 
-          {/* Edit Profile Button */}
-          <EditProfileModal
-            profile={profileForModal}
-            onSave={handleSaveProfile}
-            photos={photos}
-            onPhotosUpdate={handlePhotosUpdate}
-            photosLoading={photosLoading}
+          {/* Row 2: Upgrade / Premium — full width pill below */}
+          <button
+            onClick={() => !isPremium && setShowUpgradeModal(true)}
+            className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-full border transition-all ${
+              isPremium
+                ? "bg-gradient-to-r from-yellow-500/80 to-amber-600/80 border-yellow-400/50 shadow-lg shadow-yellow-500/20 cursor-default"
+                : "glass-light border-white/10 hover:bg-white/10 active:scale-95"
+            }`}
           >
-            {/* RESTORED: -mt-14 margin */}
-            <div className="flex flex-col items-center space-y-1.5 group interactive cursor-pointer -mt-14">
-              {/* RESTORED: Size h-[60px] w-[60px] */}
-              <div className="h-[60px] w-[60px] rounded-full bg-gradient-to-br from-pink-500/80 to-purple-600/80 border border-pink-500/50 flex items-center justify-center shadow-lg group-hover:from-pink-500 group-hover:to-purple-600 transition-all scale-105 group-hover:scale-110">
-                <Edit className="h-7 w-7 text-white" />
-              </div>
-              <span className="text-[9px] font-medium text-gray-400 group-hover:text-white transition-colors">EDIT PROFILE</span>
-            </div>
-          </EditProfileModal>
+            <Crown className={`h-4 w-4 ${isPremium ? "text-white" : "text-gray-300 group-hover:text-yellow-400"}`} />
+            <span className={`text-[11px] font-semibold tracking-wide ${isPremium ? "text-white" : "text-gray-400"}`}>
+              {isPremium ? "PREMIUM ✓" : "UPGRADE TO PREMIUM"}
+            </span>
+          </button>
         </div>
 
         <Separator className="bg-white/10" />
@@ -414,6 +429,14 @@ export function ProfileScreen() {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
       
+      <UpgradeModal
+        open={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        userEmail={profile?.email || ""}
+        userName={profile?.first_name}
+        onSuccess={refreshSubscription}
+      />
+
       <MyProfileDialog
         profile={myProfileForDialog}
         isOpen={showMyProfileDialog}

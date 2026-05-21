@@ -20,6 +20,7 @@ import { CommunityChat } from "./CommunityChat";
 import { useCommunity, MyCommunity } from "@/hooks/useCommunity";
 import { useAuth } from "@/hooks/useAuth";
 import { CreateCommunityModal } from "./CreateCommunityModal";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 
 interface CommunityScreenProps {
   onNavigateBack?: () => void;
@@ -47,8 +48,9 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
     messagesLoading,
     joiningCommunity,
     pendingRequests,
+    showUpgradePrompt,
+    setShowUpgradePrompt,
     fetchCommunityMessages,
-    
     joinCommunity,
     pendingCreatedCommunities,
     sendCommunityMessage,
@@ -457,6 +459,13 @@ function MyCommunitiesTab({
  console.log(pendingCreatedCommunities);
   return (
     <>
+      <UpgradeModal
+        open={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        userEmail={currentUser?.email || ""}
+        userName={currentUser?.first_name}
+      />
+
       {pendingCreatedCommunities.length > 0 && (
   <>
     
