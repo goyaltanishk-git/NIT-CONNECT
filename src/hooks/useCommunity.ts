@@ -28,7 +28,8 @@ export interface CommunityMessage {
   content: string;
   created_at: string;
   sender_email: string;
-  first_name: string;
+  sender_name: string;
+
 }
 
 export function useCommunity(currentUser: any) {
@@ -37,6 +38,7 @@ export function useCommunity(currentUser: any) {
   const [communityMessages, setCommunityMessages] = useState<CommunityMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [pendingCreatedCommunities, setPendingCreatedCommunities] = useState<any[]>([]);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
   const [currentCommunityId, setCurrentCommunityId] = useState<string | null>(null);
@@ -65,6 +67,23 @@ export function useCommunity(currentUser: any) {
       setLoading(false);
     }
   }, [currentUser?.email]);
+
+  const fetchPendingCreatedCommunities = useCallback(async () => {
+  if (!currentUser?.email) return;
+
+  try {
+    const { data, error } = await supabase.rpc(
+      "get_pending_created_communities",
+      { p_email: currentUser.email }
+    );
+  
+    if (error) throw error;
+
+    setPendingCreatedCommunities(data || []);
+  } catch (err) {
+    console.error("Error fetching pending created communities:", err);
+  }
+}, [currentUser?.email]);
 const fetchPendingRequests = useCallback(async () => {
   if (!currentUser?.email) return;
 
@@ -162,7 +181,7 @@ const fetchPendingRequests = useCallback(async () => {
       content,
       sender_email: currentUser.email,
       created_at: new Date().toISOString(),
-      first_name: currentUser.first_name || currentUser.email.split('@')[0],
+      sender_name: currentUser.first_name || currentUser.email.split('@')[0],
     };
 
     setCommunityMessages(prev => [...prev, tempMessage]);
@@ -198,6 +217,7 @@ const fetchPendingRequests = useCallback(async () => {
     fetchExploreCommunities();
     fetchMyCommunities();
     fetchPendingRequests(); 
+    fetchPendingCreatedCommunities();
 
     const channel = supabase
       .channel('community_messages_realtime')
@@ -226,7 +246,7 @@ const fetchPendingRequests = useCallback(async () => {
                 content: newMsg.content,
                 created_at: newMsg.created_at,
                 sender_email: newMsg.sender_email,
-                first_name: newMsg.sender_email, // Will be updated on next fetch
+                sender_name: newMsg.sender_name, // Will be updated on next fetch
               }];
             });
           }
@@ -253,7 +273,9 @@ const fetchPendingRequests = useCallback(async () => {
     fetchMyCommunities,
     fetchCommunityMessages,
     joinCommunity,
+    pendingCreatedCommunities,
     sendCommunityMessage,
     clearCurrentCommunityChat,
+     setMyCommunities
   };
 }

@@ -18,6 +18,7 @@ export function CommunityDetailsModal({ community, onClose }: any) {
 
       if (error) throw error;
       if (!data) return;
+      console.log(data);
 
       const result = Array.isArray(data) ? data[0] : data;
       setMemberCount(result?.member_count || 0);

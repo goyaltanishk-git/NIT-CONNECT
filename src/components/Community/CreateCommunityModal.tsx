@@ -53,18 +53,47 @@ if (file) {
 }
 
     // 🔥 Create community
-    await supabase.rpc("create_community", {
-      p_name: name,
-      p_description: desc,
-      p_image_url: imageUrl,
-      p_join_type: joinType,
-      p_email: email,
-    });
+const { data, error } = await supabase.rpc("create_community", {
+  p_name: name,
+  p_description: desc,
+  p_image_url: imageUrl,
+  p_join_type: joinType,
+  p_email: email,
+});
 
-    setLoading(false);
-    onCreated();
-    onClose();
-  };
+setLoading(false);
+console.log(data);
+if (error) {
+  console.error(error);
+  alert("Something went wrong");
+  return;
+}
+
+// 🔥 Handle function responses
+if (data === "LIMIT_REACHED") {
+  alert("You can only create up to 2 communities");
+  return;
+}
+
+if (data === "NAME_EXISTS") {
+  alert("Community name already exists");
+  return;
+}
+
+if (data === "INVALID_NAME") {
+  alert("Invalid community name");
+  return;
+}
+
+if (data === "INVALID_JOIN_TYPE") {
+  alert("Invalid join type");
+  return;
+}
+
+if (data === "CREATED") {
+  onCreated();
+  onClose();
+}}
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">

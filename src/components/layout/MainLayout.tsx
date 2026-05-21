@@ -15,6 +15,7 @@ import { AuthService } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { CommunityScreen } from "../Community/CommunityScreen";
+import NewsScreen from "../news/Newscreen";
 
 type Profile = Tables<"profiles">;
 
@@ -97,6 +98,10 @@ export function MainLayout() {
 }
         {/* Main Content with enhanced smooth transitions */}
         <div className="flex-1 overflow-hidden relative bg-black ">
+           <TabsContent value="news" className="h-full animate-fade-in  ">
+             
+            <NewsScreen />
+          </TabsContent>
           <TabsContent value="discovery" className="h-full animate-fade-in  ">
              
             <DiscoveryScreenIntegrated />
@@ -135,12 +140,16 @@ export function MainLayout() {
           <TabsContent value="dating-settings" className="h-full animate-fade-in">
             <DatingSettingsScreen onBack={() => setActiveTab("discovery-global")} />
           </TabsContent>
+           <TabsContent value="discord" className="h-full animate-fade-in">
+            <CommunityScreen  />
+          </TabsContent>
         </div> 
 
         {/* Enhanced Bottom Navigation */}
        { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 p-2">
           <div className="flex justify-around items-center max-w-md mx-auto">
             {[
+              { tab: "news", icon: Globe, label: "News", gradient: "from-blue-400 to-purple-500" },
               { tab: "discovery-global", icon: Globe, label: "Dating", gradient: "from-blue-400 to-purple-500" },
               { tab: "job-search", icon: BriefcaseBusiness, label: "Jobs", gradient: "from-cyan-400 to-emerald-500" },
               { tab: "profile", icon: User, label: "Account", gradient: "from-green-400 to-blue-500" },
