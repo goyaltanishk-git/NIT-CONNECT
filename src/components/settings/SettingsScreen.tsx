@@ -368,7 +368,7 @@ export function SettingsScreen({
 
             
 
-              <Button
+<Button
                 variant="ghost"
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowSafetyCenter(true)}
