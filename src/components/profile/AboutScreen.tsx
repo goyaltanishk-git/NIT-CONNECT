@@ -1,4 +1,4 @@
-import { ArrowUpRight, Heart, Briefcase, ShieldCheck, CheckCircle2, Newspaper, MessageSquare } from "lucide-react";
+import { ArrowUpRight, Heart, Briefcase, ShieldCheck, CheckCircle2, Newspaper, MessageSquare, ChevronDown } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import LogoImage from "../../styles/nitlogo.png";
@@ -73,6 +73,27 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
         .bento-card:hover {
           transform: translateY(-6px);
         }
+
+        @keyframes scroll-bounce {
+          0%, 100% { transform: translateY(0); opacity: 0.15; }
+          50% { transform: translateY(10px); opacity: 0.6; }
+        }
+        @keyframes scroll-fade-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .scroll-indicator {
+          animation: scroll-fade-in 0.4s ease 0s both;
+        }
+        .scroll-indicator-chevron {
+          animation: scroll-bounce 2s ease-in-out infinite;
+        }
+        .scroll-indicator-chevron:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        .scroll-indicator-chevron:nth-child(3) {
+          animation-delay: 0.4s;
+        }
       `}</style>
 
       {/* NAVBAR */}
@@ -133,6 +154,14 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               </button>
             </motion.div>
           </motion.div>
+
+          {/* Scroll indicator */}
+          <div className="scroll-indicator absolute bottom-20 right-6 flex flex-col items-center gap-0.5 pointer-events-none select-none">
+            <span className="font-clash text-xs uppercase tracking-[0.3em] text-white/70 mb-2">Scroll</span>
+            <ChevronDown className="scroll-indicator-chevron w-8 h-8 text-white/110" strokeWidth={1.5} />
+            <ChevronDown className="scroll-indicator-chevron w-8 h-8 text-white/55 -mt-3" strokeWidth={1.5} />
+            <ChevronDown className="scroll-indicator-chevron w-8 h-8 text-white/30 -mt-3" strokeWidth={1.5} />
+          </div>
         </div>
 
         {/* BENTO GRID OF 4 FEATURES */}

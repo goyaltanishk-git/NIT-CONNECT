@@ -1,4 +1,4 @@
- // src/components/auth/AuthGuard.tsx
+// src/components/auth/AuthGuard.tsx
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
@@ -8,13 +8,15 @@ import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from '@/integrations/supabase/client';
 import { setSentryUser, clearSentryUser } from "@/sentry";
 import { Sparkles } from "lucide-react";
-import Verify from "../verify/verfiy"; // Ensure this matches your exact file name
+import Verify from "../verify/verfiy";
+import { AboutScreen } from "@/components/profile/AboutScreen";
 
 interface AuthGuardProps {  
   children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
+  const [showLanding, setShowLanding] = useState(() => !localStorage.getItem("landing_seen"));
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -153,6 +155,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
 
   // --- Strict Routing Render Logic ---
+
+  if (showLanding) {
+    return (
+      <AboutScreen
+        onBack={() => {
+          localStorage.setItem("landing_seen", "1");
+          setShowLanding(false);
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (

@@ -16,15 +16,15 @@ interface UpgradeModalProps {
 }
 
 declare global {
-  interface Window { Razorpay: any; }
+  interface Window { Cashfree: (config: { mode: string }) => any; }
 }
 
-function loadRazorpayScript(): Promise<boolean> {
+function loadCashfreeScript(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (document.getElementById("razorpay-script")) { resolve(true); return; }
+    if (document.getElementById("cashfree-script")) { resolve(true); return; }
     const s = document.createElement("script");
-    s.id      = "razorpay-script";
-    s.src     = "https://checkout.razorpay.com/v1/checkout.js";
+    s.id      = "cashfree-script";
+    s.src     = "https://sdk.cashfree.com/js/v3/cashfree.js";
     s.onload  = () => resolve(true);
     s.onerror = () => resolve(false);
     document.body.appendChild(s);
@@ -38,11 +38,11 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) throw new Error("Failed to load Razorpay checkout");
+      const scriptLoaded = await loadCashfreeScript();
+      if (!scriptLoaded) throw new Error("Failed to load Cashfree checkout");
 
       // 1. Create order via our Vercel backend
-      const orderRes = await fetch(`${BACKEND_URL}/api/create-razorpay-order`, {
+      const orderRes = await fetch(`${BACKEND_URL}/api/create-cashfree-order`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ user_email: userEmail }),
@@ -50,57 +50,39 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
 
       if (!orderRes.ok) throw new Error("Failed to create payment order");
       const orderData = await orderRes.json();
-      if (!orderData.order_id) throw new Error("Invalid order response");
+      if (!orderData.payment_session_id) throw new Error("Invalid order response");
 
-      // 2. Open Razorpay checkout
-      const options = {
-        key:         orderData.key_id,
-        amount:      orderData.amount,
-        currency:    orderData.currency,
-        name:        "NIT Connect Premium",
-        description: "1 Month Premium Access",
-        order_id:    orderData.order_id,
-        prefill:     { email: userEmail, name: userName || "" },
-        theme:       { color: "#ec4899" },
+      // 2. Open Cashfree checkout modal
+      const cashfree = window.Cashfree({ mode: "production" });
+      await cashfree.checkout({
+        paymentSessionId: orderData.payment_session_id,
+        redirectTarget:   "_modal",
+      });
 
-        handler: async (response: {
-          razorpay_order_id: string;
-          razorpay_payment_id: string;
-          razorpay_signature: string;
-        }) => {
-          try {
-            // 3. Verify payment via our Vercel backend
-            const verifyRes = await fetch(`${BACKEND_URL}/api/verify-razorpay-payment`, {
-              method:  "POST",
-              headers: { "Content-Type": "application/json" },
-              body:    JSON.stringify({
-                razorpay_order_id:   response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature:  response.razorpay_signature,
-                user_email:          userEmail,
-              }),
-            });
+      // 3. Verify with backend (backend calls Cashfree API — no client data trusted)
+      const verifyRes = await fetch(`${BACKEND_URL}/api/verify-cashfree-payment`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ order_id: orderData.order_id, user_email: userEmail }),
+      });
 
-            if (!verifyRes.ok) throw new Error("Payment verification failed");
-            const verifyData = await verifyRes.json();
-            if (!verifyData.success) throw new Error("Verification rejected by server");
+      const verifyData = await verifyRes.json();
 
-            toast({
-              title: "Welcome to Premium!",
-              description: "You now have unlimited swipes, 5 jobs/day, and 15 community joins.",
-            });
-            onSuccess?.();
-            onClose();
-          } catch (e: any) {
-            toast({ title: "Verification failed", description: e.message, variant: "destructive" });
-          }
-        },
+      // User closed modal without paying — silently reset
+      if (!verifyRes.ok && verifyData.error === "Payment not completed") {
+        setLoading(false);
+        return;
+      }
 
-        modal: { ondismiss: () => setLoading(false) },
-      };
+      if (!verifyRes.ok) throw new Error(verifyData.error || "Payment verification failed");
+      if (!verifyData.success) throw new Error("Verification rejected by server");
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      toast({
+        title: "Welcome to Premium!",
+        description: "You now have unlimited swipes, 5 jobs/day, and 15 community joins.",
+      });
+      onSuccess?.();
+      onClose();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
       setLoading(false);
@@ -163,7 +145,7 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
             )}
           </Button>
 
-          <p className="text-center text-xs text-gray-500">Secure payment via Razorpay · Auto-renew after 30 days</p>
+          <p className="text-center text-xs text-gray-500">Secure payment via Cashfree · Auto-renew after 30 days</p>
         </div>
       </DialogContent>
     </Dialog>

@@ -26,16 +26,14 @@ export function initSentry() {
       }),
     ],
 
-    // Don't send errors from ad blockers blocking Razorpay analytics
     ignoreErrors: [
       "ERR_BLOCKED_BY_CLIENT",
       "Non-Error promise rejection captured",
       "ResizeObserver loop limit exceeded",
     ],
 
-    // Don't send noise from Razorpay/third-party scripts
     denyUrls: [
-      /lumberjack\.razorpay\.com/,
+      /sdk\.cashfree\.com/,
       /browser\.sentry-cdn\.com/,
       /api\.sardine\.ai/,
       /extensions\//i,
