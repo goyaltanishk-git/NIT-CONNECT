@@ -13,9 +13,9 @@ CREATE POLICY "only active job_admins can insert jobs"
     OR current_setting('role', true) = 'service_role'
   );
 
--- Also protect jobs_admin_add_job RPC: wrap with an admin guard.
--- Call this after the existing function is defined so we can replace it.
--- If the function signature differs in your DB, adjust parameters accordingly.
+-- Drop first because PostgreSQL won't allow changing a function's return type in-place.
+DROP FUNCTION IF EXISTS jobs_admin_can_add CASCADE;
+
 CREATE OR REPLACE FUNCTION jobs_admin_can_add()
 RETURNS TABLE (can_add BOOLEAN)
 LANGUAGE plpgsql SECURITY DEFINER

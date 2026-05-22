@@ -9,51 +9,18 @@ import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// ─── BACKEND URL ──────────────────────────────────────────────────────────────
 const BACKEND_URL = "https://portfoliotrial-omega.vercel.app";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ⚠️  TEMPORARY TEST MODE — FOR RAZORPAY REVIEW ONLY
-//     All OTPs are hardcoded to "123456".
-//     razorpay@test.com is explicitly allowed past email validation.
-//     To restore production behaviour:
-//       1. Set TEMP_TEST_MODE = false
-//       2. Uncomment the PRODUCTION email validation block below
-//       3. The OTP will be sent via the real send-otp backend again
-// ─────────────────────────────────────────────────────────────────────────────
-const TEMP_TEST_MODE = true;
-const TEST_OTP       = "123456";
+const ALLOWED_DOMAINS = [
+  "nitkkr.ac.in",
+  "nith.ac.in",
+  "mnit.ac.in",
+  "nitjsr.ac.in",
+];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PRODUCTION — Allowed college email domains
-// ─────────────────────────────────────────────────────────────────────────────
-// const ALLOWED_DOMAINS = [
-//   "nitkkr.ac.in",
-//   "nith.ac.in",
-//   "mnit.ac.in",
-//   "nitjsr.ac.in",
-// ];
-// function isAllowedEmail(email: string): boolean {
-//   const domain = email.split("@")[1]?.toLowerCase();
-//   return !!domain && ALLOWED_DOMAINS.includes(domain);
-// }
-// ─────────────────────────────────────────────────────────────────────────────
-
-// TEMPORARY — allow NIT college domains + razorpay test account
 function isAllowedEmail(email: string): boolean {
-  const lower = email.toLowerCase().trim();
-
-  // Explicit test account for Razorpay review
-  if (lower === "razorpay@test.com") return true;
-
-  // Normal college domains
-  const domain = lower.split("@")[1];
-  return (
-    domain === "nitkkr.ac.in" ||
-    domain === "nith.ac.in"   ||
-    domain === "mnit.ac.in"   ||
-    domain === "nitjsr.ac.in"
-  );
+  const domain = email.toLowerCase().trim().split("@")[1];
+  return !!domain && ALLOWED_DOMAINS.includes(domain);
 }
 
 export function LoginScreen() {
@@ -82,26 +49,17 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      if (TEMP_TEST_MODE) {
-        // ── TEMPORARY: no backend call at all — OTP check is purely local ────
-        // No Supabase insert, no email sent. Just move to OTP step.
-        toast({ title: "OTP sent!", description: `Check your inbox at ${trimmed}` });
-        // ─────────────────────────────────────────────────────────────────────
-      } else {
-        // ── PRODUCTION: call the Vercel backend to email a real OTP ──────────
-        // const res = await fetch(`${BACKEND_URL}/api/send-otp`, {
-        //   method:  "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body:    JSON.stringify({ email: trimmed }),
-        // });
-        // const data = await res.json();
-        // if (!res.ok) {
-        //   throw new Error(data.message || "Failed to send OTP");
-        // }
-        // toast({ title: "OTP sent!", description: `Check your inbox at ${trimmed}` });
-        // ─────────────────────────────────────────────────────────────────────
+      const res = await fetch(`${BACKEND_URL}/api/send-otp`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to send OTP");
       }
 
+      toast({ title: "OTP sent!", description: `Check your inbox at ${trimmed}` });
       setEmail(trimmed);
       setStep("otp");
     } catch (err: any) {
@@ -120,20 +78,10 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      if (TEMP_TEST_MODE) {
-        // ── TEMPORARY: local check only — no Supabase RPC call ───────────────
-        if (otp.trim() !== TEST_OTP) {
-          throw new Error("Wrong OTP. Use 123456");
-        }
-        // ─────────────────────────────────────────────────────────────────────
-      } else {
-        // ── PRODUCTION: verify via Supabase RPC ──────────────────────────────
-        // const valid = await AuthService.verifyOtp(email, otp.trim());
-        // if (!valid) throw new Error("Invalid or expired OTP");
-        // ─────────────────────────────────────────────────────────────────────
-      }
+      const valid = await AuthService.verifyOtp(email, otp.trim());
+      if (!valid) throw new Error("Invalid or expired OTP");
 
-      // Sync session so RLS policies know who this is (needed for both modes)
+      // Sync session so RLS policies know who this is
       await syncAppSession(email);
 
       // Get or create the user profile

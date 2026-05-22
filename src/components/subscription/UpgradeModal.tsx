@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Crown, Heart, BriefcaseBusiness, Users, Check, Zap } from "lucide-react";
@@ -33,9 +33,12 @@ function loadCashfreeScript(): Promise<boolean> {
 
 export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: UpgradeModalProps) {
   const [loading, setLoading] = useState(false);
+  const isProcessingRef = useRef(false);
   const { toast } = useToast();
 
   const handleUpgrade = async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setLoading(true);
     try {
       const scriptLoaded = await loadCashfreeScript();
@@ -71,6 +74,7 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
       // User closed modal without paying — silently reset
       if (!verifyRes.ok && verifyData.error === "Payment not completed") {
         setLoading(false);
+        isProcessingRef.current = false;
         return;
       }
 
@@ -82,11 +86,13 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
         description: "You now have unlimited swipes, 5 jobs/day, and 15 community joins.",
       });
       setLoading(false);
+      isProcessingRef.current = false;
       onSuccess?.();
       onClose();
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
       setLoading(false);
+      isProcessingRef.current = false;
     }
   };
 
@@ -146,7 +152,7 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
             )}
           </Button>
 
-          <p className="text-center text-xs text-gray-500">Secure payment via Cashfree · Auto-renew after 30 days</p>
+          <p className="text-center text-xs text-gray-500">Secure payment via Cashfree · One-time payment · Refunds within 7 days via support</p>
         </div>
       </DialogContent>
     </Dialog>
