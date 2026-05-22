@@ -129,7 +129,7 @@ export function useJobsAdmin(userEmail?: string): UseJobsAdminReturn {
     } finally {
       setChecking(false);
     }
-  }, [ensureSession, isLocalAdmin, userEmail]);
+  }, [ensureSession, userEmail]);
 
   const refreshGroups = useCallback(async () => {
     setGroupsLoading(true);
