@@ -19,9 +19,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
  */
 export const syncAppSession = async (email: string | undefined) => {
   if (!email) return;
-  // This string 'set_app_session_user' MUST match the SQL function name exactly
-  const { error } = await supabase.rpc('set_app_session_user', { 
-    user_email: email.toLowerCase() 
+  const { error } = await supabase.rpc('set_app_session_user', {
+    user_email: email.toLowerCase()
   });
-
+  if (error) console.error('[syncAppSession] RPC failed — RLS may not apply correctly:', error.message);
 };

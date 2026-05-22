@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase, syncAppSession } from "@/integrations/supabase/client";
 
-const ALLOWED_ADMIN_EMAILS = new Set([
-  "123103106@nitkkr.ac.in",
-  "123103078@nitkkr.ac.in",
-]);
 
 export interface JobTargetGroupInput {
   branch: string;
@@ -55,16 +51,9 @@ export function useJobsAdmin(userEmail?: string): UseJobsAdminReturn {
   const [savedGroups, setSavedGroups] = useState<SavedBranchGroup[]>([]);
   const [groupsLoading, setGroupsLoading] = useState(true);
 
-  const isLocalAdmin = ALLOWED_ADMIN_EMAILS.has((userEmail || "").toLowerCase());
-
   const ensureSession = useCallback(async () => {
     if (!userEmail) throw new Error("Missing user session");
-
     await syncAppSession(userEmail);
-    const { error: sessionError } = await (supabase as any).rpc("set_app_session_user", {
-      user_email: userEmail.toLowerCase(),
-    });
-    if (sessionError) throw sessionError;
   }, [userEmail]);
 
   const fetchBranchCatalog = useCallback(async () => {
@@ -136,7 +125,7 @@ export function useJobsAdmin(userEmail?: string): UseJobsAdminReturn {
       const row = Array.isArray(data) ? data[0] : data;
       setCanAddJob(Boolean(row?.can_add));
     } catch {
-      setCanAddJob(isLocalAdmin);
+      setCanAddJob(false);
     } finally {
       setChecking(false);
     }

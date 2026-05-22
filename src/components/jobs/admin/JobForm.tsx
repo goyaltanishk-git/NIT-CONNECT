@@ -50,7 +50,12 @@ export function JobForm({
   const defaultExpiry = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().slice(0, 16); // format for datetime-local
+    return d.toISOString().slice(0, 16);
+  }, []);
+
+  const batchYears = useMemo(() => {
+    const y = new Date().getFullYear();
+    return Array.from({ length: 6 }, (_, i) => String(y + i));
   }, []);
 
   const [formData, setFormData] = useState<JobFormData>({
@@ -63,7 +68,7 @@ export function JobForm({
     application_url: "",
     tag_pills: "",
     expires_at: defaultExpiry,
-    target_batches: ["2027"], // Changed to array
+    target_batches: [],
     selected_manual_branches: [],
     selected_group_ids: [],
   });
@@ -181,7 +186,7 @@ export function JobForm({
             title: "", company_name: "", location_text: "",
             employment_type: "internship", work_mode: "onsite",
             stipend_salary_label: "", application_url: "", tag_pills: "",
-            expires_at: defaultExpiry, target_batches: ["2027"],
+            expires_at: defaultExpiry, target_batches: [],
             selected_manual_branches: [], selected_group_ids: []
          });
       }
@@ -306,7 +311,7 @@ export function JobForm({
           <div className="space-y-2">
             <Label className="text-zinc-300">Target Graduation Years <span className="text-pink-500">*</span></Label>
             <div className="flex flex-wrap gap-2 pt-1">
-              {["2025", "2026", "2027", "2028"].map(year => (
+              {batchYears.map(year => (
                 <button
                   key={year}
                   type="button"

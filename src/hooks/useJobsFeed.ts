@@ -59,32 +59,16 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
   const isSwipingRef = useRef(false);
   const ensureSession = useCallback(async () => {
     if (!userEmail) throw new Error("Missing user session");
-
-    try {
-      await syncAppSession(userEmail);
-      const { error: sessionError } = await (supabase as any).rpc("set_app_session_user", {
-        user_email: userEmail.toLowerCase(),
-      });
-      if (sessionError) throw sessionError;
-    } catch (err) {
-      console.warn("Session sync in progress or failed:", err);
-      // If it fails with SESSION_EMAIL_MISSING, we shouldn't throw to prevent loop, 
-      // but the RPC caller will catch the 400 later.
-    }
+    await syncAppSession(userEmail);
   }, [userEmail]);
 
-  const rpcCall = useCallback(async (name: string, payload: Record<string, any>) => {
-    // Check session before EVERY call
+  const rpcCall = useCallback(async (name: string, payload: Record<string, any>, retried = false) => {
     await ensureSession();
-    
     const { data, error: rpcError } = await (supabase as any).rpc(name, payload);
     if (rpcError) {
-      // If session expired while on another tab
-      if (rpcError.message === 'SESSION_EMAIL_MISSING') {
-         await ensureSession();
-         // Retry once
-         const { data: retryData, error: retryError } = await (supabase as any).rpc(name, payload);
-         if (!retryError) return retryData;
+      if (rpcError.message === "SESSION_EMAIL_MISSING" && !retried) {
+        await ensureSession();
+        return rpcCall(name, payload, true); // one retry, circuit-breaker via retried flag
       }
       console.error(`RPC ${name} payload:`, payload, "Error:", rpcError);
       throw rpcError;
@@ -112,7 +96,9 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
       return;
     }
 
-    if (!background) setLoading(true);
+    // Show spinner on foreground fetch, or background fetch when deck is already empty
+    const showSpinner = !background || jobs.length === 0;
+    if (showSpinner) setLoading(true);
     setError(null);
 
     try {
@@ -121,7 +107,7 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
     } catch (err: any) {
       setError(err?.message || "Failed to load jobs");
     } finally {
-      if (!background) setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }, [ensureSession, fetchFeed, fetchStatus, userEmail]);
 

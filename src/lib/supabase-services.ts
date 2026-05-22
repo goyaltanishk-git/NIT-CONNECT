@@ -58,11 +58,11 @@ export async function createProfile(data: ProfileInsert): Promise<ProfileRow> {
   return row
 }
 
-export async function updateProfile(user_id: string, updates: ProfileUpdate): Promise<ProfileRow> {
+export async function updateProfile(email: string, updates: ProfileUpdate): Promise<ProfileRow> {
   const { data: row, error } = await supabase
     .from('profiles')
     .update(updates)
-    .eq('user_id', user_id)
+    .eq('email', email)
     .select()
     .single()
   if (error) throw error
@@ -70,11 +70,11 @@ export async function updateProfile(user_id: string, updates: ProfileUpdate): Pr
 }
 
 /** Daily Limits **/
-export async function getDailyLimit(user_id: string, date: string): Promise<DailyLimitRow> {
+export async function getDailyLimit(email: string, date: string): Promise<DailyLimitRow> {
   const { data: row, error } = await supabase
     .from('daily_limits')
     .select()
-    .eq('user_id', user_id)
+    .eq('email', email)
     .eq('date', date)
     .single()
   if (error) throw error

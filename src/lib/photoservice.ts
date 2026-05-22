@@ -35,19 +35,41 @@ export class PhotoService {
     }
   }
 
+  private static compressImage(file: File, maxPx = 1080, quality = 0.82): Promise<File> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => resolve(new File([blob!], file.name.replace(/\.\w+$/, '.webp'), { type: 'image/webp' })),
+          'image/webp',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file); // fall back to original on error
+      img.src = url;
+    });
+  }
+
   static async uploadPhoto(file: File, userEmail: string): Promise<string> {
     try {
-      // Ensure handshake for upload connection
       await syncAppSession(userEmail);
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userEmail}/${uuidv4()}.${fileExt}`;
-      
+      const compressed = await PhotoService.compressImage(file);
+      const fileName = `${userEmail}/${uuidv4()}.webp`;
+
       const { data, error } = await supabase.storage
         .from('user-photos')
-        .upload(fileName, file, {
+        .upload(fileName, compressed, {
           cacheControl: '31536000',
-          upsert: false
+          contentType: 'image/webp',
+          upsert: false,
         });
 
       if (error) throw error;
@@ -73,21 +95,22 @@ export class PhotoService {
       .eq('photo_order', photoOrder)
       .single();
 
-    // 2. ✅ Delete the actual file from the storage bucket
+    // 2. Delete the actual file from storage — must succeed before touching DB
     if (photoData?.photo_url) {
       const filePath = photoData.photo_url.split('/user-photos/')[1]?.split('?')[0];
       if (filePath) {
-        await supabase.storage.from('user-photos').remove([filePath]);
+        const { error: storageErr } = await supabase.storage.from('user-photos').remove([filePath]);
+        if (storageErr) throw new Error(`Storage delete failed: ${storageErr.message}`);
       }
     }
 
-    // 3. Delete the database row
+    // 3. Delete the database row (only reached if storage delete succeeded)
     const { error } = await supabase
       .from('user_photos')
       .delete()
       .eq('user_email', userEmail)
       .eq('photo_order', photoOrder);
-      
+
     if (error) throw error;
   }
   static async setPrimaryPhoto(userEmail: string, photoOrder: number): Promise<void> {

@@ -81,6 +81,7 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
         title: "Welcome to Premium!",
         description: "You now have unlimited swipes, 5 jobs/day, and 15 community joins.",
       });
+      setLoading(false);
       onSuccess?.();
       onClose();
     } catch (e: any) {

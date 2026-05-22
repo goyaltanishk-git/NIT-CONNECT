@@ -146,6 +146,7 @@ export function SettingsScreen({
       if (!user?.email) throw new Error("Could not find user to delete.");
       const userEmail = user.email;
 
+      // 1. Delete profile photos from storage then DB
       const { data: photos, error: photosError } = await supabase
         .from("user_photos")
         .select("photo_url")
@@ -153,16 +154,23 @@ export function SettingsScreen({
       if (photosError) throw photosError;
 
       if (photos && photos.length > 0) {
-        const filePaths = photos.map(
-          (p) => new URL(p.photo_url).pathname.split("/user-photos/")[1]
-        );
-        const { error: storageError } = await supabase.storage
-          .from("user-photos")
-          .remove(filePaths);
-        if (storageError)
-          throw new Error(
-            `Failed to delete photos from storage: ${storageError.message}`
-          );
+        const filePaths = photos
+          .map((p) => {
+            try {
+              return decodeURIComponent(
+                new URL(p.photo_url).pathname.split("/user-photos/")[1] ?? ""
+              );
+            } catch { return ""; }
+          })
+          .filter(Boolean);
+
+        if (filePaths.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from("user-photos")
+            .remove(filePaths);
+          if (storageError)
+            throw new Error(`Failed to delete photos from storage: ${storageError.message}`);
+        }
       }
 
       const { error: dbPhotosError } = await supabase
@@ -172,6 +180,27 @@ export function SettingsScreen({
       if (dbPhotosError)
         throw new Error(`Failed to clear photo records: ${dbPhotosError.message}`);
 
+      // 2. Delete ID card from id-documents storage + verification record
+      const { data: verif } = await supabase
+        .from("student_verifications")
+        .select("id_card_url")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (verif?.id_card_url) {
+        try {
+          const idPath = decodeURIComponent(
+            new URL(verif.id_card_url).pathname.split("/id-documents/")[1] ?? ""
+          );
+          if (idPath) {
+            await supabase.storage.from("id-documents").remove([idPath]);
+          }
+        } catch { /* URL parse error — skip storage delete, still clear DB record */ }
+      }
+
+      await supabase.from("student_verifications").delete().eq("email", userEmail);
+
+      // 3. Clear interests
       const { error: interestsError } = await supabase
         .from("user_interests")
         .delete()

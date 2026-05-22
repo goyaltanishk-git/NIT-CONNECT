@@ -54,37 +54,30 @@ export class RealtimeService {
 
   /** Matches Realtime **/
   onMatchInsert(callback: (newRow: MatchRow) => void) {
-    // We 'await' the session before subscribing
-    this.ensureSession().then(() => {
-      return supabase
-        .channel('realtime-matches')
-        .on(
-          'postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'matches' }, 
-          payload => {
-           
+    this.ensureSession()
+      .then(() => {
+        return supabase
+          .channel('realtime-matches')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, payload => {
             callback(payload.new as MatchRow);
-          }
-        )
-        .subscribe();
-    });
+          })
+          .subscribe();
+      })
+      .catch(e => console.error('[RealtimeService] onMatchInsert failed:', e));
   }
 
   /** Messages Realtime **/
   onMessageInsert(callback: (newRow: MessageRow) => void) {
-    this.ensureSession().then(() => {
-      return supabase
-        .channel('realtime-messages')
-        .on(
-          'postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'messages' }, 
-          payload => {
-            
+    this.ensureSession()
+      .then(() => {
+        return supabase
+          .channel('realtime-messages')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
             callback(payload.new as MessageRow);
-          }
-        )
-        .subscribe();
-    });
+          })
+          .subscribe();
+      })
+      .catch(e => console.error('[RealtimeService] onMessageInsert failed:', e));
   }
 
   // ... You can apply the same .ensureSession().then(...) pattern 
@@ -126,11 +119,11 @@ export class SupabaseRealtime {
     return data
   }
 
-  async updateProfile(userId: string, updates: ProfileUpdate): Promise<ProfileRow> {
+  async updateProfile(email: string, updates: ProfileUpdate): Promise<ProfileRow> {
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
-      .eq('user_id', userId)
+      .eq('email', email)
       .select()
       .single()
     if (error) throw error
@@ -458,11 +451,11 @@ export class SupabaseRealtime {
     return data
   }
 
-  async updateDailyLimit(userId: string, updates: DailyLimitUpdate): Promise<DailyLimitRow> {
+  async updateDailyLimit(email: string, updates: DailyLimitUpdate): Promise<DailyLimitRow> {
     const { data, error } = await supabase
       .from('daily_limits')
       .update(updates)
-      .eq('user_id', userId)
+      .eq('email', email)
       .select()
       .single()
     if (error) throw error
