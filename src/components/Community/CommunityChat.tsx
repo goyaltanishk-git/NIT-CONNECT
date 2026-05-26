@@ -61,7 +61,6 @@ export function CommunityChat({
   const [showMenu, setShowMenu] = useState(false);
 
   const [requestsCount, setRequestsCount] = useState(0);
-  console.log(community);
 
   // 🔥 FETCH REQUEST COUNT
   const fetchRequestCount = async () => {
@@ -95,18 +94,16 @@ export function CommunityChat({
     p_email: currentUserEmail,
   });
 
-console.log("LEAVE RESULT:", data, error);
-
   if (error) {
-    console.error(error);
     return;
   }
 
   if (data === "LEFT") {
-   
-  onBack();
-    
-  
+    // BUG-084: state update before unmount
+    setMyCommunities((prev: any[]) =>
+      prev.filter((c: any) => c.community_id !== community.id)
+    );
+    onBack();
   }
 };
 
@@ -117,7 +114,6 @@ console.log("LEAVE RESULT:", data, error);
     onSendMessage(newMessage);
     setNewMessage("");
   };
-console.log(messages);
   return (
     <div className="h-full flex flex-col bg-black text-white">
 
@@ -201,13 +197,11 @@ console.log(messages);
           });
 
           if (data === "LEFT") {
-
-            onBack(); 
-             setMyCommunities((prev: any[]) =>
-    prev.filter(c => c.community_id !== community.id)
-  );
-
-            // go back
+            // BUG-084: update state BEFORE onBack() to avoid setState on unmounted component
+            setMyCommunities((prev: any[]) =>
+              prev.filter((c: any) => c.community_id !== community.id)
+            );
+            onBack();
           }
         }}
       >

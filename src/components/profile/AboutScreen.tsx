@@ -1,4 +1,4 @@
-import { ArrowUpRight, Heart, Briefcase, ShieldCheck, CheckCircle2, Newspaper, MessageSquare } from "lucide-react";
+import { ArrowUpRight, Heart, Briefcase, ShieldCheck, CheckCircle2, Newspaper, MessageSquare, ChevronDown } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import LogoImage from "../../styles/nitlogo.png";
@@ -73,6 +73,38 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
         .bento-card:hover {
           transform: translateY(-6px);
         }
+
+        @keyframes scroll-bounce {
+          0%, 100% { transform: translateY(0); opacity: 1; }
+          50% { transform: translateY(12px); opacity: 0.5; }
+        }
+        @keyframes scroll-fade-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scroll-glow-pulse {
+          0%, 100% { box-shadow: 0 0 12px 2px rgba(255,20,83,0.5), 0 0 30px 6px rgba(255,20,83,0.2); }
+          50% { box-shadow: 0 0 24px 6px rgba(255,20,83,0.9), 0 0 60px 16px rgba(255,20,83,0.4); }
+        }
+        @keyframes scroll-ripple {
+          0% { transform: scale(1); opacity: 0.7; }
+          100% { transform: scale(2.4); opacity: 0; }
+        }
+        .scroll-indicator {
+          animation: scroll-fade-in 1s ease 1.2s both;
+        }
+        .scroll-indicator-btn {
+          animation: scroll-glow-pulse 1.6s ease-in-out infinite;
+        }
+        .scroll-indicator-arrow {
+          animation: scroll-bounce 1s ease-in-out infinite;
+        }
+        .scroll-ripple {
+          animation: scroll-ripple 1.6s ease-out infinite;
+        }
+        .scroll-ripple-2 {
+          animation: scroll-ripple 1.6s ease-out infinite 0.5s;
+        }
       `}</style>
 
       {/* NAVBAR */}
@@ -133,6 +165,24 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               </button>
             </motion.div>
           </motion.div>
+
+          {/* Scroll indicator */}
+          <div className="scroll-indicator absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 select-none z-20">
+            <span className="font-clash text-xs uppercase tracking-[0.35em] text-white/60">Scroll to explore</span>
+            <div className="relative flex items-center justify-center">
+              {/* Ripple rings */}
+              <div className="scroll-ripple absolute w-12 h-12 rounded-full border border-[#ff1453]/60 pointer-events-none" />
+              <div className="scroll-ripple-2 absolute w-12 h-12 rounded-full border border-[#ff1453]/40 pointer-events-none" />
+              {/* Main glowing button */}
+              <button
+                onClick={() => scrollTo('features')}
+                className="scroll-indicator-btn relative w-12 h-12 rounded-full bg-[#ff1453] flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+                aria-label="Scroll down"
+              >
+                <ChevronDown className="scroll-indicator-arrow w-6 h-6 text-white" strokeWidth={2.5} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* BENTO GRID OF 4 FEATURES */}

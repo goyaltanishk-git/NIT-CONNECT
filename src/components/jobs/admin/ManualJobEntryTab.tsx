@@ -25,12 +25,10 @@ export function ManualJobEntryTab({ userEmail }: { userEmail?: string }) {
         )
       );
 
-      const targetBatchInt = parseInt(formData.target_batch.trim(), 10);
-      
-      const targetGroupsFormatted = uniqueBranches.map((branch) => ({
-        branch: branch,
-        graduation_batch: targetBatchInt,
-      }));
+      const targetGroupsFormatted = formData.target_batches.flatMap((batch) => {
+        const batchInt = parseInt(batch, 10);
+        return uniqueBranches.map((branch) => ({ branch, graduation_batch: batchInt }));
+      });
 
       const tagsFormatted = formData.tag_pills
         .split(",")

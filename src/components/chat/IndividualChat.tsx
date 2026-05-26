@@ -68,19 +68,23 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
   const { toast } = useToast();
   const [profileForDialog, setProfileForDialog] = useState<UserProfileType | null>(null);
 
+  // BUG-069: strip HTML tags from user-supplied strings before using in toast/UI
+  const sanitizeName = (name: string) =>
+    name.replace(/<[^>]*>/g, '').replace(/[<>"'&]/g, '').trim();
+
+  const safeUserName = sanitizeName(user.name);
+
   const handleOpenProfile = async () => {
     setProfileDialogOpen(true);
     setLoadingProfile(true);
 
     try {
-      // 1. Show basic info immediately (mapped correctly to Profile type)
       const basicProfile: any = {
         user_id: user.id,
         email: user.match_id,
         first_name: user.name.split(' ')[0],
         last_name: user.name.split(' ').slice(1).join(' '),
         full_name: user.name,
-        // Map string[] photos to the object structure UserProfileDialog expects
         photos: user.photos.map((url, i) => ({
           photo_id: `temp-${i}`,
           photo_url: url,
@@ -93,26 +97,23 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
         branch: user.branch,
         hometown: user.hometown,
         interests: [],
-        gender: 'male', // Defaults required by type
+        gender: 'male',
         interested_in: 'female',
         is_verified: false
       };
-      
+
       setProfileForDialog(basicProfile);
 
-      // 2. Fetch the REAL full data from DB
-      const { data, error } = await supabase.rpc('get_full_profile_details', { 
-        p_email: user.match_id 
+      const { data, error } = await supabase.rpc('get_full_profile_details', {
+        p_email: user.match_id
       });
 
       if (error) throw error;
 
       if (data) {
-        // ✅ FIX: Map the DB response to use 'photo_url' instead of 'url'
         const fetchedPhotos = (data as any).photos?.map((p: any, i: number) => ({
           photo_id: p.photo_id || `db-${i}`,
-          // The DB returns 'url', but UI needs 'photo_url'
-          photo_url: p.url || p.photo_url, 
+          photo_url: p.url || p.photo_url,
           photo_order: p.order ?? p.photo_order ?? i,
           is_primary: p.is_primary ?? (i === 0)
         }));
@@ -120,13 +121,13 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
         setProfileForDialog({
           ...basicProfile,
           ...data,
-          // Use the fixed photos, or fall back to basic ones
           photos: fetchedPhotos || basicProfile.photos,
           interests: (data as any).interests || []
         } as any);
       }
-    } catch (err) {
-      
+    } catch {
+      // BUG-071: inform user instead of silently failing
+      toast({ title: "Couldn't load profile", description: "Try again later.", variant: "destructive" });
     } finally {
       setLoadingProfile(false);
     }
@@ -165,7 +166,8 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
 
     toast({
       title: "Report submitted",
-      description: `You reported ${user.name} for "${finalReason}". We'll review their profile.`,
+      // BUG-069: use sanitized name to prevent XSS via user-supplied content
+      description: `You reported ${safeUserName} for "${finalReason}". We'll review their profile.`,
     });
  handleUnmatch();
     setIsReportDialogOpen(false);
@@ -207,7 +209,7 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
   } 
 />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
-                {user.name[0]}
+                {safeUserName[0]}
               </AvatarFallback>
             </Avatar>
             {user.isOnline && (
@@ -221,8 +223,7 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
   className="font-bold text-xl cursor-pointer hover:text-primary/80 transition-colors"
  onClick={handleOpenProfile}
 >
-  {/* Filter out string variants of null from user.name if they exist */}
-  {user.name.toLowerCase().includes("null") ? user.name.split(' ')[0] : user.name}
+  {safeUserName.toLowerCase().includes("null") ? safeUserName.split(' ')[0] : safeUserName}
 </h2>
             {/* ⛔️ Removed user.lastSeen and online status text */}
           </div>
@@ -260,7 +261,7 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
 <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
   <DialogContent className="sm:max-w-[400px]">
     <DialogHeader>
-      <DialogTitle>Report {user.name}</DialogTitle>
+      <DialogTitle>Report {safeUserName}</DialogTitle>
       <DialogDescription>
         Please select a reason for reporting this user. Our team will review the report and take appropriate action.
       </DialogDescription>
@@ -333,12 +334,11 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
           </Card>
         </div>
 
-        {/* Updated key to use index */}
         {messages.map((message) => {
   const isFromMe = message.sender === currentUser.email;
-  
-  // Create a unique key string based on your Primary Key (sender + reciever + created_at)
-  const compositeKey = `${message.sender}-${message.reciever}-${message.created_at}`;
+
+  // _clientId is present on unconfirmed temp messages — use it for a guaranteed-unique key
+  const compositeKey = message._clientId ?? `${message.sender}-${message.reciever}-${message.created_at}`;
 
   return (
     <div key={compositeKey}>
@@ -366,7 +366,7 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
           <Input
   value={newMessage}
   onChange={(e) => setNewMessage(e.target.value)}
-  placeholder={`Message ${user.name}...`}
+  placeholder={`Message ${safeUserName}...`}
   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
   // Update text-m to text-base (which is 16px)
   className="flex-1 bg-background border-border rounded-full px-4 h-10 text-base focus:ring-2 focus:ring-primary/20"
@@ -389,10 +389,10 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <UserX className="h-5 w-5 text-red-500" />
-              Unmatch with {user.name}?
+              Unmatch with {safeUserName}?
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>Are you sure you want to unmatch with {user.name}?</p>
+              <p>Are you sure you want to unmatch with {safeUserName}?</p>
               <p className="text-sm text-muted-foreground">
                 This action cannot be undone. Your conversation will be deleted and you won't be able to message each other anymore.
               </p>

@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Heart,Sparkles } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
+import * as Sentry from "@sentry/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +36,7 @@ import {
   Settings,
   EyeOff,
   Info,
+  Bug,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -88,12 +90,28 @@ export function SettingsScreen({
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [isIncognitoLoading, setIsIncognitoLoading] = useState(false);
-  const [showIncognitoDialog, setShowIncognitoDialog] = useState(false); 
+  const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
+  const [isSentryTesting, setIsSentryTesting] = useState(false);
   const { toast } = useToast();
 
   const handleLogout = () => {
     AuthService.clearCurrentUser();
     window.location.reload();
+  };
+
+  const handleSentryTest = async () => {
+    setIsSentryTesting(true);
+    try {
+      Sentry.captureException(
+        new Error("Test error from Settings - Sentry integration check")
+      );
+      toast({
+        title: "Test Error Sent",
+        description: "Check your Sentry dashboard to verify error tracking is working.",
+      });
+    } finally {
+      setIsSentryTesting(false);
+    }
   };
 
   const handleIncognitoToggle = async (enabled: boolean) => {
@@ -128,6 +146,7 @@ export function SettingsScreen({
       if (!user?.email) throw new Error("Could not find user to delete.");
       const userEmail = user.email;
 
+      // 1. Delete profile photos from storage then DB
       const { data: photos, error: photosError } = await supabase
         .from("user_photos")
         .select("photo_url")
@@ -135,16 +154,23 @@ export function SettingsScreen({
       if (photosError) throw photosError;
 
       if (photos && photos.length > 0) {
-        const filePaths = photos.map(
-          (p) => new URL(p.photo_url).pathname.split("/user-photos/")[1]
-        );
-        const { error: storageError } = await supabase.storage
-          .from("user-photos")
-          .remove(filePaths);
-        if (storageError)
-          throw new Error(
-            `Failed to delete photos from storage: ${storageError.message}`
-          );
+        const filePaths = photos
+          .map((p) => {
+            try {
+              return decodeURIComponent(
+                new URL(p.photo_url).pathname.split("/user-photos/")[1] ?? ""
+              );
+            } catch { return ""; }
+          })
+          .filter(Boolean);
+
+        if (filePaths.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from("user-photos")
+            .remove(filePaths);
+          if (storageError)
+            throw new Error(`Failed to delete photos from storage: ${storageError.message}`);
+        }
       }
 
       const { error: dbPhotosError } = await supabase
@@ -154,6 +180,27 @@ export function SettingsScreen({
       if (dbPhotosError)
         throw new Error(`Failed to clear photo records: ${dbPhotosError.message}`);
 
+      // 2. Delete ID card from id-documents storage + verification record
+      const { data: verif } = await supabase
+        .from("student_verifications")
+        .select("id_card_url")
+        .eq("email", userEmail)
+        .maybeSingle();
+
+      if (verif?.id_card_url) {
+        try {
+          const idPath = decodeURIComponent(
+            new URL(verif.id_card_url).pathname.split("/id-documents/")[1] ?? ""
+          );
+          if (idPath) {
+            await supabase.storage.from("id-documents").remove([idPath]);
+          }
+        } catch { /* URL parse error — skip storage delete, still clear DB record */ }
+      }
+
+      await supabase.from("student_verifications").delete().eq("email", userEmail);
+
+      // 3. Clear interests
       const { error: interestsError } = await supabase
         .from("user_interests")
         .delete()
@@ -368,7 +415,7 @@ export function SettingsScreen({
 
             
 
-              <Button
+<Button
                 variant="ghost"
                 className="w-full justify-start glass-light border border-white/10 hover:bg-white/10 text-white interactive rounded-xl p-4 h-auto"
                 onClick={() => setShowSafetyCenter(true)}
@@ -378,6 +425,21 @@ export function SettingsScreen({
                   <p className="font-medium">Safety Center</p>
                   <p className="text-sm text-gray-400">
                     Learn about safety features
+                  </p>
+                </div>
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start glass-light border border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-400 hover:text-yellow-300 interactive rounded-xl p-4 h-auto"
+                onClick={handleSentryTest}
+                disabled={isSentryTesting}
+              >
+                <Bug className="h-5 w-5 mr-3 flex-shrink-0" />
+                <div className="text-left whitespace-normal break-words">
+                  <p className="font-medium">Test Error Tracking</p>
+                  <p className="text-sm text-yellow-400/70">
+                    {isSentryTesting ? "Sending test error..." : "Verify Sentry integration"}
                   </p>
                 </div>
               </Button>

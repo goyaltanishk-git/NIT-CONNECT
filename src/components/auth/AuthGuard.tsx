@@ -1,4 +1,4 @@
- // src/components/auth/AuthGuard.tsx
+// src/components/auth/AuthGuard.tsx
 import { useEffect, useState, useCallback, useRef } from "react";
 import { AuthService, Profile } from "@/lib/auth";
 import { LoginScreen } from "./LoginScreen";
@@ -6,14 +6,17 @@ import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { syncAppSession } from '@/integrations/supabase/client';
+import { setSentryUser, clearSentryUser } from "@/sentry";
 import { Sparkles } from "lucide-react";
-import Verify from "../verify/verfiy"; // Ensure this matches your exact file name
+import Verify from "../verify/verfiy";
+import { AboutScreen } from "@/components/profile/AboutScreen";
 
 interface AuthGuardProps {  
   children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
+  const [showLanding, setShowLanding] = useState(() => !sessionStorage.getItem("landing_seen"));
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -68,16 +71,20 @@ export function AuthGuard({ children }: AuthGuardProps) {
           setUserEmail(liveProfile.email);
           setProfile(liveProfile);
           setNeedsVerification(false);
-          setShowHeroScreen(false); 
+          setShowHeroScreen(false);
           setShowProfileSetup(false);
           isSetupMode.current = false;
-          
+
+          // Tag all future Sentry errors with this user
+          setSentryUser(liveProfile.email);
+
           // Background update
           AuthService.updateLastActive(liveProfile.email);
         }
       } else {
         // No local user found
         AuthService.clearCurrentUser();
+        clearSentryUser();
         setUserEmail(null);
       }
     } catch (error) {
@@ -149,6 +156,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // --- Strict Routing Render Logic ---
 
+  if (showLanding) {
+    return (
+      <AboutScreen
+        onBack={() => {
+          sessionStorage.setItem("landing_seen", "1");
+          setShowLanding(false);
+        }}
+      />
+    );
+  }
+
   if (loading) {
     return (
      <div className="flex items-center justify-center h-full min-h-screen bg-black">
@@ -170,8 +188,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   // 0. Not Logged In
-  // if (!userEmail) return <LoginScreen onLoginSuccess={initializeAuth} />;
-  if (!userEmail) return <LoginScreen  />;
+  if (!userEmail) return <LoginScreen />;
 
   // 1. Unverified -> Send to ID Upload Component
   if (needsVerification) return <Verify userEmail={userEmail} onComplete={handleVerifyComplete} />;

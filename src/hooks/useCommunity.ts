@@ -42,6 +42,7 @@ export function useCommunity(currentUser: any) {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
   const [currentCommunityId, setCurrentCommunityId] = useState<string | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // Track pending join requests locally
   const [pendingRequests, setPendingRequests] = useState<Set<string>>(new Set());
@@ -141,7 +142,7 @@ const fetchPendingRequests = useCallback(async () => {
         toast({ title: "Request Sent", description: "Your join request has been sent to the moderator." });
         setPendingRequests(prev => new Set(prev).add(communityId));
       } else if (result === 'LIMIT_REACHED') {
-        toast({ title: "Limit Reached", description: "You can join a maximum of 5 communities.", variant: "destructive" });
+        setShowUpgradePrompt(true);
       }
 
       return result;
@@ -269,6 +270,8 @@ const fetchPendingRequests = useCallback(async () => {
     joiningCommunity,
     pendingRequests,
     currentCommunityId,
+    showUpgradePrompt,
+    setShowUpgradePrompt,
     fetchExploreCommunities,
     fetchMyCommunities,
     fetchCommunityMessages,
@@ -276,6 +279,6 @@ const fetchPendingRequests = useCallback(async () => {
     pendingCreatedCommunities,
     sendCommunityMessage,
     clearCurrentCommunityChat,
-     setMyCommunities
+    setMyCommunities
   };
 }
