@@ -186,7 +186,38 @@ const [isSaving, setIsSaving] = useState(false);
 
 // @/components/profile/EditProfileModal.tsx
 
-const handleSave = async () => {
+  const getMinDate = () => {
+    const today = new Date();
+    const minDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+    return minDate.toISOString().split('T')[0];
+  };
+
+  const handleSave = async () => {
+    if (formData.date_of_birth) {
+      const birthDate = new Date(formData.date_of_birth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const isUnder16 = age < 16 || 
+                        (age === 16 && monthDiff < 0) || 
+                        (age === 16 && monthDiff === 0 && today.getDate() < birthDate.getDate());
+      if (isUnder16) {
+        toast({
+          title: "Validation Failed",
+          description: "You must be at least 16 years old.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      toast({
+        title: "Validation Failed",
+        description: "Date of birth is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true); // ✅ 1. START LOADING
     try {
      
@@ -399,6 +430,7 @@ const handleSave = async () => {
               id="date_of_birth"
               type="date"
               value={formData.date_of_birth || ""}
+              max={getMinDate()}
               onChange={(e) => setFormData(prev => ({ ...prev, date_of_birth: e.target.value }))}
             />
           </div>

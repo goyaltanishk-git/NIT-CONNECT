@@ -202,11 +202,36 @@ export class AuthService {
   }
 
   static clearCurrentUser(): void {
+    // 1. Clear raw localStorage keys
     localStorage.removeItem('current-user');
     localStorage.removeItem('active-session');
-    // ✅ SAFE REMOVE CHECK
-    if (typeof encryptedStorage.remove === 'function') {
-      encryptedStorage.remove('current-user');
+    localStorage.removeItem('temp-user');
+    localStorage.removeItem('lastResetDate');
+
+    // 2. Safe clear of encrypted storage keys
+    if (encryptedStorage) {
+      if (typeof encryptedStorage.remove === 'function') {
+        encryptedStorage.remove('current-user');
+        encryptedStorage.remove('active-session');
+        encryptedStorage.remove('temp-user');
+      }
+    }
+
+    // 3. Clear all sessionStorage to prevent any lingering session data
+    try {
+      sessionStorage.clear();
+    } catch (e) {
+      console.error("sessionStorage clear failed", e);
+    }
+
+    // 4. Reset Postgres app session and sign out of Supabase Auth
+    try {
+      supabase.rpc('set_app_session_user', { user_email: '' }).catch(err => {
+        console.error('[clearCurrentUser] RPC set_app_session_user failed:', err);
+      });
+      supabase.auth.signOut().catch(() => {});
+    } catch (err) {
+      console.error("Supabase signout failed", err);
     }
   }
 }

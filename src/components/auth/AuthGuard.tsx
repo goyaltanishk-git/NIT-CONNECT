@@ -5,11 +5,12 @@ import { LoginScreen } from "./LoginScreen";
 import { ProfileSetupForm } from "@/components/profile/ProfileSetupform";
 import { Component as HeroFuturistic } from "@/components/ui/hero-futuristic";
 import { encryptedStorage } from "@/utils/encryptedStorage";
-import { syncAppSession } from '@/integrations/supabase/client';
+import { supabase, syncAppSession } from '@/integrations/supabase/client';
 import { setSentryUser, clearSentryUser } from "@/sentry";
 import { Sparkles } from "lucide-react";
 import Verify from "../verify/verfiy";
 import { AboutScreen } from "@/components/profile/AboutScreen";
+import { ConsentScreen } from "./ConsentScreen";
 
 interface AuthGuardProps {  
   children: React.ReactNode;
@@ -25,6 +26,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [showHeroScreen, setShowHeroScreen] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [pendingProfile, setPendingProfile] = useState<Profile | null>(null);
   
   const isSetupMode = useRef(false);
 
@@ -67,19 +70,30 @@ export function AuthGuard({ children }: AuthGuardProps) {
           }));
         } 
         else {
-          // CONDITION C: Active User -> Go to Main App
-          setUserEmail(liveProfile.email);
-          setProfile(liveProfile);
-          setNeedsVerification(false);
-          setShowHeroScreen(false);
-          setShowProfileSetup(false);
-          isSetupMode.current = false;
+          // CONDITION C: Active User -> Go to Main App (Check pending consent first)
+          if (localStorage.getItem(`pending-consent-${liveProfile.email}`) === "true") {
+            setUserEmail(liveProfile.email);
+            setProfile(liveProfile);
+            setNeedsVerification(false);
+            setShowHeroScreen(false);
+            setShowProfileSetup(false);
+            setShowConsent(true);
+            isSetupMode.current = true;
+          } else {
+            setUserEmail(liveProfile.email);
+            setProfile(liveProfile);
+            setNeedsVerification(false);
+            setShowHeroScreen(false);
+            setShowProfileSetup(false);
+            setShowConsent(false);
+            isSetupMode.current = false;
 
-          // Tag all future Sentry errors with this user
-          setSentryUser(liveProfile.email);
+            // Tag all future Sentry errors with this user
+            setSentryUser(liveProfile.email);
 
-          // Background update
-          AuthService.updateLastActive(liveProfile.email);
+            // Background update
+            AuthService.updateLastActive(liveProfile.email);
+          }
         }
       } else {
         // No local user found
@@ -98,29 +112,68 @@ export function AuthGuard({ children }: AuthGuardProps) {
     initializeAuth();
   }, [initializeAuth]);
 
-  // Sync Interval for Soft-Deletes
+  // Realtime subscription and Sync Interval with error handling and circuit breaker
   useEffect(() => {
-    if (!userEmail || needsVerification) return; // Skip if they are currently verifying
+    if (!userEmail || needsVerification) return;
 
+    // 1. Realtime subscription for immediate deactivation detection (0s lag)
+    const channel = supabase
+      .channel(`profile-deactivation-${userEmail}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `email=eq.${userEmail}`,
+        },
+        (payload) => {
+          const updated = payload.new as Profile;
+          if (updated && updated.is_active === false) {
+            console.log("Realtime deactivation detected. Logging out.");
+            AuthService.clearCurrentUser();
+            setUserEmail(null);
+            window.location.reload();
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Slower Polling sync interval (conserve quota) with circuit breaker
+    let consecutiveFailures = 0;
     const syncInterval = setInterval(async () => {
-      if (loading) return; 
+      if (loading) return;
 
-      const liveStatus = await AuthService.checkUserExists(userEmail);
-      
-      if (!liveStatus) return;   
- 
-      if (liveStatus.is_active === false) {
-         if (showHeroScreen || showProfileSetup || isSetupMode.current) {
-             return; 
-         }
-         console.log("Remote deactivation detected. Logging out.");
-         AuthService.clearCurrentUser();
-         setUserEmail(null);
+      try {
+        const liveStatus = await AuthService.checkUserExists(userEmail);
+        consecutiveFailures = 0; // Reset on success
+
+        if (!liveStatus) return;
+
+        if (liveStatus.is_active === false) {
+          if (showHeroScreen || showProfileSetup || showConsent || isSetupMode.current) {
+            return;
+          }
+          console.log("Remote deactivation detected via polling. Logging out.");
+          AuthService.clearCurrentUser();
+          setUserEmail(null);
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Error checking active status in sync interval:", error);
+        consecutiveFailures++;
+        if (consecutiveFailures >= 3) {
+          console.warn("Circuit breaker triggered: stopping sync interval polling after 3 consecutive failures.");
+          clearInterval(syncInterval);
+        }
       }
-    }, 5000); 
+    }, 60000); // 60 seconds interval
 
-    return () => clearInterval(syncInterval);
-  }, [userEmail, showHeroScreen, showProfileSetup, loading, needsVerification]);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(syncInterval);
+    };
+  }, [userEmail, showHeroScreen, showProfileSetup, showConsent, loading, needsVerification]);
 
 
   // --- Event Handlers ---
@@ -137,17 +190,33 @@ export function AuthGuard({ children }: AuthGuardProps) {
   };
 
   const handleProfileSetupComplete = (updatedProfile: Profile) => {
-    // 1. Update State
-    setProfile(updatedProfile);
+    // 1. Mark in localStorage that this user has pending consent
+    localStorage.setItem(`pending-consent-${updatedProfile.email}`, "true");
+    
+    // 2. Set states to show ConsentScreen
+    setPendingProfile(updatedProfile);
     setShowProfileSetup(false);
-    
-    // 2. Release the 'Setup Mode' lock
-    isSetupMode.current = false; 
+    setShowConsent(true);
+  };
 
-    // 3. Persist to Storage
-    encryptedStorage.set("current-user", JSON.stringify(updatedProfile));
+  const handleConsentComplete = () => {
+    if (pendingProfile) {
+      // 1. Remove pending consent marker
+      localStorage.removeItem(`pending-consent-${pendingProfile.email}`);
+      
+      // 2. Complete setup and save user
+      setProfile(pendingProfile);
+      encryptedStorage.set("current-user", JSON.stringify(pendingProfile));
+      
+      // Tag all future Sentry errors with this user
+      setSentryUser(pendingProfile.email);
+      AuthService.updateLastActive(pendingProfile.email);
+    }
     
-    // 4. Clear active session marker
+    setShowConsent(false);
+    isSetupMode.current = false;
+    setPendingProfile(null);
+
     if (typeof encryptedStorage.remove === 'function') {
         encryptedStorage.remove('active-session');
     }
@@ -198,6 +267,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
   
   // 3. Hero Done -> Profile Setup
   if (showProfileSetup && userEmail) return <ProfileSetupForm userEmail={userEmail} onComplete={handleProfileSetupComplete} initialProfile={profile} />;
+
+  // 3b. Profile Setup Done -> Show Consent (Terms & Privacy Policy)
+  if (showConsent && userEmail) return <ConsentScreen userEmail={userEmail} onComplete={handleConsentComplete} />;
 
   // 4. Fully Active & Setup -> Enter App
   return <>{children}</>;
