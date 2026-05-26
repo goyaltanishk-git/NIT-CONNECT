@@ -111,10 +111,14 @@ export function useSwipeGestures({
       onTouchMove: handleTouchMove,
       onTouchEnd: handleTouchEnd,
     },
-    style: {
-      transform: getTransform(),
-      opacity: getOpacity(),
-      transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    }
+   style: {
+  transform: getTransform(),
+  opacity: getOpacity(),
+  transition: isDragging
+    ? 'none'
+    : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+
+  touchAction: 'pan-y',
+}
   };
 }

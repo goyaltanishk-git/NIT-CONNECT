@@ -47,7 +47,7 @@ export function LikesScreenIntegrated({ onNavigateToDiscovery }: { onNavigateToD
   const handleDialogLikeBack = (profileId: string) => {
     const like = pendingLikes.find(l => l.profile?.user_id === profileId);
     if (like) {
-      handleLikeBackClick(like.target_user_id, like.user_id);
+      handleLikeBackClick(like.target_user_id);
       setIsDialogOpen(false);
       setSelectedProfile(null);
     }

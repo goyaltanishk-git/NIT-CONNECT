@@ -36,7 +36,7 @@ export function CommunityScreen({
   const [activeTab, setActiveTab] = useState<TabType>("explore");
   const [selectedCommunity, setSelectedCommunity] = useState<any | null>(null);
   const { user: currentUser } = useAuth();
-  const [showCreate, setShowCreate] = useState(false);
+  const [ShowCreate, setShowCreate] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 const [showAdminPanel, setShowAdminPanel] = useState(false);
 
@@ -245,7 +245,7 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
   <Plus className="h-6 w-6" />
 </UIButton>
       </div>
-{showAdminPanel && (
+{showAdminPanel && currentUser&&(
   <AdminPanel
     email={currentUser.email}
     onClose={() => setShowAdminPanel(false)}
@@ -275,7 +275,7 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
           />
         ))}
       </div>
-      {showCreate && (
+      {ShowCreate && (
   <CreateCommunityModal
     onClose={() => setShowCreate(false)}
     onCreated={() => {

@@ -32,18 +32,11 @@ export function useUserProfile() {
       }
 
       // ✅ FALLBACK: For manually inserted users with no local storage
-      if (!userEmail) {
-        const { data: recent } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('is_active', false)
-          .order('last_active_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (recent) userEmail = recent.email;
-      }
-
+    if (!userEmail) {
+  setProfile(null);
+  setLoading(false);
+  return;
+}
       if (!userEmail) {
         setLoading(false);
         return;
