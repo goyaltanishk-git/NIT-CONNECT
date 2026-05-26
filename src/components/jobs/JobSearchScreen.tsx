@@ -186,7 +186,9 @@ export function JobSearchScreen(_props: JobSearchScreenProps) {
           <div>
             <p className="text-sm font-semibold">Job Search</p>
             <p className="text-xs text-zinc-400">
-              {status ? `${Math.max(0, 2 - status.interacted_count)} interactions left today` : "Daily limit: 2"}
+              {status
+                ? `${Math.max(0, status.remaining_to_interact)} interaction${Math.max(0, status.remaining_to_interact) === 1 ? "" : "s"} left today`
+                : "Daily limit: --"}
             </p>
           </div>
         </div>
@@ -230,7 +232,9 @@ export function JobSearchScreen(_props: JobSearchScreenProps) {
           <div className="text-center space-y-4 px-6 mt-20 animate-fade-in">
             <Sparkles className="h-10 w-10 text-amber-400/70 mx-auto" />
             <h2 className="text-lg font-bold">Daily limit reached</h2>
-            <p className="text-zinc-400 text-xs">You already interacted with 2 jobs today. Feed unlocks at midnight IST.</p>
+            <p className="text-zinc-400 text-xs">
+              You already interacted with {status?.daily_limit ?? 2} job{(status?.daily_limit ?? 2) === 1 ? "" : "s"} today. Feed unlocks at midnight IST.
+            </p>
           </div>
         ) : !activeJob ? (
           <div className="text-center space-y-4 px-6 mt-20 animate-fade-in">

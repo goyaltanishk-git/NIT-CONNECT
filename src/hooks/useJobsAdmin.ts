@@ -118,12 +118,25 @@ export function useJobsAdmin(userEmail?: string): UseJobsAdminReturn {
 
     setChecking(true);
     try {
-      await ensureSession();
-      const { data, error } = await (supabase as any).rpc("jobs_admin_can_add");
-      if (error) throw error;
+      let canAddFromJobsAdminRpc = false;
 
-      const row = Array.isArray(data) ? data[0] : data;
-      setCanAddJob(Boolean(row?.can_add));
+      try {
+        await ensureSession();
+        const { data, error } = await (supabase as any).rpc("jobs_admin_can_add");
+        if (error) throw error;
+
+        const row = Array.isArray(data) ? data[0] : data;
+        canAddFromJobsAdminRpc = Boolean(row?.can_add);
+      } catch {
+        canAddFromJobsAdminRpc = false;
+      }
+
+      const { data: isJobAdminData } = await (supabase as any).rpc("is_job_admin", {
+        p_email: userEmail,
+      });
+
+      const canAccessAdmin = canAddFromJobsAdminRpc || isJobAdminData === true;
+      setCanAddJob(canAccessAdmin);
     } catch {
       setCanAddJob(false);
     } finally {

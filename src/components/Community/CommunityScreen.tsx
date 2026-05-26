@@ -8,8 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminPanel } from "./AdminPanel";
 import {
   Users,
-  Sparkles,
-  ArrowLeft,
   Globe,
   UserCheck,
   Clock,
@@ -124,97 +122,72 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-black">
-        <div className="text-center space-y-6 animate-fade-in">
-          <div className="relative">
-            <div className="loading-heart mx-auto"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Users className="h-8 w-8 text-pink-500 animate-pulse" />
-            </div>
+      <div className="flex h-full items-center justify-center bg-[#050506]">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-              Loading communities...
-            </h3>
-            <p className="text-gray-400">Discovering communities for you</p>
-          </div>
+          <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">Loading communities</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-black text-white">
-      {/* Header */}
+    <div className="h-full flex flex-col bg-[#050506] text-zinc-100">
+      {/* Hero */}
+      <div className="border-b border-zinc-800 bg-[#050506]">
+        <div className="px-4 py-4 md:px-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="space-y-2">
+                <h1 className="text-[clamp(1.8rem,9vw,4.4rem)] font-black leading-[0.9] tracking-[-0.06em] text-zinc-100">
+                  NIT DISCORD
+                </h1>
+                <p className="max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
+                  Join student communities, discover fresh groups, and chat in real time.
+                </p>
+              </div>
+              {isAdmin && (
+                <UIButton
+                  onClick={() => setShowAdminPanel(true)}
+                  className="h-10 rounded-none border border-red-500/50 bg-red-500/20 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-red-200 hover:bg-red-500/30"
+                >
+                  Admin
+                </UIButton>
+              )}
+            </div>
 
-      <div className="bg-black/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-40 p-4">
-        <div className="flex items-center gap-4">
-          <UIButton
-            variant="ghost"
-            size="icon"
-            onClick={onNavigateBack}
-            className="h-10 w-10 rounded-full hover:bg-white/20 transition-all flex-shrink-0"
-            title="Back"
-          >
-            <ArrowLeft className="h-5 w-5 text-white" />
-          </UIButton>
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 backdrop-blur-sm flex-shrink-0">
-            <Users className="h-6 w-6 text-pink-500" />
+            <div className="inline-flex items-center border border-zinc-700 bg-zinc-900 p-1">
+              <button
+                onClick={() => setActiveTab("explore")}
+                className={`inline-flex min-w-[160px] items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors ${
+                  activeTab === "explore"
+                    ? "bg-pink-500 text-black"
+                    : "bg-zinc-950 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                }`}
+              >
+                <Globe className="h-4 w-4" />
+                Explore
+              </button>
+              <button
+                onClick={() => setActiveTab("my")}
+                className={`inline-flex min-w-[160px] items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors ${
+                  activeTab === "my"
+                    ? "bg-cyan-400 text-black"
+                    : "bg-zinc-950 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100"
+                }`}
+              >
+                <UserCheck className="h-4 w-4" />
+                My Communities
+              </button>
+            </div>
           </div>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-              Communities
-            </h1>
-            <p className="text-sm text-gray-400">
-              {activeTab === "explore"
-                ? `${exploreCommunities.length} available`
-                : `${myCommunities.length} joined`}
-            </p>
-          </div>
-          <div className="flex space-x-1 flex-shrink-0">
-            <Sparkles className="h-5 w-5 text-purple-400 animate-pulse" />
-            <Sparkles className="h-3 w-3 text-pink-400 animate-pulse" />
-            <Sparkles className="h-4 w-4 text-blue-400 animate-pulse" />
-          </div>
-          {isAdmin && (
-  <UIButton
-    onClick={() => setShowAdminPanel(true)}
-    className="bg-red-600 text-white px-3 py-1 rounded-lg"
-  >
-    Admin
-  </UIButton>
-)}
-        </div>
-
-        {/* Tab Switcher */}
-        <div className="flex mt-4 bg-white/5 rounded-full p-1 border border-white/10">
-          <button
-            onClick={() => setActiveTab("explore")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeTab === "explore"
-                ? "bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <Globe className="h-4 w-4" />
-            Explore
-          </button>
-          <button
-            onClick={() => setActiveTab("my")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeTab === "my"
-                ? "bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <UserCheck className="h-4 w-4" />
-            My Communities
-          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
         {activeTab === "explore" ? (
           <ExploreTab
             communities={exploreCommunities}
@@ -227,7 +200,9 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
           <MyCommunitiesTab
             myCommunities={myCommunities}
             pendingCreatedCommunities={pendingCreatedCommunities}
-         
+            showUpgradePrompt={showUpgradePrompt}
+            setShowUpgradePrompt={setShowUpgradePrompt}
+            currentUser={currentUser}
             onSelectCommunity={(community) => {
               setSelectedCommunity(community);
               setiscommunityopen?.(true);
@@ -237,52 +212,28 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
       </div>
 
       {/* Bottom button */}
-      <div className="sticky bottom-0 z-40 p-4 bg-gradient-to-t from-black to-transparent">
+      <div className="pointer-events-none sticky bottom-0 z-40 p-4">
         <UIButton
-  onClick={() => setShowCreate(true)}
-  className="fixed bottom-24 right-6 z-50 h-14 w-14 rounded-full bg-gradient-to-r from-pink-600 to-purple-600 shadow-lg"
->
-  <Plus className="h-6 w-6" />
-</UIButton>
+          onClick={() => setShowCreate(true)}
+          className="pointer-events-auto fixed bottom-24 right-6 z-50 h-14 w-14 rounded-md border border-pink-500/50 bg-pink-500 text-black shadow-[0_16px_28px_rgba(0,0,0,0.45)] hover:bg-pink-400"
+        >
+          <Plus className="h-6 w-6" />
+        </UIButton>
       </div>
-{showAdminPanel && currentUser&&(
-  <AdminPanel
-    email={currentUser.email}
-    onClose={() => setShowAdminPanel(false)}
-  />
-)}
-      {/* Background decorations */}
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div
-          className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-        <div
-          className="absolute top-3/4 left-3/4 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Users
-            key={i}
-            className="absolute w-3 h-3 text-pink-500/10 animate-float"
-            style={{
-              left: `${10 + Math.random() * 80}%`,
-              top: `${10 + Math.random() * 80}%`,
-              animationDelay: `${Math.random() * 4}s`,
-              animationDuration: `${3 + Math.random() * 2}s`,
-            }}
-          />
-        ))}
-      </div>
+      {showAdminPanel && currentUser && (
+        <AdminPanel
+          email={currentUser.email}
+          onClose={() => setShowAdminPanel(false)}
+        />
+      )}
       {ShowCreate && (
-  <CreateCommunityModal
-    onClose={() => setShowCreate(false)}
-    onCreated={() => {
-     // refresh explore
-    }}
-  />
-)}
+        <CreateCommunityModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            // refresh explore
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -308,16 +259,14 @@ function ExploreTab({
   if (communities.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="relative mb-8 animate-fade-in">
-          <div className="h-32 w-32 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center relative border border-white/10">
-            <Globe className="h-16 w-16 text-pink-500/60 animate-pulse" />
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900">
+          <Globe className="h-10 w-10 text-zinc-500" />
           </div>
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold uppercase tracking-[0.1em] text-zinc-100">
             No communities yet
           </h2>
-          <p className="text-gray-400 text-base max-w-md leading-relaxed">
+          <p className="max-w-md text-sm text-zinc-500">
             Communities will appear here once they are approved. Check back
             soon!
           </p>
@@ -335,18 +284,18 @@ function ExploreTab({
         return (
           <Card
             key={community.id}
-            className={`bg-white/5 backdrop-blur-sm border-white/10 transition-all duration-500 hover:scale-[1.02] hover:bg-white/10 animate-fade-in`}
+            className="animate-fade-in border-zinc-800 bg-[#0a0a0d] transition-all duration-300 hover:border-zinc-600"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
                 {/* Community Avatar */}
                 <div className="relative flex-shrink-0">
-                  <Avatar className="h-16 w-16 ring-2 ring-pink-500/30">
+                  <Avatar className="h-16 w-16 ring-1 ring-zinc-700">
                     {community.image_url ? (
                       <AvatarImage src={community.image_url} />
                     ) : null}
-                    <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-2xl">
+                    <AvatarFallback className="bg-zinc-900 text-zinc-200 font-semibold text-2xl">
                       {community.name[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -355,38 +304,38 @@ function ExploreTab({
                 {/* Community Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold text-lg text-white truncate">
+                    <h3 className="truncate text-lg font-semibold text-zinc-100">
                       {community.name}
                     </h3>
                     <Badge
                       variant="outline"
                       className={`text-xs flex-shrink-0 ml-2 ${
                         community.join_type === "open"
-                          ? "border-green-500/50 text-green-400"
-                          : "border-yellow-500/50 text-yellow-400"
+                          ? "border-emerald-500/40 text-emerald-300"
+                          : "border-amber-500/40 text-amber-300"
                       }`}
                     >
                       {community.join_type === "open" ? "Open" : "Restricted"}
                     </Badge>
                   </div>
 
-                  <p className="text-sm text-gray-400 line-clamp-2 mb-3">
+                  <p className="mb-3 line-clamp-2 text-sm text-zinc-500">
                     {community.description || "No description"}
                   </p>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-xs text-zinc-500">
                       <Users className="h-3 w-3" />
                       {community.member_count || 0} members
                     </span>
 
                     {memberAlready ? (
-                      <Badge className="bg-green-600/20 text-green-400 border-green-500/30">
+                      <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-300">
                         <UserCheck className="h-3 w-3 mr-1" />
                         Joined
                       </Badge>
                     ) : pending ? (
-                      <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-500/30">
+                      <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-300">
                         <Clock className="h-3 w-3 mr-1" />
                         Pending
                       </Badge>
@@ -398,10 +347,10 @@ function ExploreTab({
                           e.stopPropagation();
                           onJoin(community.id);
                         }}
-                        className="rounded-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white text-xs px-4 h-8"
+                        className="h-8 rounded-md border border-pink-500/45 bg-pink-500 px-4 text-xs font-semibold text-black hover:bg-pink-400"
                       >
                         {joiningCommunity === community.id ? (
-                          <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <div className="h-4 w-4 rounded-full border-2 border-black border-t-transparent animate-spin" />
                         ) : (
                           <>
                             <LogIn className="h-3 w-3 mr-1" />
@@ -427,29 +376,33 @@ function ExploreTab({
 interface MyCommunitiesTabProps {
   myCommunities: MyCommunity[];
   pendingCreatedCommunities:any[];
+  showUpgradePrompt: boolean;
+  setShowUpgradePrompt: (value: boolean) => void;
+  currentUser: any;
   onSelectCommunity: (community: any) => void;
 }
 
 function MyCommunitiesTab({
   myCommunities,
   onSelectCommunity,
-  pendingCreatedCommunities
+  pendingCreatedCommunities,
+  showUpgradePrompt,
+  setShowUpgradePrompt,
+  currentUser
   
 }: MyCommunitiesTabProps) {
    
   if (myCommunities.length === 0&&pendingCreatedCommunities.length===0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="relative mb-8 animate-fade-in">
-          <div className="h-32 w-32 bg-white/5 backdrop-blur-sm rounded-full flex items-center justify-center relative border border-white/10">
-            <UserCheck className="h-16 w-16 text-pink-500/60 animate-pulse" />
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-md border border-zinc-800 bg-zinc-900">
+          <UserCheck className="h-10 w-10 text-zinc-500" />
           </div>
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold uppercase tracking-[0.1em] text-zinc-100">
             No communities joined
           </h2>
-          <p className="text-gray-400 text-base max-w-md leading-relaxed">
+          <p className="max-w-md text-sm text-zinc-500">
             Join communities from the Explore tab to start chatting with groups!
           </p>
         </div>
@@ -473,31 +426,31 @@ function MyCommunitiesTab({
     {pendingCreatedCommunities.map((pc, index) => (
       <Card
         key={pc.id}
-        className="bg-white/5 border-white/10 opacity-60 cursor-not-allowed"
+        className="cursor-not-allowed border-zinc-800 bg-zinc-900/70 opacity-70"
       >
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
 
-            <Avatar className="h-16 w-16 ring-2 ring-blue-500/30">
+            <Avatar className="h-16 w-16 ring-1 ring-zinc-700">
               {pc.image_url ? (
                 <AvatarImage src={pc.image_url} />
               ) : (
-                <AvatarFallback>
+                <AvatarFallback className="bg-zinc-950 text-zinc-200">
                   {pc.name[0]?.toUpperCase()}
                 </AvatarFallback>
               )}
             </Avatar>
 
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-semibold text-zinc-100">
                 {pc.name}
               </h3>
 
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-zinc-500">
                 {pc.description || "No description"}
               </p>
 
-              <p className="text-xs text-blue-400 mt-1">
+              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-sky-300">
                 Waiting for admin approval
               </p>
             </div>
@@ -511,7 +464,7 @@ function MyCommunitiesTab({
       {myCommunities.map((mc, index) => (
         <Card
           key={mc.community_id}
-          className="bg-white/5 backdrop-blur-sm border-white/10 transition-all duration-500 hover:scale-[1.02] hover:bg-white/10 cursor-pointer animate-fade-in"
+          className="animate-fade-in cursor-pointer border-zinc-800 bg-[#0a0a0d] transition-all duration-300 hover:border-zinc-600"
           style={{ animationDelay: `${index * 100}ms` }}
           onClick={() =>
             onSelectCommunity({
@@ -527,11 +480,11 @@ function MyCommunitiesTab({
             <div className="flex items-center gap-4">
               {/* Community Avatar */}
               <div className="relative flex-shrink-0">
-                <Avatar className="h-16 w-16 ring-2 ring-pink-500/30 transition-all duration-300 hover:ring-pink-500/50">
+                <Avatar className="h-16 w-16 ring-1 ring-zinc-700">
                   {mc.community.image_url ? (
                     <AvatarImage src={mc.community.image_url} />
                   ) : null}
-                  <AvatarFallback className="bg-gradient-to-br from-pink-500/20 to-purple-500/20 text-pink-300 font-semibold text-2xl">
+                  <AvatarFallback className="bg-zinc-900 text-zinc-200 font-semibold text-2xl">
                     {mc.community.name[0]?.toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -540,26 +493,26 @@ function MyCommunitiesTab({
               {/* Community Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-bold text-xl text-white truncate hover:text-pink-300 transition-colors duration-300">
+                  <h3 className="truncate text-xl font-semibold text-zinc-100">
                     {mc.community.name}
                   </h3>
                   <Badge
                     variant="outline"
-                    className="text-xs flex-shrink-0 ml-2 border-pink-500/30 text-pink-400 capitalize"
+                    className="ml-2 flex-shrink-0 border-zinc-600 text-xs capitalize text-zinc-300"
                   >
                     {mc.role}
                   </Badge>
                 </div>
 
-                <p className="text-sm text-gray-400 truncate">
+                <p className="truncate text-sm text-zinc-500">
                   {mc.community.description || "Tap to open group chat"}
                 </p>
               </div>
 
               {/* Chat indicator */}
               <div className="flex-shrink-0">
-                <div className="p-2 rounded-full bg-pink-500/10">
-                  <Users className="h-5 w-5 text-pink-400" />
+                <div className="rounded-md border border-zinc-700 bg-zinc-900 p-2">
+                  <Users className="h-5 w-5 text-zinc-300" />
                 </div>
               </div>
             </div>

@@ -397,7 +397,7 @@ export function ProfileScreen() {
             )}
             <Crown className={`relative h-4 w-4 ${isPremium ? "text-pink-400" : "text-gray-300 group-hover:text-pink-300"}`} />
             <span className={`relative text-[11px] font-semibold tracking-[0.18em] ${isPremium ? "text-white" : "text-gray-300 group-hover:text-white"}`}>
-              {isPremium ? "PREMIUM ✓" : "UPGRADE TO PREMIUM"}
+              {isPremium ? "PREMIUM" : "UPGRADE TO PREMIUM"}
             </span>
           </button>
         </div>

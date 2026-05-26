@@ -26,6 +26,10 @@ export function ActionButtonsWithLimits({
   isLikeLoading = false,
   isPassLoading = false
 }: ActionButtonsWithLimitsProps) {
+  const likesLabel = likesRemaining !== undefined && !Number.isFinite(likesRemaining)
+    ? "Unlimited"
+    : likesRemaining;
+
   return (
     <div className="flex items-center justify-center gap-6 py-4 w-full max-w-md mx-auto relative z-20">
       
@@ -85,11 +89,11 @@ export function ActionButtonsWithLimits({
         {likesRemaining !== undefined && canLike && (
           <Badge className={cn(
             "absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center rounded-full text-[10px] px-1.5 border border-black shadow-sm z-30",
-            likesRemaining > 3 
+            (Number.isFinite(likesRemaining) ? likesRemaining > 3 : true)
               ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white" 
               : "bg-red-500 text-white animate-pulse"
           )}>
-            {likesRemaining}
+            {likesLabel}
           </Badge>
         )}
       </div>

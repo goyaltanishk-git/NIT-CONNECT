@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, syncAppSession } from "@/integrations/supabase/client";
 
 export interface SubscriptionState {
   isPremium: boolean;
@@ -17,20 +17,20 @@ export function useSubscription(userEmail?: string): SubscriptionState {
     if (!userEmail) { setLoading(false); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("get_my_subscription", { p_email: userEmail });
+      await syncAppSession(userEmail);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_premium")
+        .eq("email", userEmail)
+        .single();
+
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        const row = data[0] as { plan: string; status: string; expires_at: string | null };
-        const expired = row.expires_at ? new Date(row.expires_at) < new Date() : false;
-        setIsPremium(row.plan === "premium" && row.status === "active" && !expired);
-        setExpiresAt(row.expires_at);
-      } else {
-        setIsPremium(false);
-        setExpiresAt(null);
-      }
+      setIsPremium(Boolean(data?.is_premium));
+      setExpiresAt(null);
     } catch {
       setIsPremium(false);
+      setExpiresAt(null);
     } finally {
       setLoading(false);
     }

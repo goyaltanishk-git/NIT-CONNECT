@@ -1941,10 +1941,48 @@ BEGIN
       LIMIT v_remaining
     ), numbered AS (
       SELECT c.id AS job_id, f.slot_no
-      FROM candidates c
-      JOIN free_slots f ON true
-      ORDER BY f.slot_no
-      LIMIT v_remaining
+      FROM (
+        SELECT j.id,
+               row_number() OVER (ORDER BY md5(j.id::text || v_email || v_today::text)) AS rn
+        FROM public.jobs j
+        WHERE j.status = 'active'
+          AND (j.expires_at IS NULL OR j.expires_at > now())
+          AND EXISTS (
+            SELECT 1
+            FROM public.job_target_groups tg
+            WHERE tg.job_id = j.id
+              AND lower(tg.target_branch) = lower(v_branch)
+              AND tg.target_graduation_batch = v_batch
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM public.job_swipes js
+            WHERE js.user_email = v_email
+              AND js.job_id = j.id
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM public.job_daily_slots ds
+            WHERE ds.user_email = v_email
+              AND ds.slot_date = v_today
+              AND ds.job_id = j.id
+          )
+        LIMIT v_remaining
+      ) c
+      JOIN (
+        SELECT gs::smallint AS slot_no,
+               row_number() OVER (ORDER BY gs) AS rn
+        FROM generate_series(1, 2) gs
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM public.job_daily_slots s
+          WHERE s.user_email = v_email
+            AND s.slot_date = v_today
+            AND s.slot_no = gs
+        )
+        ORDER BY gs
+        LIMIT v_remaining
+      ) f USING (rn)
     )
     INSERT INTO public.job_daily_slots (user_email, slot_date, slot_no, job_id)
     SELECT v_email, v_today, n.slot_no, n.job_id
@@ -2128,9 +2166,18 @@ DECLARE
   v_today date;
   v_served int;
   v_interacted int;
+  v_is_premium boolean;
+  v_daily_limit int;
 BEGIN
   v_email := public.app_session_email();
   v_today := public.jobs_today_ist(p_tz);
+
+  SELECT COALESCE(p.is_premium, false) INTO v_is_premium
+  FROM public.profiles p
+  WHERE lower(p.email) = v_email
+  LIMIT 1;
+
+  v_daily_limit := CASE WHEN v_is_premium THEN 5 ELSE 2 END;
 
   SELECT COUNT(*)::int INTO v_served
   FROM public.job_daily_slots s
@@ -2143,12 +2190,12 @@ BEGIN
   RETURN QUERY
   SELECT
     v_today,
-    2,
+    v_daily_limit,
     v_served,
     v_interacted,
-    GREATEST(0, 2 - v_served),
-    GREATEST(0, 2 - v_interacted),
-    (v_interacted >= 2),
+    GREATEST(0, v_daily_limit - v_served),
+    GREATEST(0, v_daily_limit - v_interacted),
+    (v_interacted >= v_daily_limit),
     public.jobs_next_reset_ist(v_today, p_tz);
 END;
 $function$

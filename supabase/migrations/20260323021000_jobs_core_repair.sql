@@ -177,9 +177,18 @@ DECLARE
   v_today date;
   v_served int;
   v_interacted int;
+  v_is_premium boolean;
+  v_daily_limit int;
 BEGIN
   v_email := public.app_session_email();
   v_today := public.jobs_today_ist(p_tz);
+
+  SELECT COALESCE(p.is_premium, false) INTO v_is_premium
+  FROM public.profiles p
+  WHERE lower(p.email) = v_email
+  LIMIT 1;
+
+  v_daily_limit := CASE WHEN v_is_premium THEN 5 ELSE 2 END;
 
   SELECT COUNT(*)::int INTO v_served
   FROM public.job_daily_slots s
@@ -192,12 +201,12 @@ BEGIN
   RETURN QUERY
   SELECT
     v_today,
-    2,
+    v_daily_limit,
     v_served,
     v_interacted,
-    GREATEST(0, 2 - v_served),
-    GREATEST(0, 2 - v_interacted),
-    (v_interacted >= 2),
+    GREATEST(0, v_daily_limit - v_served),
+    GREATEST(0, v_daily_limit - v_interacted),
+    (v_interacted >= v_daily_limit),
     public.jobs_next_reset_ist(v_today, p_tz);
 END;
 $$;
