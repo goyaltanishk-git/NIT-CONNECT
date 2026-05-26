@@ -30,6 +30,7 @@ export function ProfileCard({ profile, onLike, onPass, onSuperLike }: ProfileCar
   // --- Data Logic from your original ProfileCard.tsx ---
   const displayName = getDisplayName(profile);
   const displayPhotos = getDisplayPhotos(profile, profile.photos || []);
+  const photos =displayPhotos.length > 0 ? displayPhotos: ['/placeholder-profile.png'];
   const displayBio = getDisplayBio(profile);
   const displayDetails = getDisplayDetails(profile);
   const isAnonymous = shouldDisplayAnonymously(profile);
@@ -126,7 +127,7 @@ export function ProfileCard({ profile, onLike, onPass, onSuperLike }: ProfileCar
           <div className="pc-content pc-avatar-content">
             <img
               className={`avatar ${isAnonymous ? 'blur-sm' : ''}`}
-              src={displayPhotos[currentPhotoIndex]}
+              src={photos[currentPhotoIndex]}
               alt={displayName}
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />

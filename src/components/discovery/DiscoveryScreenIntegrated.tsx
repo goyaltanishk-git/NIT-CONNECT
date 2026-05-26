@@ -65,6 +65,12 @@ export function DiscoveryScreenIntegrated() {
     setSwipeAnimation(direction === 'like' ? 'right' : 'left');
 
     const targetProfile = profiles[currentIndex];
+   
+
+if (!targetProfile) {
+  setSwipeAnimation(null);
+  return;
+}
     const stored = encryptedStorage.get("current-user");
     if (!targetProfile || !stored) return;
 
@@ -88,7 +94,7 @@ export function DiscoveryScreenIntegrated() {
     } finally {
       // Always move to next profile
       setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
+       setCurrentIndex(prev => Math.min(prev + 1, profiles.length));
         setSwipeAnimation(null);
       }, 300);
     }
@@ -214,7 +220,32 @@ photos: (displayPhotos || []).map((url: string, index: number) => {
     );  
   }
 
-  const currentProfile = transformProfileForCard(profiles[currentIndex]); 
+ const safeIndex = Math.min(currentIndex, Math.max(profiles.length - 1, 0));
+const activeProfile = profiles[safeIndex];
+
+if (!activeProfile) {
+  return (
+    <div className="flex items-center justify-center min-h-dvh bg-black">
+      <div className="text-center space-y-8 animate-fade-in">
+        <div className="relative">
+          <Sparkles className="h-20 w-20 text-pink-500 mx-auto animate-heartbeat" />
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-3xl font-bold gradient-text">
+            No more profiles
+          </h2>
+
+          <p className="text-gray-400 text-lg">
+            Check back later for new users.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const currentProfile = transformProfileForCard(activeProfile);
 
   return (
     <div className="h-full bg-black text-white">

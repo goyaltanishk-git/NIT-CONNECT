@@ -147,18 +147,25 @@ if (data === "CREATED") {
     </div>
 
     {/* HIDDEN INPUT */}
-    <input
-      type="file"
-      accept="image/*"
-      className="hidden"
-      onChange={(e) => {
-        const f = e.target.files?.[0];
-        if (!f) return;
+   <input
+  type="file"
+  accept="image/*"
+  className="hidden"
+  onChange={(e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
 
-        setFile(f);
-        setPreview(URL.createObjectURL(f)); // 🔥 preview
-      }}
-    />
+    // remove previous preview from memory
+    if (preview) {
+      URL.revokeObjectURL(preview);
+    }
+
+    const objectUrl = URL.createObjectURL(f);
+
+    setFile(f);
+    setPreview(objectUrl);
+  }}
+/>
   </label>
 </div>
 

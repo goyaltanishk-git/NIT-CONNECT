@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateNewsModalProps {
   onClose: () => void;
@@ -19,6 +20,7 @@ export function CreateNewsModal({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Get current user's email from encrypted storage
   const getEmail = () => {
@@ -29,20 +31,31 @@ export function CreateNewsModal({
   const handleCreate = async () => {
     const email = getEmail();
 
-    if (!email) {
-      alert("User not found");
-      return;
-    }
+   if (!email) {
+  toast({
+    title: "User not found",
+    variant: "destructive",
+  });
+  return;
+}
 
-    if (!caption.trim()) {
-      alert("Please enter a caption");
-      return;
-    }
+   if (!caption.trim()) {
+  toast({
+    title: "Caption required",
+    description: "Please enter a caption",
+    variant: "destructive",
+  });
+  return;
+}
 
-    if (!file) {
-      alert("Please select an image");
-      return;
-    }
+if (!file) {
+  toast({
+    title: "Image required",
+    description: "Please select an image",
+    variant: "destructive",
+  });
+  return;
+}
 
     setLoading(true);
 
@@ -57,12 +70,18 @@ export function CreateNewsModal({
         .from("news-images")
         .upload(fileName, file);
 
-      if (uploadError) {
-        console.error("UPLOAD FAILED:", uploadError);
-        alert("Failed to upload image");
-        setLoading(false);
-        return;
-      }
+     if (uploadError) {
+  console.error("UPLOAD FAILED:", uploadError);
+
+  toast({
+    title: "Upload failed",
+    description: "Failed to upload image",
+    variant: "destructive",
+  });
+
+  setLoading(false);
+  return;
+}
 
       // ==========================================
       // 2. Get public URL
@@ -83,30 +102,47 @@ export function CreateNewsModal({
         p_scope:scope
       });
 
-      if (error) {
-        console.error("RPC ERROR:", error);
-        alert("Something went wrong while creating the news post");
-        setLoading(false);
-        return;
-      }
+     if (error) {
+  console.error("RPC ERROR:", error);
+
+  toast({
+    title: "Failed to create news",
+    description: "Something went wrong while creating the news post",
+    variant: "destructive",
+  });
+
+  setLoading(false);
+  return;
+}
 
       // ==========================================
       // 4. Handle result
       // ==========================================
-      if (data === "CREATED") {
-        alert("News submitted successfully and is awaiting admin approval.");
-        onCreated();
-        onClose();
-      } else {
-        alert("Unexpected response: " + data);
-      }
-    } catch (err) {
-      console.error("CREATE NEWS ERROR:", err);
-      alert("Unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+     if (data === "CREATED") {
+  toast({
+    title: "News submitted",
+    description:
+      "Your news post is awaiting admin approval.",
+  });
+
+  onCreated();
+  onClose();
+} else {
+  toast({
+    title: "Unexpected response",
+    description: String(data),
+    variant: "destructive",
+  });
+}
+}catch (err) {
+  console.error("CREATE NEWS ERROR:", err);
+
+  toast({
+    title: "Unexpected error",
+    description: "Something went wrong",
+    variant: "destructive",
+  });
+}finally { setLoading(false); } };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
