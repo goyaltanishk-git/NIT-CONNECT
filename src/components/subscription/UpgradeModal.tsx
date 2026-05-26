@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Heart, BriefcaseBusiness, Users, Check, Zap } from "lucide-react";
+import { Crown, Heart, BriefcaseBusiness, Users, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Same backend URL used everywhere else in the app
@@ -98,61 +98,61 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-950 border border-white/10 text-white max-w-sm mx-auto p-0 overflow-hidden">
+      <DialogContent className="max-w-sm mx-auto overflow-hidden border border-pink-500/20 bg-[#070709]/95 p-0 text-white shadow-[0_30px_80px_rgba(0,0,0,0.75)] backdrop-blur-xl">
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-pink-500 to-transparent" />
+
         {/* Header */}
-        <div className="bg-gradient-to-br from-pink-600 via-purple-600 to-blue-600 p-6 text-center">
-          <Crown className="h-12 w-12 text-yellow-300 mx-auto mb-2" />
-          <DialogTitle className="text-2xl font-bold text-white">Go Premium</DialogTitle>
-          <p className="text-white/80 text-sm mt-1">Unlock the full NIT Connect experience</p>
+        <div className="border-b border-white/10 p-6">
+          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-sm border border-pink-500/35 bg-pink-500/12">
+            <Crown className="h-6 w-6 text-pink-400" />
+          </div>
+          <DialogTitle className="text-2xl font-bold uppercase tracking-[0.08em] text-white">Go Premium</DialogTitle>
+          <p className="mt-2 text-sm text-white/55">Switch to premium access for higher daily limits.</p>
         </div>
 
-        {/* Plans comparison */}
+        {/* Plans */}
         <div className="p-5 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            {/* Free */}
-            <div className="rounded-xl border border-white/10 p-3 bg-white/5">
-              <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Free</p>
-              <ul className="space-y-2 text-sm text-gray-300">
-                <li className="flex items-center gap-2"><Heart className="h-3 w-3 text-pink-400" /> 2 swipes / day</li>
-                <li className="flex items-center gap-2"><BriefcaseBusiness className="h-3 w-3 text-cyan-400" /> 2 jobs / day</li>
-                <li className="flex items-center gap-2"><Users className="h-3 w-3 text-purple-400" /> 5 communities</li>
+            <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Current</p>
+              <ul className="space-y-2 text-sm text-white/70">
+                <li className="flex items-center gap-2"><Heart className="h-3.5 w-3.5 text-pink-400" />2 swipes/day</li>
+                <li className="flex items-center gap-2"><BriefcaseBusiness className="h-3.5 w-3.5 text-cyan-400" />2 jobs/day</li>
+                <li className="flex items-center gap-2"><Users className="h-3.5 w-3.5 text-violet-400" />5 communities</li>
               </ul>
             </div>
 
-            {/* Premium */}
-            <div className="rounded-xl border border-pink-500/50 p-3 bg-gradient-to-br from-pink-950/50 to-purple-950/50 relative">
-              <div className="absolute -top-2 left-1/2 -translate-x-1/2">
-                <span className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">BEST</span>
+            <div className="relative rounded-lg border border-pink-500/35 bg-[#0b0b10] p-3">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-pink-500/75 to-transparent" />
+              <div className="mb-2 inline-flex rounded-full border border-pink-500/30 bg-pink-500/12 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-pink-200">
+                Premium
               </div>
-              <p className="text-xs font-semibold text-pink-400 uppercase mb-3">Premium</p>
               <ul className="space-y-2 text-sm text-white">
-                <li className="flex items-center gap-2"><Check className="h-3 w-3 text-green-400" /><span>Unlimited swipes</span></li>
-                <li className="flex items-center gap-2"><Check className="h-3 w-3 text-green-400" /><span>5 jobs / day</span></li>
-                <li className="flex items-center gap-2"><Check className="h-3 w-3 text-green-400" /><span>15 communities</span></li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-pink-400" /><span>Unlimited swipes</span></li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-pink-400" /><span>5 jobs/day</span></li>
+                <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-pink-400" /><span>15 communities</span></li>
               </ul>
             </div>
           </div>
 
-          {/* Price — TEMP ₹1 for testing, change to ₹199 for production */}
-          <div className="text-center">
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center">
             <span className="text-3xl font-bold text-white">₹1</span>
-            <span className="text-gray-400 text-sm"> / month</span>
+            <span className="ml-1 text-sm text-white/45">/ month</span>
           </div>
 
-          {/* CTA */}
           <Button
             onClick={handleUpgrade}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl text-base"
+            className="h-12 w-full rounded-md border border-pink-500/35 bg-pink-500 text-black font-semibold uppercase tracking-[0.16em] hover:bg-pink-400"
           >
             {loading ? (
-              <span className="flex items-center gap-2"><Zap className="h-4 w-4 animate-spin" /> Processing...</span>
+              <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Processing...</span>
             ) : (
-              <span className="flex items-center gap-2"><Crown className="h-4 w-4" /> Upgrade Now</span>
+              <span className="flex items-center gap-2"><Crown className="h-4 w-4" />Upgrade now</span>
             )}
           </Button>
 
-          <p className="text-center text-xs text-gray-500">Secure payment via Cashfree · One-time payment · Refunds within 7 days via support</p>
+          <p className="text-center text-xs text-white/40">Secure Cashfree checkout. One-time payment. 7-day support for refund requests.</p>
         </div>
       </DialogContent>
     </Dialog>

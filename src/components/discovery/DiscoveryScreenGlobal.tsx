@@ -227,10 +227,10 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
             variant="ghost"
             size="sm"
             onClick={onNavigateToDatingSettings}
-            className="h-8 px-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10"
+            className="h-8 px-3 rounded-md border border-white/10 bg-white/5 text-white hover:bg-white/10"
             title="Dating Settings"
           >
-            <Settings className="h-3.5 w-3.5 mr-1.5 text-purple-400" />
+            <Settings className="h-3.5 w-3.5 mr-1.5 text-pink-400" />
             <span className="text-[11px] font-medium text-white">Dating Settings</span>
           </Button>
         </div>
@@ -260,75 +260,75 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
       <DailyLimitAlert isOpen={showLimitAlert} onClose={() => setShowLimitAlert(false)} />
 
       {/* Top Bar - Independent Filter Area */}
-      <div className="w-full flex justify-between items-center px-4 py-1.5 z-50">
-        {/* Left Side Navigation Buttons */}
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onNavigateToLikes}
-            className="h-7 px-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-            title="Go to Likes"
-          >
-            <Heart className="h-3 w-3 mr-1.5 text-pink-400" />
-            <span className="text-[10px] font-medium tracking-tight text-white">Likes</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onNavigateToChat}
-            className="h-7 px-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-            title="Go to Chat"
-          >
-            <MessageCircle className="h-3 w-3 mr-1.5 text-blue-400" />
-            <span className="text-[10px] font-medium tracking-tight text-white">Chat</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onNavigateToDatingSettings}
-            className="h-7 px-2.5 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-all"
-            title="Dating Settings"
-          >
-            <Settings className="h-3 w-3 mr-1.5 text-purple-400" />
-            <span className="text-[10px] font-medium tracking-tight text-white">Dating Settings</span>
-          </Button>
-        </div>
-
-        {/* Right Side Filter Button */}
+      <div className="w-full grid grid-cols-[1.15fr_1fr_1fr_1.3fr] gap-1 px-3 sm:px-4 py-2 z-50 overflow-hidden">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowCollegeFilter(!showCollegeFilter)}
-          className={`h-7 px-2.5 rounded-full border border-white/10 transition-all ${
-            showCollegeFilter ? 'bg-white/20' : 'bg-white/5'
+          className={`h-7 sm:h-8 w-full min-w-0 px-1.5 sm:px-2 rounded-md border transition-colors whitespace-nowrap justify-start ${
+            showCollegeFilter
+              ? 'border-white/25 bg-white/15'
+              : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'
           }`}
         >
-          <Filter className={`h-3 w-3 mr-1.5 ${selectedColleges.length > 0 ? 'text-pink-500' : 'text-gray-400'}`} />
-          <span className="text-[10px] font-medium tracking-tight">
+          <Filter className={`h-3 w-3 mr-1 shrink-0 ${selectedColleges.length > 0 ? 'text-pink-400' : 'text-gray-300'}`} />
+          <span className="min-w-0 truncate text-[9px] sm:text-[10px] font-medium leading-none text-white">
             {selectedColleges.length > 0 ? selectedColleges[0] : 'All Colleges'}
           </span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onNavigateToLikes}
+          className="h-7 sm:h-8 w-full min-w-0 px-1.5 sm:px-2 rounded-md border border-pink-500/25 bg-white/5 text-white justify-start transition-colors hover:bg-pink-500/10 hover:border-pink-400/50"
+          title="Go to Likes"
+        >
+          <Heart className="h-3 w-3 mr-1 shrink-0 text-pink-400" />
+          <span className="min-w-0 truncate text-[9px] sm:text-[10px] font-medium leading-none text-white">Likes</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onNavigateToChat}
+          className="h-7 sm:h-8 w-full min-w-0 px-1.5 sm:px-2 rounded-md border border-cyan-500/25 bg-white/5 text-white justify-start transition-colors hover:bg-cyan-500/10 hover:border-cyan-400/50"
+          title="Go to Chat"
+        >
+          <MessageCircle className="h-3 w-3 mr-1 shrink-0 text-cyan-400" />
+          <span className="min-w-0 truncate text-[9px] sm:text-[10px] font-medium leading-none text-white">Chat</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onNavigateToDatingSettings}
+          className="h-7 sm:h-8 w-full min-w-0 px-1.5 sm:px-2 rounded-md border border-violet-500/25 bg-white/5 text-white justify-start transition-colors hover:bg-violet-500/10 hover:border-violet-400/50"
+          title="Dating Settings"
+        >
+          <Settings className="h-3 w-3 mr-1 shrink-0 text-violet-400" />
+          <span className="min-w-0 whitespace-nowrap text-[9px] sm:text-[10px] font-medium leading-none text-white">Dating Settings</span>
         </Button>
       </div>
 
       {/* Transparent Dropdown Overlay */}
       {showCollegeFilter && (
         <div className="absolute top-10 left-0 right-0 z-[60] px-4 animate-in slide-in-from-top-1 duration-200">
-          <div className="p-4 bg-black/70 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl">
+          <div className="p-4 bg-black/80 backdrop-blur-2xl rounded-xl border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.5)]">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Select Other College</span>
+              <span className="text-[10px] font-bold text-white/45 uppercase tracking-[0.28em] px-1">Select Other College</span>
               <X 
-                className="h-3.5 w-3.5 text-gray-500 cursor-pointer hover:text-white" 
+                className="h-3.5 w-3.5 text-gray-500 cursor-pointer hover:text-white transition-colors" 
                 onClick={() => setShowCollegeFilter(false)} 
               />
             </div>
-            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1">
               <button
                 onClick={() => { setSelectedColleges([]); setShowCollegeFilter(false); setCurrentIndex(0); }}
-                className={`px-3 py-1.5 rounded-full text-[11px] transition-all border ${
+                className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors border ${
                   selectedColleges.length === 0
-                    ? 'bg-white/20 text-white border-white/30'
-                    : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                    ? 'bg-white text-black border-white'
+                    : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 All Colleges
@@ -336,10 +336,10 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
               {userCollege && (
                 <button
                   onClick={() => toggleCollegeSelection(userCollege)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] transition-all border ${
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors border ${
                     selectedColleges.some(c => c.trim() === userCollege.trim())
-                      ? 'bg-green-600/80 text-white border-green-500/50'
-                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                      ? 'bg-emerald-500 text-black border-emerald-400'
+                      : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {userCollege.trim()} (Yours)
@@ -349,10 +349,10 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
                 <button
                   key={college}
                   onClick={() => toggleCollegeSelection(college)}
-                  className={`px-3 py-1.5 rounded-full text-[11px] transition-all border ${
+                  className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors border ${
                     selectedColleges.some(c => c.trim() === college.trim())
-                      ? 'bg-pink-600/80 text-white border-pink-500/50'
-                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                      ? 'bg-pink-500 text-black border-pink-400'
+                      : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   {college.trim()}

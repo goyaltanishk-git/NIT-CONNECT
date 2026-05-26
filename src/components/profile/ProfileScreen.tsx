@@ -342,10 +342,10 @@ export function ProfileScreen() {
         {/* Buttons Section */}
         <div className="flex flex-col items-center gap-3 w-full max-w-[270px] mx-auto">
           {/* Row 1: Settings | Edit Profile (centre) | Safety */}
-          <div className="flex justify-between items-end w-full px-0.5">
+          <div className="flex justify-between items-start w-full px-0.5">
             <button
               onClick={() => setShowSettings(true)}
-              className="flex flex-col items-center space-y-1.5 group interactive"
+              className="mt-6 flex flex-col items-center space-y-1.5 group interactive"
             >
               <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
                 <Settings className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
@@ -371,7 +371,7 @@ export function ProfileScreen() {
 
             <button
               onClick={() => setShowSafetyCenter(true)}
-              className="flex flex-col items-center space-y-1.5 group interactive"
+              className="mt-6 flex flex-col items-center space-y-1.5 group interactive"
             >
               <div className="h-[60px] w-[60px] rounded-full glass-light border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-all">
                 <Shield className="h-7 w-7 text-gray-300 group-hover:text-white transition-colors" />
@@ -383,14 +383,20 @@ export function ProfileScreen() {
           {/* Row 2: Upgrade / Premium — full width pill below */}
           <button
             onClick={() => !isPremium && setShowUpgradeModal(true)}
-            className={`flex items-center justify-center gap-2 w-full py-2.5 rounded-full border transition-all ${
+            className={`group relative overflow-hidden flex items-center justify-center gap-2 w-full py-2.5 rounded-full border transition-all ${
               isPremium
-                ? "bg-gradient-to-r from-yellow-500/80 to-amber-600/80 border-yellow-400/50 shadow-lg shadow-yellow-500/20 cursor-default"
-                : "glass-light border-white/10 hover:bg-white/10 active:scale-95"
+                ? "bg-[#09090b] border-pink-500/45 shadow-[0_14px_32px_rgba(0,0,0,0.55)] cursor-default"
+                : "bg-white/[0.04] border-white/15 hover:bg-white/[0.08] hover:border-pink-400/35 active:scale-95"
             }`}
           >
-            <Crown className={`h-4 w-4 ${isPremium ? "text-white" : "text-gray-300 group-hover:text-yellow-400"}`} />
-            <span className={`text-[11px] font-semibold tracking-wide ${isPremium ? "text-white" : "text-gray-400"}`}>
+            {isPremium && (
+              <>
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-pink-500/80 to-transparent" />
+                <span className="pointer-events-none absolute -inset-px rounded-full border border-pink-400/20" />
+              </>
+            )}
+            <Crown className={`relative h-4 w-4 ${isPremium ? "text-pink-400" : "text-gray-300 group-hover:text-pink-300"}`} />
+            <span className={`relative text-[11px] font-semibold tracking-[0.18em] ${isPremium ? "text-white" : "text-gray-300 group-hover:text-white"}`}>
               {isPremium ? "PREMIUM ✓" : "UPGRADE TO PREMIUM"}
             </span>
           </button>

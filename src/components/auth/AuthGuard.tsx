@@ -17,7 +17,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const [showLanding, setShowLanding] = useState(() => !sessionStorage.getItem("landing_seen"));
+  const [showLanding, setShowLanding] = useState(() => !AuthService.getCurrentUser());
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -229,7 +229,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return (
       <AboutScreen
         onBack={() => {
-          sessionStorage.setItem("landing_seen", "1");
           setShowLanding(false);
         }}
       />

@@ -97,18 +97,18 @@ export function MainLayout() {
         </div>)
 }
         {/* Main Content with enhanced smooth transitions */}
-        <div className="flex-1 overflow-hidden relative bg-black ">
-           <TabsContent value="news" className="h-full animate-fade-in  ">
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative bg-black ">
+            <TabsContent value="news" className="min-h-full animate-fade-in  ">
              
             <NewsScreen />
           </TabsContent>
-          <TabsContent value="discovery" className="h-full animate-fade-in  ">
+          <TabsContent value="discovery" className="min-h-full animate-fade-in  ">
              
             <DiscoveryScreenIntegrated />
           </TabsContent>
 
           {/* NEW: Discover Global Tab */}
-          <TabsContent value="discovery-global" className="h-full animate-fade-in">
+          <TabsContent value="discovery-global" className="min-h-full animate-fade-in">
             <DiscoveryScreenGlobal 
               onNavigateToLikes={() => setActiveTab("likes")} 
               onNavigateToChat={() => setActiveTab("chat")}
@@ -116,31 +116,31 @@ export function MainLayout() {
             />
           </TabsContent>
 
-          <TabsContent value="job-search" className="h-full animate-fade-in">
+          <TabsContent value="job-search" className="min-h-full animate-fade-in">
             <JobSearchScreen onNavigateToSettings={() => setActiveTab("settings")} />
           </TabsContent>
 
-          <TabsContent value="likes" className="h-full animate-fade-in">
+          <TabsContent value="likes" className="min-h-full animate-fade-in">
             <LikesScreenIntegrated onNavigateToDiscovery={() => setActiveTab("discovery-global")} />
           </TabsContent>
 
-          <TabsContent value="chat" className="h-full animate-fade-in">
+          <TabsContent value="chat" className="min-h-full animate-fade-in">
             <ChatScreen onNavigateToDiscovery={() => setActiveTab("discovery-global")} setischatopen={setischatopen}/>
           </TabsContent>
 
 
-          <TabsContent value="profile" className="h-full animate-fade-in">
+          <TabsContent value="profile" className="min-h-full animate-fade-in">
             <ProfileScreen />
           </TabsContent>
 
-          <TabsContent value="settings" className="h-full animate-fade-in">
+          <TabsContent value="settings" className="min-h-full animate-fade-in">
             <SettingsScreen onBack={() => setActiveTab("profile")} />
           </TabsContent>
 
-          <TabsContent value="dating-settings" className="h-full animate-fade-in">
+          <TabsContent value="dating-settings" className="min-h-full animate-fade-in">
             <DatingSettingsScreen onBack={() => setActiveTab("discovery-global")} />
           </TabsContent>
-           <TabsContent value="discord" className="h-full animate-fade-in">
+           <TabsContent value="discord" className="min-h-full animate-fade-in">
             <CommunityScreen  />
           </TabsContent>
         </div> 
