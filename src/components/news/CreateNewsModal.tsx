@@ -31,12 +31,12 @@ export function CreateNewsModal({
 
   const handleCreate = async () => {
     const email = getEmail();
+    console.log('[CreateNewsModal] handleCreate invoked');
+    toast({ title: 'Submitting news', description: 'Starting submission...', });
 
    if (!email) {
-  toast({
-    title: "User not found",
-    variant: "destructive",
-  });
+  console.warn('[CreateNewsModal] user email missing');
+  toast({ title: "User not found", description: 'Please sign in before posting', variant: "destructive" });
   return;
 }
 
@@ -67,22 +67,24 @@ if (!file) {
       const fileExt = file.name.split(".").pop();
       const fileName = `news-${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
+      toast({ title: 'Uploading image', description: 'Uploading to storage...' });
+      console.log('[CreateNewsModal] uploading file', fileName, file);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("news-images")
-        .upload(fileName, file);
+        .upload(fileName, file as File);
 
      if (uploadError) {
   console.error("UPLOAD FAILED:", uploadError);
 
-  toast({
-    title: "Upload failed",
-    description: "Failed to upload image",
-    variant: "destructive",
-  });
+  toast({ title: "Upload failed", description: uploadError.message || "Failed to upload image", variant: "destructive" });
 
   setLoading(false);
   return;
 }
+
+console.log('[CreateNewsModal] uploadData', uploadData);
+toast({ title: 'Upload complete', description: 'Image uploaded' });
 
       // ==========================================
       // 2. Get public URL
@@ -91,11 +93,19 @@ if (!file) {
         .from("news-images")
         .getPublicUrl(fileName);
 
-      const imageUrl = urlData.publicUrl;
+      const imageUrl = urlData?.publicUrl;
+      console.log('[CreateNewsModal] publicUrl', imageUrl);
+
+      if (!imageUrl) {
+        toast({ title: 'Upload error', description: 'Could not get public URL', variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
 
       // ==========================================
       // 3. Create news post using RPC
       // ==========================================
+      toast({ title: 'Creating news', description: 'Calling backend...' });
       const { data, error } = await supabase.rpc("create_news", {
         p_email: email,
         p_caption: caption,
@@ -106,11 +116,7 @@ if (!file) {
      if (error) {
   console.error("RPC ERROR:", error);
 
-  toast({
-    title: "Failed to create news",
-    description: "Something went wrong while creating the news post",
-    variant: "destructive",
-  });
+  toast({ title: "Failed to create news", description: error.message || "Something went wrong while creating the news post", variant: "destructive" });
 
   setLoading(false);
   return;
