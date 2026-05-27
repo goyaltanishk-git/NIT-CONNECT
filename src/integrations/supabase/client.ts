@@ -22,5 +22,8 @@ export const syncAppSession = async (email: string | undefined) => {
   const { error } = await supabase.rpc('set_app_session_user', {
     user_email: email.toLowerCase()
   });
-  if (error) console.error('[syncAppSession] RPC failed — RLS may not apply correctly:', error.message);
+  if (error) {
+    console.error('[syncAppSession] RPC failed — RLS may not apply correctly:', error.message);
+    throw error;
+  }
 };

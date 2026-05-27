@@ -178,50 +178,38 @@ export function JobSearchScreen(_props: JobSearchScreenProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="w-full flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black/60 backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <div className="rounded-full border border-cyan-400/30 bg-cyan-500/10 p-2">
-            <BriefcaseBusiness className="h-4 w-4 text-cyan-300" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Job Search</p>
-            <p className="text-xs text-zinc-400">
-              {status
-                ? `${Math.max(0, status.remaining_to_interact)} interaction${Math.max(0, status.remaining_to_interact) === 1 ? "" : "s"} left today`
-                : "Daily limit: --"}
-            </p>
-          </div>
+      <div className="relative w-full flex items-center justify-between px-4 py-1 h-16">
+        <div className="flex-1">
+          <p className="text-3xl md:text-4xl font-extrabold leading-tight">JOBS FEED</p>
+          <div className="absolute left-0 right-0 bottom-0 h-px bg-white/10" />
         </div>
 
-        <div className="flex items-center gap-2">
-          {showAdminButton && (
+        <div className="flex items-center gap-2" />
+
+        {/* centered small admin button */}
+        {showAdminButton && (
+          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowAddDialog(true)}
-              className="h-8 px-3 rounded-full border border-emerald-400/20 bg-emerald-500/10 hover:bg-emerald-500/20"
+              className="h-7 w-7 p-0 rounded-full border border-emerald-400/20 bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center"
               title="Admin Panel"
             >
-              <Plus className="h-3.5 w-3.5 mr-1.5 text-emerald-300" />
-              <span className="text-[11px] font-medium text-emerald-100">Admin Panel</span>
+              <Plus className="h-3 w-3 text-emerald-300" />
             </Button>
-          )}
+          </div>
+        )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void refetch()}
-            className="h-8 px-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10"
-            title="Refresh"
-          >
-            <RefreshCcw className="h-3.5 w-3.5 mr-1.5 text-cyan-300" />
-            <span className="text-[11px] font-medium text-white">Refresh</span>
-          </Button>
-
+        {/* remaining count at far right (explicit, plural-aware) */}
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm font-medium text-zinc-400">
+          {status
+            ? `${Math.max(0, status.remaining_to_interact)} interaction${Math.max(0, status.remaining_to_interact) === 1 ? "" : "s"} left`
+            : null}
         </div>
       </div>
 
-      <div className="flex-1 relative flex items-start justify-center pt-1">
+      <div className="flex-1 relative flex items-start justify-center pt-0">
         {error ? (
           <div className="text-center space-y-3 px-6 mt-20 animate-fade-in">
             <h2 className="text-lg font-bold">Could not load jobs</h2>
@@ -241,7 +229,9 @@ export function JobSearchScreen(_props: JobSearchScreenProps) {
             <Sparkles className="h-10 w-10 text-cyan-500/60 mx-auto" />
             <h2 className="text-lg font-bold">No jobs available right now</h2>
             <p className="text-zinc-400 text-xs">No active jobs currently match your branch and graduation batch.</p>
-            <Button onClick={() => void refetch()} className="rounded-full" variant="secondary">Refresh</Button>
+            {status && status.remaining_to_interact > 0 && (
+              <Button onClick={() => void refetch()} className="rounded-full" variant="secondary">Refresh</Button>
+            )}
           </div>
         ) : (
           <div className="relative w-[92%] max-w-[400px] h-[75dvh]">

@@ -127,10 +127,12 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
         const row = (Array.isArray(data) ? data[0] : data) as RecordSwipeResult;
         setStatus((prev) => {
           if (!prev) return prev;
+          const interacted = row?.interacted_count ?? prev.interacted_count;
+          const dailyLimit = prev.daily_limit ?? 2;
           return {
             ...prev,
-            interacted_count: row?.interacted_count ?? prev.interacted_count,
-            remaining_to_interact: Math.max(0, 2 - (row?.interacted_count ?? prev.interacted_count)),
+            interacted_count: interacted,
+            remaining_to_interact: Math.max(0, dailyLimit - interacted),
             is_locked: Boolean(row?.is_locked),
             resets_at: row?.next_allowed_at ?? prev.resets_at,
           };

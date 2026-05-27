@@ -44,8 +44,8 @@ export function JobSwipeCard({ job, onLike, onPass, disabled = false }: JobSwipe
   return (
     <div className="h-full w-full">
       <GlowCard customSize className="h-full w-full">
-        <div className="flex h-full min-h-0 flex-col p-4">
-          <div className="flex-1 min-h-0 space-y-3 pr-1 max-h-[45vh] overflow-hidden">
+        <div className="flex h-full min-h-0 flex-col p-3">
+          <div className="flex-1 min-h-0 space-y-2 pr-1 max-h-[45vh] overflow-hidden">
             <div>
               <h2
                 className="text-2xl font-bold leading-tight text-white mb-1"
@@ -79,7 +79,7 @@ export function JobSwipeCard({ job, onLike, onPass, disabled = false }: JobSwipe
             </div>
           </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
               {(() => {
                 const MAX = 4;
@@ -122,7 +122,7 @@ export function JobSwipeCard({ job, onLike, onPass, disabled = false }: JobSwipe
               })()}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border border-white/15 bg-white/5 p-3">
                 <p className="text-[10px] uppercase tracking-wider text-zinc-400">Company</p>
                 <div className="mt-1 flex items-center text-sm font-semibold text-zinc-100">
@@ -137,7 +137,7 @@ export function JobSwipeCard({ job, onLike, onPass, disabled = false }: JobSwipe
             </div>
           </div>
 
-          <div className="mt-4 flex shrink-0 items-center justify-center gap-8 pb-4 pt-3">
+          <div className="mt-3 flex shrink-0 items-center justify-center gap-6 pb-3 pt-2">
             <Button
               type="button"
               onClick={onPass}
