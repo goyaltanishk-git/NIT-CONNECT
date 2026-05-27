@@ -146,16 +146,15 @@ export function MainLayout() {
         </div> 
 
         {/* Enhanced Bottom Navigation */}
-       { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 p-2">
-          <div className="flex justify-around items-center max-w-md mx-auto">
+      { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 px-2 py-1">
+         <div className="flex items-center w-full max-w-3xl mx-auto">
             {[
-              { tab: "news", icon: Globe, label: "News", gradient: "from-blue-400 to-purple-500" },
-              { tab: "discovery-global", icon: Globe, label: "Dating", gradient: "from-blue-400 to-purple-500" },
-              { tab: "job-search", icon: BriefcaseBusiness, label: "Jobs", gradient: "from-cyan-400 to-emerald-500" },
-              { tab: "profile", icon: User, label: "Account", gradient: "from-green-400 to-blue-500" },
-              ,
-               { tab: "discord", icon: User, label: "Discord", gradient: "from-green-400 to-blue-500" },
-            ].map(({ tab, icon: Icon, label, gradient }, index) => (
+              { tab: "news", icon: Globe, emoji: "📰", label: "News", accentText: "text-sky-300", accentRing: "ring-sky-300/20", accentBg: "bg-sky-300/10" },
+              { tab: "discord", icon: Globe, emoji: "👥", label: "Community", accentText: "text-emerald-300", accentRing: "ring-emerald-300/20", accentBg: "bg-emerald-300/10" },
+              { tab: "job-search", icon: BriefcaseBusiness, emoji: "💼", label: "Jobs", accentText: "text-cyan-300", accentRing: "ring-cyan-300/20", accentBg: "bg-cyan-300/10" },
+              { tab: "discovery-global", icon: Globe, emoji: "💘", label: "Dating", accentText: "text-rose-300", accentRing: "ring-rose-300/20", accentBg: "bg-rose-300/10" },
+              { tab: "profile", icon: User, emoji: "👤", label: "Profile", accentText: "text-violet-300", accentRing: "ring-violet-300/20", accentBg: "bg-violet-300/10" },
+            ].map(({ tab, emoji, label, accentText, accentRing, accentBg }, index) => (
               <Button
                 key={tab}
                 variant="ghost"
@@ -165,38 +164,36 @@ export function MainLayout() {
                    - pb-2: pushes the text up further
                    - pt-3: ensures icons aren't too high
                 */
-                className={`flex flex-col items-center justify-center pt-3 pb-2 px-3 gap-1.5 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden ${
+                className={`flex-1 flex flex-col items-center justify-center pt-1.5 pb-1 px-1.5 gap-0.5 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden min-h-[3.5rem] ${
                   activeTab === tab
-                    ? `bg-gradient-to-r ${gradient} shadow-lg scale-110 animate-pulse-glow`
+                    ? `bg-white/5 ring-1 ${accentRing} shadow-lg scale-105`
                     : "hover:bg-white/10 hover:scale-105"
                 } animate-bounce-in stagger-${index + 1}`}
               >
                 {/* Active Tab Glow */}
                 {activeTab === tab && (
-                  <div className={`absolute inset-0 bg-gradient-to-r ${gradient} opacity-30 blur-xl animate-pulse`}></div>
+                  <div className={`absolute inset-0 ${accentBg} opacity-50 blur-xl`}></div>
                 )}
                 
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
                 </div>
                 
-                <Icon className={`h-5 w-5 relative z-10 transition-all duration-300 ${
-                  activeTab === tab ? "animate-heartbeat text-white" : "text-white/70 group-hover:text-white group-hover:scale-110"
-                }`} />
+                <span aria-hidden className={`relative z-10 text-sm transition-all duration-300 select-none filter grayscale contrast-125 brightness-125 ${
+                  activeTab === tab ? `${accentText} transform scale-110` : "text-white/70 group-hover:text-white group-hover:scale-110"
+                }`}>{emoji}</span>
                 
-                <span className={`text-[10px] font-medium leading-none relative z-10 transition-all duration-300 ${
-                  activeTab === tab ? "text-white" : "text-white/70 group-hover:text-white"
+                <span className={`text-[8px] font-medium leading-none relative z-10 transition-all duration-300 whitespace-nowrap ${
+                  activeTab === tab ? `${accentText}` : "text-white/70 group-hover:text-white"
                 }`}>
                   {label}
                 </span>
 
                 {activeTab === tab && (
-                  <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse">
-                    <div className="absolute inset-0 bg-white rounded-full animate-ping"></div>
-                  </div>
+                  <div className={`absolute -top-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 rounded-full ${accentBg}`}></div>
                 )}
 
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 bg-white/20 animate-ping"></div>
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 bg-white/10 animate-ping"></div>
               </Button>
             ))}
           </div>

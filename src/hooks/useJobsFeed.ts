@@ -77,16 +77,16 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
   }, [ensureSession]);
 
   const fetchStatus = useCallback(async () => {
-    const data = await rpcCall("jobs_get_daily_status", { p_tz: "Asia/Kolkata" });
+    const data = await rpcCall("jobs_get_daily_status", { p_email: userEmail, p_tz: "Asia/Kolkata" });
     const row = Array.isArray(data) ? data[0] : data;
     setStatus((row ?? null) as JobDailyStatus | null);
-  }, [rpcCall]);
+  }, [rpcCall, userEmail]);
 
   const fetchFeed = useCallback(async () => {
-    const data = await rpcCall("jobs_get_daily_feed", { p_tz: "Asia/Kolkata" });
+    const data = await rpcCall("jobs_get_daily_feed", { p_email: userEmail, p_tz: "Asia/Kolkata" });
     const rows = (Array.isArray(data) ? data : []) as JobFeedItem[];
     setJobs(rows);
-  }, [rpcCall]);
+  }, [rpcCall, userEmail]);
 
   const refetch = useCallback(async (background = false) => {
     if (!userEmail) {
@@ -121,6 +121,7 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
         const data = await rpcCall("jobs_record_swipe", {
           p_job_id: jobId,
           p_action: action,
+          p_email: userEmail,
           p_tz: "Asia/Kolkata",
         });
 
@@ -143,7 +144,7 @@ export function useJobsFeed(userEmail?: string): UseJobsFeedReturn {
         isSwipingRef.current = false;
       }
     },
-    [ensureSession, rpcCall],
+    [ensureSession, rpcCall, userEmail],
   );
 
   const consumeJobFromList = useCallback((jobId: string) => {
