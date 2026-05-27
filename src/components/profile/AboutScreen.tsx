@@ -1,5 +1,5 @@
 import { ArrowUpRight, Heart, Briefcase, ShieldCheck, CheckCircle2, Newspaper, MessageSquare, ChevronDown } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, type Transition } from "framer-motion";
 import { useRef } from "react";
 import LogoImage from "../../styles/nitlogo.png";
 
@@ -27,7 +27,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
   };
 
   // Reusable smooth transition for boxes
-  const smoothTransition = { duration: 0.8, ease: [0.16, 1, 0.3, 1] };
+  const smoothTransition: Transition = { duration: 0.8, ease: "easeOut" };
 
   return (
     <div ref={scrollRef} className="h-full overflow-y-auto scroll-smooth bg-black text-white selection:bg-[#ff1453] selection:text-white relative"
@@ -91,7 +91,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
           100% { transform: scale(2.4); opacity: 0; }
         }
         .scroll-indicator {
-          animation: scroll-fade-in 1s ease 1.2s both;
+          animation: scroll-fade-in 0.7s ease 0s both;
         }
         .scroll-indicator-btn {
           animation: scroll-glow-pulse 1.6s ease-in-out infinite;
@@ -157,32 +157,29 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...smoothTransition, delay: 0.3 }}
-              className="mt-12 relative z-20"
+              className="mt-12 relative z-20 flex flex-col items-center"
             >
               <button onClick={onBack} className="bg-[#ff1453] hover:bg-[#ff2a63] text-white px-10 py-5 rounded-full font-bold text-xl md:text-2xl transition-all shadow-[0_0_30px_rgba(255,20,83,0.3)] hover:shadow-[0_0_50px_rgba(255,20,83,0.5)] flex items-center gap-3 uppercase tracking-widest hover:-translate-y-1 cursor-pointer">
                 Get Started
                 <ArrowUpRight className="w-6 h-6" />
               </button>
+
+              <div className="scroll-indicator mt-8 flex flex-col items-center gap-3 select-none z-20">
+                <span className="font-clash text-xs uppercase tracking-[0.35em] text-white/60">Scroll to explore</span>
+                <div className="relative flex items-center justify-center">
+                  <div className="scroll-ripple absolute w-12 h-12 rounded-full border border-[#ff1453]/60 pointer-events-none" />
+                  <div className="scroll-ripple-2 absolute w-12 h-12 rounded-full border border-[#ff1453]/40 pointer-events-none" />
+                  <button
+                    onClick={() => scrollTo('features')}
+                    className="scroll-indicator-btn relative w-12 h-12 rounded-full bg-[#ff1453] flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+                    aria-label="Scroll down"
+                  >
+                    <ChevronDown className="scroll-indicator-arrow w-6 h-6 text-white" strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
-
-          {/* Scroll indicator */}
-          <div className="scroll-indicator absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 select-none z-20">
-            <span className="font-clash text-xs uppercase tracking-[0.35em] text-white/60">Scroll to explore</span>
-            <div className="relative flex items-center justify-center">
-              {/* Ripple rings */}
-              <div className="scroll-ripple absolute w-12 h-12 rounded-full border border-[#ff1453]/60 pointer-events-none" />
-              <div className="scroll-ripple-2 absolute w-12 h-12 rounded-full border border-[#ff1453]/40 pointer-events-none" />
-              {/* Main glowing button */}
-              <button
-                onClick={() => scrollTo('features')}
-                className="scroll-indicator-btn relative w-12 h-12 rounded-full bg-[#ff1453] flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-                aria-label="Scroll down"
-              >
-                <ChevronDown className="scroll-indicator-arrow w-6 h-6 text-white" strokeWidth={2.5} />
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* BENTO GRID OF 4 FEATURES */}

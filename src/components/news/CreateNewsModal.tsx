@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 interface CreateNewsModalProps {
   onClose: () => void;
@@ -146,96 +147,92 @@ if (!file) {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-black border border-white/10 p-6 rounded-xl w-[400px] space-y-4 text-white">
-        {/* Title */}
-        <h2 className="text-lg font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
-          Create News Post
-        </h2>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
-        {/* Caption */}
-        <textarea
-          placeholder="Write your news caption..."
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          rows={4}
-          className="w-full p-3 bg-white/5 border border-white/10 rounded-lg resize-none outline-none"
-        />
-        <div className="space-y-2">
-  <label className="text-sm text-gray-400">Who can see this news?</label>
+        .auth-display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+        .auth-body { font-family: 'IBM Plex Sans', sans-serif; }
+      `}</style>
+      <div className="mx-auto w-full max-w-[560px] px-4">
+        <Card className="relative w-full overflow-hidden border border-pink-500/25 bg-black/85 text-white shadow-[0_0_0_1px_rgba(255,20,83,0.12),0_30px_80px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-pink-500 to-transparent" />
 
-  <select
-    value={scope}
-    onChange={(e) =>
-      setScope(e.target.value as "college" | "global")
-    }
-    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none"
-  >
-    <option value="college" className="bg-black">
-      🏫 My College Only
-    </option>
-    <option value="global" className="bg-black">
-      🌍 Global (All Colleges)
-    </option>
-  </select>
-</div>
+          <CardHeader className="space-y-3 border-b border-white/8 px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="auth-display text-2xl md:text-3xl text-white">Create News Post</CardTitle>
+                <CardDescription className="auth-body text-sm text-white/60">Share an update with your college community. Posts are reviewable by admins.</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
 
-        {/* Image Picker */}
-        <div className="flex justify-center">
-          <label className="relative cursor-pointer">
-            <div className="h-48 w-48 rounded-2xl border-2 border-dashed border-pink-500/40 bg-white/5 flex items-center justify-center overflow-hidden hover:bg-white/10 transition">
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="preview"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex flex-col items-center text-gray-400">
-                  <span className="text-3xl">📰</span>
-                  <span className="text-xs mt-2">Upload News Image</span>
-                </div>
-              )}
+          <CardContent className="space-y-4 px-6 py-6">
+            <div className="space-y-2">
+              <label className="auth-body text-xs uppercase tracking-[0.3em] text-white/45">Caption</label>
+              <textarea
+                placeholder="Write your news caption..."
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={4}
+                className="w-full p-3 bg-white/5 border border-white/10 rounded-lg resize-none outline-none text-white"
+              />
             </div>
 
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (!f) return;
+            <div className="space-y-2">
+              <label className="auth-body text-xs uppercase tracking-[0.3em] text-white/45">Visibility</label>
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value as "college" | "global")}
+                className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white outline-none"
+              >
+                <option value="college" className="bg-black">🏫 My College Only</option>
+                <option value="global" className="bg-black">🌍 Global (All Colleges)</option>
+              </select>
+            </div>
 
-                setFile(f);
-                setPreview(URL.createObjectURL(f));
-              }}
-            />
-          </label>
-        </div>
+            <div>
+              <label className="auth-body text-xs uppercase tracking-[0.3em] text-white/45">Image</label>
+              <div className="mt-2 flex justify-center">
+                <label className="relative cursor-pointer">
+                  <div className="h-48 w-full max-w-[420px] rounded-2xl border-2 border-dashed border-pink-500/30 bg-white/5 flex items-center justify-center overflow-hidden hover:bg-white/10 transition">
+                    {preview ? (
+                      <img src={preview} alt="preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex flex-col items-center text-gray-400">
+                        <span className="text-4xl">📰</span>
+                        <span className="text-sm mt-2">Upload News Image</span>
+                      </div>
+                    )}
+                  </div>
 
-        {/* Buttons */}
-        <div className="flex gap-2">
-          <Button
-            onClick={handleCreate}
-            disabled={loading}
-            className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600"
-          >
-            {loading ? "Submitting..." : "Submit News"}
-          </Button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      setFile(f);
+                      setPreview(URL.createObjectURL(f));
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
 
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-        </div>
+            <div className="flex gap-3">
+              <Button onClick={handleCreate} disabled={loading} className="flex-1 group h-12 border border-pink-500/30 bg-pink-500 text-black hover:bg-pink-400">
+                {loading ? "Submitting..." : "Submit News"}
+              </Button>
 
-        {/* Info */}
-        <p className="text-xs text-gray-400 text-center">
-          Your news post will be visible after admin approval.
-        </p>
+              <Button variant="ghost" onClick={onClose} disabled={loading} className="flex-1 h-12">
+                Cancel
+              </Button>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center">Your news post will be visible after admin approval.</p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
