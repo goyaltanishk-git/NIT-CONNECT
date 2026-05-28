@@ -17,7 +17,7 @@ export function CreateNewsModal({
   onCreated,
 }: CreateNewsModalProps) {
   const [caption, setCaption] = useState("");
-  const [scope, setScope] = useState("");
+  const [scope, setScope] = useState("college");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -72,7 +72,7 @@ if (!file) {
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("news-images")
-        .upload(fileName, file as File);
+        .upload(fileName, file);
 
      if (uploadError) {
   console.error("UPLOAD FAILED:", uploadError);
@@ -131,6 +131,8 @@ toast({ title: 'Upload complete', description: 'Image uploaded' });
     description:
       "Your news post is awaiting admin approval.",
   });
+  console.log(data);
+  console.log(error);
 
   onCreated();
   onClose();

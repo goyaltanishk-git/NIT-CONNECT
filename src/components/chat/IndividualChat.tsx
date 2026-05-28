@@ -186,7 +186,7 @@ const [loadingProfile, setLoadingProfile] = useState(false); // Add this if miss
   // 🆕 Create the complex Profile object that UserProfileDialog expects
  
   return (
-    <div className="  h-full flex flex-col bg-gradient-to-b from-background to-primary/5">
+    <div className="  h-screen flex flex-col bg-gradient-to-b from-background to-primary/5">
       {/* Enhanced Header */}
       {/* Increased padding from p-6 to p-8 */}
       <div className="bg-card border-b border-border p-5 shadow-sm backdrop-blur-sm">

@@ -216,7 +216,7 @@ export function ProfileScreen() {
             </div>
           </div>
         </div>
-      <div className="flex items-center justify-center h-full bg-black">
+      <div className="flex items-center justify-center min-h-dvh bg-black">
         <div className="text-center space-y-6 animate-fade-in">
           <div className="relative">
             <div className="loading-heart mx-auto"></div>
@@ -235,7 +235,7 @@ export function ProfileScreen() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
+      <div className="flex items-center justify-center min-h-dvh bg-black">
         <div className="text-center space-y-6 animate-fade-in">
           <User className="h-20 w-20 text-pink-500/60 mx-auto" />
           <div className="space-y-4">

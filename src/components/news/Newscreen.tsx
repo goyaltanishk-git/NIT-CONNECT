@@ -183,7 +183,7 @@ export default function NewsScreen() {
   // --------------------------------------------------
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-black px-6">
+      <div className="flex items-center justify-center h-dvh bg-black px-6">
         <div className="max-w-sm text-center space-y-5 animate-fade-in">
           <div className="relative mx-auto">
             <div className="loading-heart mx-auto"></div>

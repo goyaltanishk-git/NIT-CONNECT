@@ -123,7 +123,7 @@ export function JobSearchScreen(_props: JobSearchScreenProps) {
 
   if (loading || checking) {
     return (
-      <div className="flex items-center justify-center h-full bg-black text-white">
+      <div className="flex items-center justify-center min-h-dvh bg-black text-white">
         <div className="text-center space-y-6 animate-fade-in">
           <div className="relative">
             <div className="loading-heart mx-auto"></div>

@@ -122,7 +122,7 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
   // Loading state
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#050506]">
+      <div className="flex min-h-dvh items-center justify-center bg-[#050506]">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-400 border-t-transparent" />

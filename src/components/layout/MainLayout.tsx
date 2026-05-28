@@ -16,6 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { CommunityScreen } from "../Community/CommunityScreen";
 import NewsScreen from "../news/Newscreen";
+  import {
+  Newspaper,
+  Users,
+} from "lucide-react";
 
 type Profile = Tables<"profiles">;
 
@@ -71,6 +75,8 @@ export function MainLayout() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const[ischatopen,setischatopen]=useState(false);
+  const[iscommunityopen,setiscommunityopen]=useState(false);
+  
   const activeTheme = pageThemes[activeTab as keyof typeof pageThemes] ?? pageThemes["discovery-global"];
 
   useEffect(() => {
@@ -117,7 +123,7 @@ export function MainLayout() {
   }
 
   return (
-    <div className="h-dvh bg-red text-white ">
+    <div className="h-dvh  bg-gradient-to-br from-[#0b1020] via-[#111827] to-[#1e1b4b] text-white ">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-dvh">
 
         {/* Enhanced Glassmorphism Header */}
@@ -188,65 +194,117 @@ export function MainLayout() {
             <DatingSettingsScreen onBack={() => setActiveTab("discovery-global")} />
           </TabsContent>
            <TabsContent value="discord" className="min-h-full animate-fade-in">
-            <CommunityScreen  />
+            <CommunityScreen   setiscommunityopen={setiscommunityopen} />
           </TabsContent>
         </div> 
 
         {/* Enhanced Bottom Navigation */}
-      { (ischatopen==false)&&(<div className="sticky bottom-0 z-50 glass border-t border-white/10 px-2 py-0.5">
-          <div className="flex items-center w-full max-w-3xl mx-auto">
-            {[
-              { tab: "news", icon: Globe, label: "News", accentText: "#7dd3fc", accentRing: "ring-sky-300/20", accentBg: "bg-sky-300/10" },
-              { tab: "discord", icon: MessageCircle, label: "Community", accentText: "#6ee7b7", accentRing: "ring-emerald-300/20", accentBg: "bg-emerald-300/10" },
-              { tab: "job-search", icon: BriefcaseBusiness, label: "Jobs", accentText: "#67e8f9", accentRing: "ring-cyan-300/20", accentBg: "bg-cyan-300/10" },
-              { tab: "discovery-global", icon: Heart, label: "Dating", accentText: "#fb7185", accentRing: "ring-rose-300/20", accentBg: "bg-rose-300/10" },
-              { tab: "profile", icon: User, label: "Profile", accentText: "#c084fc", accentRing: "ring-violet-300/20", accentBg: "bg-violet-300/10" },
-            ].map(({ tab, icon: Icon, label, accentText, accentRing, accentBg }, index) => {
-              const tabTheme = tabThemes[tab as keyof typeof tabThemes];
+      { (ischatopen==false)&&(iscommunityopen==false)&&(
+       
 
-              return (
-              <Button
-                key={tab}
-                variant="ghost"
-                onClick={() => setActiveTab(tab)}
-                /* UPDATED LAYOUT: 
-                   - gap-1.5: increased space between icon and text
-                   - pb-2: pushes the text up further
-                   - pt-3: ensures icons aren't too high
-                */
-                className={`flex-1 flex flex-col items-center justify-center pt-0.5 pb-0.5 px-0.5 gap-0.5 rounded-2xl transition-all duration-500 interactive group relative overflow-hidden min-h-[3rem] ${
-                  activeTab === tab
-                    ? "shadow-none scale-100"
-                    : "hover:bg-white/10 hover:scale-105"
-                } animate-bounce-in stagger-${index + 1}`}
-                style={activeTab === tab ? { backgroundColor: tabTheme.activeBg, boxShadow: tabTheme.activeShadow } : undefined}
+
+<div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm">
+  <div className="relative rounded-[26px] border border-white/10 bg-white/5 backdrop-blur-3xl shadow-[0_10px_40px_rgba(0,0,0,0.35)] px-2 py-1.5 overflow-hidden">
+
+    {/* Main Glass Gradient */}
+    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-violet-500/10 to-pink-500/10"></div>
+
+    {/* Top Light Reflection */}
+    <div className="absolute inset-x-0 top-0 h-[1px] bg-white/20"></div>
+
+    <div className="relative flex items-center justify-between">
+      {[
+        {
+          tab: "news",
+          icon: Newspaper,
+          filledIcon: Newspaper,
+          label: "News",
+          active: "from-sky-500 to-cyan-400",
+        },
+        {
+          tab: "discord",
+          icon: Users,
+          filledIcon: Users,
+          label: "Community",
+          active: "from-emerald-500 to-teal-400",
+        },
+        {
+          tab: "job-search",
+          icon: BriefcaseBusiness,
+          filledIcon: BriefcaseBusiness,
+          label: "Jobs",
+          active: "from-cyan-500 to-blue-500",
+        },
+        {
+          tab: "discovery-global",
+          icon: Heart,
+          filledIcon: Heart,
+          label: "Dating",
+          active: "from-rose-500 to-pink-500",
+        },
+        {
+          tab: "profile",
+          icon: User,
+          filledIcon: User,
+          label: "Profile",
+          active: "from-violet-500 to-fuchsia-500",
+        },
+      ].map(({ tab, icon: Icon, filledIcon: FilledIcon, label, active }) => {
+        const isActive = activeTab === tab;
+
+        return (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`relative flex flex-col items-center justify-center rounded-[20px] px-3 py-2 min-w-[58px] transition-all duration-300`}
+          >
+            {/* Active Gradient Fill */}
+            {isActive && (
+              <>
+                <div
+                  className={`absolute inset-0 rounded-[20px] bg-gradient-to-br ${active} shadow-lg`}
+                />
+
+                {/* Gloss effect */}
+                <div className="absolute inset-0 rounded-[20px] bg-white/10"></div>
+
+                {/* Glow */}
+                <div
+                  className={`absolute -inset-[1px] rounded-[22px] bg-gradient-to-br ${active} blur-md opacity-40`}
+                ></div>
+              </>
+            )}
+
+            <div className="relative z-10 flex flex-col items-center gap-[2px]">
+              
+              {/* iOS Filled Active Icons */}
+              {isActive ? (
+                <FilledIcon
+                  className="h-[18px] w-[18px] text-white fill-white"
+                  strokeWidth={2.4}
+                />
+              ) : (
+                <Icon
+                  className="h-[18px] w-[18px] text-white/60"
+                  strokeWidth={2.2}
+                />
+              )}
+
+              <span
+                className={`text-[10px] font-medium tracking-tight transition-all duration-300 ${
+                  isActive ? "text-white" : "text-white/55"
+                }`}
               >
-                {activeTab === tab && <div className={`absolute inset-0 ${accentBg} opacity-70 blur-xl`}></div>}
-                
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
-                </div>
-                
-                <span aria-hidden className="relative z-10 transition-all duration-300 select-none">
-                  <Icon
-                    className="h-4 w-4"
-                    style={{ color: activeTab === tab ? "#ffffff" : "rgba(255,255,255,0.7)" }}
-                  />
-                </span>
-                
-                <span
-                  className="text-[8.5px] font-medium leading-none relative z-10 transition-all duration-300 whitespace-nowrap"
-                  style={{ color: activeTab === tab ? "#ffffff" : "rgba(255,255,255,0.7)" }}
-                >
-                  {label}
-                </span>
-
-                <div className="absolute inset-0 rounded-2xl opacity-0 group-active:opacity-100 bg-white/10 animate-ping"></div>
-              </Button>
-              );
-            })}
-          </div>
-        </div>)}
+                {label}
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  </div>
+</div>
+      )}
       </Tabs>
 
       <div
