@@ -16,7 +16,7 @@ export interface JobFormData {
   work_mode: "onsite" | "remote" | "hybrid";
   stipend_salary_label: string;
   application_url: string;
-  tag_pills: string;
+  tag_pills: string; 
   expires_at: string;
   target_batches: string[]; // Changed to array
   selected_manual_branches: string[];
