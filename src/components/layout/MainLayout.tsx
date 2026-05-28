@@ -20,6 +20,45 @@ import NewsScreen from "../news/Newscreen";
   Newspaper,
   Users,
 } from "lucide-react";
+import { motion } from "framer-motion";
+
+const tabs = [
+  {
+    tab: "news",
+    icon: Newspaper,
+    filledIcon: Newspaper,
+    label: "News",
+    active: "from-sky-500 to-cyan-400",
+  },
+  {
+    tab: "discord",
+    icon: Users,
+    filledIcon: Users,
+    label: "Community",
+    active: "from-emerald-500 to-teal-400",
+  },
+  {
+    tab: "job-search",
+    icon: BriefcaseBusiness,
+    filledIcon: BriefcaseBusiness,
+    label: "Jobs",
+    active: "from-cyan-500 to-blue-500",
+  },
+  {
+    tab: "discovery-global",
+    icon: Heart,
+    filledIcon: Heart,
+    label: "Dating",
+    active: "from-rose-500 to-pink-500",
+  },
+  {
+    tab: "profile",
+    icon: User,
+    filledIcon: User,
+    label: "Profile",
+    active: "from-violet-500 to-fuchsia-500",
+  },
+];
 
 type Profile = Tables<"profiles">;
 
@@ -203,104 +242,184 @@ export function MainLayout() {
        
 
 
-<div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm">
-  <div className="relative rounded-[26px] border border-white/10 bg-white/5 backdrop-blur-3xl shadow-[0_10px_40px_rgba(0,0,0,0.35)] px-2 py-1.5 overflow-hidden">
 
-    {/* Main Glass Gradient */}
-    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-violet-500/10 to-pink-500/10"></div>
 
-    {/* Top Light Reflection */}
-    <div className="absolute inset-x-0 top-0 h-[1px] bg-white/20"></div>
 
-    <div className="relative flex items-center justify-between">
-      {[
-        {
-          tab: "news",
-          icon: Newspaper,
-          filledIcon: Newspaper,
-          label: "News",
-          active: "from-sky-500 to-cyan-400",
-        },
-        {
-          tab: "discord",
-          icon: Users,
-          filledIcon: Users,
-          label: "Community",
-          active: "from-emerald-500 to-teal-400",
-        },
-        {
-          tab: "job-search",
-          icon: BriefcaseBusiness,
-          filledIcon: BriefcaseBusiness,
-          label: "Jobs",
-          active: "from-cyan-500 to-blue-500",
-        },
-        {
-          tab: "discovery-global",
-          icon: Heart,
-          filledIcon: Heart,
-          label: "Dating",
-          active: "from-rose-500 to-pink-500",
-        },
-        {
-          tab: "profile",
-          icon: User,
-          filledIcon: User,
-          label: "Profile",
-          active: "from-violet-500 to-fuchsia-500",
-        },
-      ].map(({ tab, icon: Icon, filledIcon: FilledIcon, label, active }) => {
-        const isActive = activeTab === tab;
 
-        return (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`relative flex flex-col items-center justify-center rounded-[20px] px-3 py-2 min-w-[58px] transition-all duration-300`}
-          >
-            {/* Active Gradient Fill */}
-            {isActive && (
-              <>
-                <div
-                  className={`absolute inset-0 rounded-[20px] bg-gradient-to-br ${active} shadow-lg`}
-                />
 
-                {/* Gloss effect */}
-                <div className="absolute inset-0 rounded-[20px] bg-white/10"></div>
 
-                {/* Glow */}
-                <div
-                  className={`absolute -inset-[1px] rounded-[22px] bg-gradient-to-br ${active} blur-md opacity-40`}
-                ></div>
-              </>
-            )}
+<div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-sm">
+  <div
+    className="
+      relative overflow-hidden
+      rounded-[20px]
+      border border-white/[0.06]
+      bg-black/80
+      backdrop-blur-3xl
+      shadow-[0_8px_30px_rgba(0,0,0,0.55)]
+      px-1.5 py-1
+    "
+  >
+    {/* Glass Overlay */}
+    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.02]" />
 
-            <div className="relative z-10 flex flex-col items-center gap-[2px]">
-              
-              {/* iOS Filled Active Icons */}
-              {isActive ? (
-                <FilledIcon
-                  className="h-[18px] w-[18px] text-white fill-white"
-                  strokeWidth={2.4}
-                />
-              ) : (
-                <Icon
-                  className="h-[18px] w-[18px] text-white/60"
-                  strokeWidth={2.2}
-                />
+    {/* Reflection */}
+    <div className="absolute inset-x-0 top-0 h-[1px] bg-white/[0.08]" />
+
+    <div className="relative flex items-center justify-between gap-1">
+      {tabs.map(
+        ({ tab, icon: Icon, filledIcon: FilledIcon, label, active }) => {
+          const isActive = activeTab === tab;
+
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className="
+                relative flex-1
+                flex flex-col items-center justify-center
+                rounded-[14px]
+                px-2 py-1
+                min-w-[52px]
+                overflow-hidden
+                transition-all duration-300
+                group
+              "
+            >
+              {/* iOS Sliding Active Background */}
+              {isActive && (
+                <motion.div
+                  layoutId="ios26-navbar-pill"
+                  transition={{
+                    type: "spring",
+                    stiffness: 380,
+                    damping: 30,
+                  }}
+                  className={`
+                    absolute inset-0
+                    rounded-[14px]
+                    bg-gradient-to-br ${active}
+                  `}
+                >
+                  {/* Gloss */}
+                  <div className="absolute inset-0 rounded-[14px] bg-white/[0.10]" />
+
+                  {/* Glow */}
+                  <div
+                    className={`
+                      absolute -inset-[1px]
+                      rounded-[16px]
+                      bg-gradient-to-br ${active}
+                      blur-md opacity-35
+                    `}
+                  />
+
+                  {/* Reflection */}
+                  <div
+                    className="
+                      absolute inset-x-2 top-[1px]
+                      h-[35%]
+                      rounded-full
+                      bg-white/[0.16]
+                      blur-sm
+                    "
+                  />
+                </motion.div>
               )}
 
-              <span
-                className={`text-[10px] font-medium tracking-tight transition-all duration-300 ${
-                  isActive ? "text-white" : "text-white/55"
-                }`}
-              >
-                {label}
-              </span>
-            </div>
-          </button>
-        );
-      })}
+              {/* Hover Glass */}
+              {!isActive && (
+                <>
+                  <div
+                    className="
+                      absolute inset-0 rounded-[14px]
+                      opacity-0 group-hover:opacity-100
+                      bg-white/[0.05]
+                      backdrop-blur-xl
+                      transition-all duration-300
+                    "
+                  />
+
+                  {/* Shine */}
+                  <div
+                    className="
+                      absolute inset-0 rounded-[14px]
+                      opacity-0 group-hover:opacity-100
+                      transition-all duration-500
+                      bg-gradient-to-br
+                      from-white/[0.08]
+                      to-transparent
+                    "
+                  />
+
+                  {/* Moving reflection */}
+                  <div className="absolute inset-0 overflow-hidden rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div
+                      className="
+                        absolute top-0 -left-[120%]
+                        h-full w-[60%]
+                        rotate-12
+                        bg-white/[0.08]
+                        blur-md
+                        group-hover:left-[140%]
+                        transition-all duration-1000
+                      "
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Content */}
+              <div className="relative z-10 flex flex-col items-center gap-[1px]">
+                {/* Icon */}
+                {isActive ? (
+                  <motion.div
+                    initial={{ scale: 0.85 }}
+                    animate={{ scale: 1 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 18,
+                    }}
+                  >
+                    <FilledIcon
+                      className="h-[15px] w-[15px] text-white fill-white"
+                      strokeWidth={2.6}
+                    />
+                  </motion.div>
+                ) : (
+                  <Icon
+                    className="
+                      h-[15px] w-[15px]
+                      text-white/50
+                      group-hover:text-white/90
+                      transition-all duration-300
+                    "
+                    strokeWidth={2.2}
+                  />
+                )}
+
+                {/* Label */}
+                <span
+                  className={`
+                    text-[8px]
+                    font-medium
+                    tracking-tight
+                    transition-all duration-300
+                    ${
+                      isActive
+                        ? "text-white"
+                        : "text-white/45 group-hover:text-white/80"
+                    }
+                  `}
+                >
+                  {label}
+                </span>
+              </div>
+            </button>
+          );
+        }
+      )}
     </div>
   </div>
 </div>
