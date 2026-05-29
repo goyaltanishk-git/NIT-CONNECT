@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 interface CreateNewsModalProps {
@@ -21,7 +21,7 @@ export function CreateNewsModal({
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const { toast } = useToast();
+  
 
   // Get current user's email from encrypted storage
   const getEmail = () => {
@@ -32,29 +32,21 @@ export function CreateNewsModal({
   const handleCreate = async () => {
     const email = getEmail();
     console.log('[CreateNewsModal] handleCreate invoked');
-    toast({ title: 'Submitting news', description: 'Starting submission...', });
+    
 
    if (!email) {
   console.warn('[CreateNewsModal] user email missing');
-  toast({ title: "User not found", description: 'Please sign in before posting', variant: "destructive" });
+ toast.error("Please sign in before posting");
   return;
 }
 
    if (!caption.trim()) {
-  toast({
-    title: "Caption required",
-    description: "Please enter a caption",
-    variant: "destructive",
-  });
+ toast.error("Please enter a caption");
   return;
 }
 
 if (!file) {
-  toast({
-    title: "Image required",
-    description: "Please select an image",
-    variant: "destructive",
-  });
+  toast.error("Please select an image");
   return;
 }
 
@@ -67,7 +59,7 @@ if (!file) {
       const fileExt = file.name.split(".").pop();
       const fileName = `news-${Date.now()}.${fileExt}`;
 
-      toast({ title: 'Uploading image', description: 'Uploading to storage...' });
+    
       console.log('[CreateNewsModal] uploading file', fileName, file);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -77,14 +69,14 @@ if (!file) {
      if (uploadError) {
   console.error("UPLOAD FAILED:", uploadError);
 
-  toast({ title: "Upload failed", description: uploadError.message || "Failed to upload image", variant: "destructive" });
+toast.error(uploadError.message || "Failed to upload image");
 
   setLoading(false);
   return;
 }
 
 console.log('[CreateNewsModal] uploadData', uploadData);
-toast({ title: 'Upload complete', description: 'Image uploaded' });
+toast.success("Image uploaded");
 
       // ==========================================
       // 2. Get public URL
@@ -97,7 +89,7 @@ toast({ title: 'Upload complete', description: 'Image uploaded' });
       console.log('[CreateNewsModal] publicUrl', imageUrl);
 
       if (!imageUrl) {
-        toast({ title: 'Upload error', description: 'Could not get public URL', variant: 'destructive' });
+        toast.error("Could not get public URL");
         setLoading(false);
         return;
       }
@@ -105,7 +97,7 @@ toast({ title: 'Upload complete', description: 'Image uploaded' });
       // ==========================================
       // 3. Create news post using RPC
       // ==========================================
-      toast({ title: 'Creating news', description: 'Calling backend...' });
+     
       const { data, error } = await supabase.rpc("create_news", {
         p_email: email,
         p_caption: caption,
@@ -116,41 +108,28 @@ toast({ title: 'Upload complete', description: 'Image uploaded' });
      if (error) {
   console.error("RPC ERROR:", error);
 
-  toast({ title: "Failed to create news", description: error.message || "Something went wrong while creating the news post", variant: "destructive" });
+toast.error(error.message || "Failed to create news");
 
-  setLoading(false);
-  return;
-}
 
       // ==========================================
       // 4. Handle result
       // ==========================================
      if (data === "CREATED") {
-  toast({
-    title: "News submitted",
-    description:
-      "Your news post is awaiting admin approval.",
-  });
+  toast.success("News submitted", {
+  description: "Your news post is awaiting admin approval.",
+});
   console.log(data);
   console.log(error);
 
   onCreated();
   onClose();
 } else {
-  toast({
-    title: "Unexpected response",
-    description: String(data),
-    variant: "destructive",
-  });
+  toast.error(`Unexpected response: ${String(data)}`);
 }
 }catch (err) {
   console.error("CREATE NEWS ERROR:", err);
 
-  toast({
-    title: "Unexpected error",
-    description: "Something went wrong",
-    variant: "destructive",
-  });
+  toast.error("Something went wrong");
 }finally { setLoading(false); } };
 
   return (

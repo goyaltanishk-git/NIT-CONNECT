@@ -183,24 +183,28 @@ export default function NewsScreen() {
   // --------------------------------------------------
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-black px-6">
-        <div className="max-w-sm text-center space-y-5 animate-fade-in">
-          <div className="relative mx-auto">
-            <div className="loading-heart mx-auto"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-pink-500 animate-pulse" />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <h3 className="text-3xl font-black tracking-tight text-white">
-              Loading the feed.
-            </h3>
-            <p className="text-sm leading-6 text-white/55">
-              Pulling the latest stories from your campus and the wider network.
-            </p>
-          </div>
-        </div>
+     <div className="flex items-center justify-center h-dvh bg-black px-6">
+  <div className="max-w-sm text-center space-y-5 animate-fade-in">
+    
+    <div className="relative flex items-center justify-center w-24 h-24 mx-auto">
+      <div className="loading-heart"></div>
+
+      <div className="absolute inset-0 flex items-center justify-center">
+        <Sparkles className="h-8 w-8 text-pink-500 animate-pulse" />
       </div>
+    </div>
+
+    <div className="space-y-3">
+      <h3 className="text-3xl font-black tracking-tight text-white">
+        Loading the feed.
+      </h3>
+
+      <p className="text-sm leading-6 text-white/55">
+        Pulling the latest stories from your campus and the wider network.
+      </p>
+    </div>
+  </div>
+</div>
     );
   }
 
