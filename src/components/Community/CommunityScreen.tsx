@@ -49,6 +49,7 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
     showUpgradePrompt,
     setShowUpgradePrompt,
     fetchCommunityMessages,
+    fetchPendingCreatedCommunities,
     joinCommunity,
     pendingCreatedCommunities,
     sendCommunityMessage,
@@ -84,9 +85,16 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
     await sendCommunityMessage(content);
   };
 
-  const handleJoinCommunity = async (communityId: string) => {
-    await joinCommunity(communityId);
-  };
+ const handleJoinCommunity = async (communityId: string) => {
+  const success = await joinCommunity(communityId);
+
+  if (success) {
+    setActiveTab("my");
+
+    // optional small delay for fresh fetch
+   
+  }
+};
 
   // Check if user is a member of a community
   const isMember = (communityId: string) => {
@@ -227,12 +235,15 @@ const [showAdminPanel, setShowAdminPanel] = useState(false);
         />
       )}
       {ShowCreate && (
-        <CreateCommunityModal
-          onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            // refresh explore
-          }}
-        />
+       <CreateCommunityModal
+  onClose={() => setShowCreate(false)}
+  onCreated={async() => {
+    setShowCreate(false);
+    await fetchPendingCreatedCommunities();
+    setActiveTab("my");
+
+  }}
+/>
       )}
     </div>
   );

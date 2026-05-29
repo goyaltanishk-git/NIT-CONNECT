@@ -109,7 +109,7 @@ const tabThemes = {
 } as const;
 
 export function MainLayout() {
-  const [activeTab, setActiveTab] = useState("discovery-global");
+  const [activeTab, setActiveTab] = useState("news");
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();

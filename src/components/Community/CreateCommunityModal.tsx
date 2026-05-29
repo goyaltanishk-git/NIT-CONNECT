@@ -2,6 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { encryptedStorage } from "@/utils/encryptedStorage";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Description } from "@radix-ui/react-toast";
 
 export function CreateCommunityModal({ onClose, onCreated }: any) {
   const [name, setName] = useState("");
@@ -65,34 +67,38 @@ setLoading(false);
 console.log(data);
 if (error) {
   console.error(error);
-  alert("Something went wrong");
+ toast.error("Something went wrong");
   return;
 }
 
 // 🔥 Handle function responses
 if (data === "LIMIT_REACHED") {
-  alert("You can only create up to 2 communities");
+toast.error("You can only create up to 2 communities");
   return;
 }
 
 if (data === "NAME_EXISTS") {
-  alert("Community name already exists");
+toast.error("Community name already exists");
   return;
 }
 
 if (data === "INVALID_NAME") {
-  alert("Invalid community name");
+toast.error("Invalid community name");
   return;
 }
 
 if (data === "INVALID_JOIN_TYPE") {
-  alert("Invalid join type");
+toast.error("Invalid join type");
   return;
 }
 
 if (data === "CREATED") {
+   toast.success("Community creation request is  submitted", {
+  description: "Your Community request is awaiting admin approval.",
+});
   onCreated();
   onClose();
+
 }}
 
   return (

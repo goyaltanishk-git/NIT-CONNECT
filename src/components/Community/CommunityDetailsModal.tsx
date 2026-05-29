@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function CommunityDetailsModal({ community, onClose }: any) {
   const [memberCount, setMemberCount] = useState(0);
   const [moderatorName, setModeratorName] = useState("");
+  const [moderatorCollege, setModeratorCollege] = useState("");
   const [moderatorImage, setModeratorImage] = useState("");
   
 
@@ -24,6 +25,8 @@ export function CommunityDetailsModal({ community, onClose }: any) {
       setMemberCount(result?.member_count || 0);
       setModeratorName(result?.moderator_name || "");
       setModeratorImage(result?.moderator_image || "");
+       setModeratorCollege(result?.moderator_college || "");
+
     } catch (err) {
       console.error("Error fetching community details:", err);
     }
@@ -90,8 +93,12 @@ export function CommunityDetailsModal({ community, onClose }: any) {
             <div>
               <p className="text-gray-400 text-sm">Moderator</p>
               <p>{moderatorName || "Loading..."}</p>
+              <p className="color-grey">{moderatorCollege || "Loading..."}</p>
             </div>
-
+              
+            
+              
+            
           </div>
 
         </div>

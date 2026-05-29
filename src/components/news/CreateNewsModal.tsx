@@ -126,8 +126,7 @@ toast.error(error.message || "Failed to create news");
 } else {
   toast.error(`Unexpected response: ${String(data)}`);
 }
-}catch (err) {
-  console.error("CREATE NEWS ERROR:", err);
+}
 
   toast.error("Something went wrong");
 }finally { setLoading(false); } };

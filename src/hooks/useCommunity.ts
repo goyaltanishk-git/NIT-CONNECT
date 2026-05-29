@@ -29,6 +29,7 @@ export interface CommunityMessage {
   created_at: string;
   sender_email: string;
   sender_name: string;
+  college:string;
 
 }
 
@@ -166,6 +167,7 @@ const fetchPendingRequests = useCallback(async () => {
       });
       if (error) throw error;
       setCommunityMessages((data as CommunityMessage[]) || []);
+      
     } catch (err) {
       console.error('Error fetching community messages:', err);
     } finally {
@@ -258,7 +260,7 @@ const fetchPendingRequests = useCallback(async () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.email, fetchExploreCommunities, fetchMyCommunities]);
+  }, [currentUser?.email, fetchExploreCommunities, fetchMyCommunities,fetchPendingCreatedCommunities]);
 
   return {
     exploreCommunities,
@@ -273,7 +275,7 @@ const fetchPendingRequests = useCallback(async () => {
     showUpgradePrompt,
     setShowUpgradePrompt,
     fetchExploreCommunities,
-    fetchMyCommunities,
+    fetchPendingCreatedCommunities,
     fetchCommunityMessages,
     joinCommunity,
     pendingCreatedCommunities,

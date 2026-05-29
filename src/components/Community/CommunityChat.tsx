@@ -62,6 +62,7 @@ export function CommunityChat({
 
   const [requestsCount, setRequestsCount] = useState(0);
 
+
   // 🔥 FETCH REQUEST COUNT
   const fetchRequestCount = async () => {
     if (!isModerator) return;
@@ -262,11 +263,19 @@ export function CommunityChat({
                       : "bg-white/10 border border-white/10"
                   )}
                 >
-                  {!isMe && (
-                    <p className="text-xs mb-1 text-pink-400">
-                      {msg.first_name}
-                    </p>
-                  )}
+                 {!isMe && (
+  <div className="mb-1">
+    <p className="text-[10px] font-semibold text-pink-400">
+      {msg.sender_name}
+    </p>
+
+    {msg.college && (
+      <p className="text-[8px] text-gray-400">
+        {msg.college}
+      </p>
+    )}
+  </div>
+)}
                   <p>{msg.content}</p>
                 </div>
               </div>
