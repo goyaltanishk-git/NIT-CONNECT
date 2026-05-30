@@ -228,7 +228,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               <div>
                 <h2 className="font-clash text-4xl md:text-5xl font-bold leading-none mb-4 uppercase">Job<br/>Search.</h2>
                 <p className="text-white/60 text-lg leading-snug max-w-sm">
-                  New jobs added daily. Access a direct pipeline to all top engineering and tech companies through our exclusive alumni network.
+                  New jobs added daily. Access curated tech and core jobs.
                 </p>
               </div>
               <div className="hidden md:flex w-16 h-16 rounded-full bg-white/5 border border-white/10 items-center justify-center">
@@ -333,7 +333,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
           <ShieldCheck className="w-16 h-16 text-[#ff1453] mb-8" />
           <h2 className="font-clash text-5xl md:text-6xl font-bold leading-none mb-6 uppercase tracking-tight">Fort Knox Security.</h2>
           <p className="text-xl text-white/60 font-medium">
-            100% Student Verified. Entry strictly requires a valid <code className="text-[#ff1453] bg-[#ff1453]/10 px-2 rounded">.edu</code> email. Outsiders, fakes, and bots physically cannot join the network.
+            100% Student Verified. Entry strictly requires a valid <code className="text-[#ff1453] bg-[#ff1453]/10 px-2 rounded">nit student</code> email. Outsiders, fakes, and bots physically cannot join the network.
           </p>
         </motion.div>
 
@@ -355,10 +355,11 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               <p className="text-white/60 mb-8 text-lg">Everything you need to survive your campus life.</p>
               
               <ul className="space-y-4 text-white/80 font-medium">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> 10 Dating Swipes per day</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Join all public societies & clubs</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Access to the Job Board</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Basic E2E Encrypted Chat</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> 2 Dating Swipes per day</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Join upto 5 communities</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> 2 Job Swipes per day</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Encrypted Chat</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-white/20"/> Incognito for dating</li>
               </ul> 
             </div>
             <button onClick={onBack} className="mt-12 w-full py-4 rounded-full border border-white/20 hover:bg-white/10 font-bold transition-colors">
@@ -372,20 +373,23 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
             <div className="relative z-10">
               <div className="flex justify-between items-center mb-2">
                 <div className="text-xs font-bold uppercase tracking-widest text-black/60">Premium</div>
-                <div className="px-3 py-1 bg-black text-[#ff1453] text-[10px] font-bold uppercase tracking-widest rounded-full animate-pulse shadow-lg">Coming Soon</div>
               </div>
-              <div className="font-clash text-5xl font-bold mb-4">PRO</div>
+              <div className="font-clash text-5xl font-bold mb-4 flex items-baseline gap-2">
+                PRO <span className="text-sm font-medium opacity-80">
+                  <span className="line-through text-black/45 mr-1">₹100</span>
+                  <span className="font-bold text-black text-lg">₹29/mo</span>
+                </span>
+              </div>
               <p className="text-black/80 mb-8 text-lg font-medium">The ultimate unfair advantage for your NIT life.</p>
               
               <ul className="space-y-4 text-black/90 font-bold">
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> Unlimited Swipes & priority matching</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> Incognito Mode for Dating</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> Priority Alumni Job Referrals</li>
-                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> Verified PRO Badge</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> Unlimited dating swipes</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> Join upto 15 communities</li>
+                <li className="flex items-center gap-3"><CheckCircle2 className="w-6 h-6 text-black/40"/> 5 job swipes per day</li>
               </ul>
             </div>
             <button onClick={onBack} className="mt-12 w-full py-4 rounded-full bg-black text-white hover:bg-black/80 font-bold transition-colors shadow-2xl relative z-10">
-              Join the Waitlist
+              Upgrade Now
             </button>
           </div>
           

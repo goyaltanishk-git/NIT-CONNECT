@@ -24,6 +24,7 @@ import {
   Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatYearOfStudy } from "@/utils/incognitoUtils";
 
 interface UserProfile {
   name: string;
@@ -194,7 +195,7 @@ export function ProfileDialog({ user, isOpen, onClose }: ProfileDialogProps) {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">Year of Study:</span>
                         <Badge variant="secondary" className="font-medium">
-                          Year {user.year_of_study}
+                          {formatYearOfStudy(user.year_of_study)}
                         </Badge>
                       </div>
                     )}

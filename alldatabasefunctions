@@ -284,7 +284,7 @@ WHERE LOWER(TRIM(created_by)) = LOWER(TRIM(p_email));
     RETURN 'INVALID_NAME';
   END IF;
 
-  IF p_join_type NOT IN ('open', 'private') THEN
+  IF p_join_type NOT IN ('open', 'approval') THEN
     RETURN 'INVALID_JOIN_TYPE';
   END IF;
 

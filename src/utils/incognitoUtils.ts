@@ -202,3 +202,25 @@ export function createRevealMessage(profile: DatabaseProfile): string {
 Hi, I'm ${profile.first_name} ${profile.last_name}
 ${displayDetails.age ? `Age: ${displayDetails.age}\n` : ''}${displayDetails.year !== 'Hidden' ? `Year: ${displayDetails.year}\n` : ''}${displayDetails.branch !== 'Hidden' ? `Branch: ${displayDetails.branch}\n` : ''}${displayDetails.hometown !== 'Hidden' ? `From: ${displayDetails.hometown}\n` : ''}${profile.bio ? `\nAbout me: ${profile.bio}` : ''}`;
 }
+
+/**
+ * Normalizes study years (e.g. "3" or "3rd year") into ordinal format (e.g. "3rd Year").
+ */
+export function formatYearOfStudy(year: string | null | undefined): string {
+  if (!year) return "N/A";
+  const normalized = year.toLowerCase().trim();
+  if (normalized.includes("year")) {
+    return year.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  }
+  
+  const num = parseInt(normalized, 10);
+  if (!isNaN(num)) {
+    if (num === 1) return "1st Year";
+    if (num === 2) return "2nd Year";
+    if (num === 3) return "3rd Year";
+    if (num === 4) return "4th Year";
+    return `${num}th Year`;
+  }
+  
+  return year;
+}

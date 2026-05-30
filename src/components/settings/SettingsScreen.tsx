@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Heart,Sparkles } from "lucide-react";
-import { ArrowLeft } from "lucide-react";
-import * as Sentry from "@sentry/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +34,7 @@ import {
   Settings,
   EyeOff,
   Info,
-  Bug,
+  ArrowLeft,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -91,7 +89,6 @@ export function SettingsScreen({
 
   const [isIncognitoLoading, setIsIncognitoLoading] = useState(false);
   const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
-  const [isSentryTesting, setIsSentryTesting] = useState(false);
   const { toast } = useToast();
 
   const handleLogout = () => {
@@ -99,20 +96,7 @@ export function SettingsScreen({
     window.location.reload();
   };
 
-  const handleSentryTest = async () => {
-    setIsSentryTesting(true);
-    try {
-      Sentry.captureException(
-        new Error("Test error from Settings - Sentry integration check")
-      );
-      toast({
-        title: "Test Error Sent",
-        description: "Check your Sentry dashboard to verify error tracking is working.",
-      });
-    } finally {
-      setIsSentryTesting(false);
-    }
-  };
+
 
   const handleIncognitoToggle = async (enabled: boolean) => {
     setIsIncognitoLoading(true);
@@ -429,20 +413,7 @@ export function SettingsScreen({
                 </div>
               </Button>
 
-              <Button
-                variant="ghost"
-                className="w-full justify-start glass-light border border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-400 hover:text-yellow-300 interactive rounded-xl p-4 h-auto"
-                onClick={handleSentryTest}
-                disabled={isSentryTesting}
-              >
-                <Bug className="h-5 w-5 mr-3 flex-shrink-0" />
-                <div className="text-left whitespace-normal break-words">
-                  <p className="font-medium">Test Error Tracking</p>
-                  <p className="text-sm text-yellow-400/70">
-                    {isSentryTesting ? "Sending test error..." : "Verify Sentry integration"}
-                  </p>
-                </div>
-              </Button>
+
 
               <Separator className="bg-white/10" />
 

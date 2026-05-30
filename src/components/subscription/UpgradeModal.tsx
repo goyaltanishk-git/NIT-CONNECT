@@ -135,9 +135,13 @@ export function UpgradeModal({ open, onClose, userEmail, userName, onSuccess }: 
             </div>
           </div>
 
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center">
-            <span className="text-3xl font-bold text-white">₹1</span>
-            <span className="ml-1 text-sm text-white/45">/ month</span>
+          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-center flex flex-col justify-center items-center">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-white/45 mb-1">Limited Time Offer</div>
+            <div className="flex items-center gap-2 justify-center">
+              <span className="line-through text-white/30 text-lg">₹100</span>
+              <span className="text-3xl font-bold text-pink-500">₹29</span>
+              <span className="text-sm text-white/45">/ month</span>
+            </div>
           </div>
 
           <Button

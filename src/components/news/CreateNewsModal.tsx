@@ -97,39 +97,35 @@ toast.success("Image uploaded");
       // ==========================================
       // 3. Create news post using RPC
       // ==========================================
-     
       const { data, error } = await supabase.rpc("create_news", {
         p_email: email,
         p_caption: caption,
         p_image_url: imageUrl,
-        p_scope:scope
+        p_scope: scope
       });
 
-     if (error) {
-  console.error("RPC ERROR:", error);
-
-toast.error(error.message || "Failed to create news");
-
+      if (error) {
+        console.error("RPC ERROR:", error);
+        toast.error(error.message || "Failed to create news");
+        return;
+      }
 
       // ==========================================
       // 4. Handle result
       // ==========================================
-     if (data === "CREATED") {
-  toast.success("News submitted", {
-  description: "Your news post is awaiting admin approval.",
-});
-  console.log(data);
-  console.log(error);
-
-  onCreated();
-  onClose();
-} else {
-  toast.error(`Unexpected response: ${String(data)}`);
-}
-}
-
-  toast.error("Something went wrong");
-}finally { setLoading(false); } };
+      if (data === "CREATED") {
+        toast.success("News submitted", {
+          description: "Your news post is awaiting admin approval.",
+        });
+        onCreated();
+        onClose();
+      } else {
+        toast.error(`Unexpected response: ${String(data)}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
