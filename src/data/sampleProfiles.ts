@@ -23,7 +23,7 @@ export const SAMPLE_PROFILES: Profile[] = [
     user_id: "1",
     full_name: "Priya Sharma",
     age: 20,
-    bio: "Computer Science enthusiast who loves coding, coffee, and deep conversations. Always up for exploring new places around Kurukshetra! Looking for someone who shares my passion for technology and adventure. 💻☕",
+    bio: "Computer Science enthusiast who loves coding, coffee, and deep conversations. Always up for exploring new places around campus! Looking for someone who shares my passion for technology and adventure. 💻☕",
     year: 3,
     branch: "Computer Science",
     hometown: "Delhi",
@@ -40,7 +40,7 @@ export const SAMPLE_PROFILES: Profile[] = [
       { url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=600&fit=crop&crop=face", order: 4 }
     ],
     prompts: [
-      { question: "My ideal Sunday involves...", answer: "Coding a passion project while sipping artisan coffee, then exploring hidden cafes in Kurukshetra with someone special." },
+      { question: "My ideal Sunday involves...", answer: "Coding a passion project while sipping artisan coffee, then exploring hidden cafes around campus with someone special." },
       { question: "I'm looking for...", answer: "Someone who can match my energy for deep tech discussions and spontaneous adventures. Bonus points if you can debug my code! 😄" },
       { question: "My hidden talent is...", answer: "I can solve a Rubik's cube in under 60 seconds and make the perfect masala chai that'll change your life!" }
     ]

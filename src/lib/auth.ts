@@ -97,6 +97,15 @@ export class AuthService {
       const firstName = parts[0] || 'User';
       const lastName = parts[1] || 'Name';
       
+      const domain = email.toLowerCase().trim().split('@')[1] || '';
+      const domainToCollege: Record<string, string> = {
+        "nitkkr.ac.in": "NIT Kurukshetra",
+        "nith.ac.in": "NIT Hamirpur",
+        "mnit.ac.in": "MNIT Jaipur",
+        "nitjsr.ac.in": "NIT Jamshedpur",
+      };
+      const collegeName = domainToCollege[domain] || 'NIT Kurukshetra';
+
       const userData: ProfileInsert = {
         // REMOVED: user_id field (Column does not exist in DB)
         email: email,
@@ -113,7 +122,7 @@ export class AuthService {
         created_at: now,
         updated_at: now,
         last_active_at: now,
-        college: 'NIT Kurukshetra'
+        college: collegeName
       };
 
       const { data, error } = await supabase.from('profiles').insert(userData).select().single();

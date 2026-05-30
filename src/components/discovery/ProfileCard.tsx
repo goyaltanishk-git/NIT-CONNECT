@@ -35,7 +35,7 @@ export function ProfileCard({ profile, onLike, onPass, onSuperLike }: ProfileCar
   const displayDetails = getDisplayDetails(profile);
   const isAnonymous = shouldDisplayAnonymously(profile);
   const age = displayDetails.age;
-  const title = isAnonymous ? 'Student at NIT Kurukshetra' : `${displayDetails.year} • ${displayDetails.branch}`;
+  const title = isAnonymous ? (profile.college ? `Student at ${profile.college}` : 'Student at NIT') : `${displayDetails.year} • ${displayDetails.branch}`;
 
   const nextPhoto = () => setCurrentPhotoIndex((prev) => (prev + 1) % (displayPhotos.length || 1));
   const prevPhoto = () => setCurrentPhotoIndex((prev) => (prev - 1 + (displayPhotos.length || 1)) % (displayPhotos.length || 1));
