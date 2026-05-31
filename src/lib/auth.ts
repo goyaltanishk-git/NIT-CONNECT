@@ -106,6 +106,46 @@ export class AuthService {
       };
       const collegeName = domainToCollege[domain] || 'NIT Kurukshetra';
 
+      // Parse entry year to compute graduation batch and year of study
+      const prefixDigits = emailPrefix.replace(/\D/g, '');
+      let entryYear = 2023; // fallback default entry year (graduation 2027)
+
+      // 1. Look for a 4-digit year like 2023 in the prefix
+      const match4 = emailPrefix.match(/20(2[0-9]|3[0-9])/);
+      if (match4) {
+        entryYear = parseInt(match4[0]);
+      } else if (prefixDigits.length >= 8) {
+        // NIT Kurukshetra style: 123103075 -> the digits at index 1 and 2 are "23"
+        const entryYearShort = parseInt(prefixDigits.substring(1, 3));
+        if (entryYearShort >= 20 && entryYearShort <= 35) {
+          entryYear = 2000 + entryYearShort;
+        }
+      } else if (prefixDigits.length >= 2) {
+        // e.g. 231075 -> starts with 23
+        const entryYearShort = parseInt(prefixDigits.substring(0, 2));
+        if (entryYearShort >= 20 && entryYearShort <= 35) {
+          entryYear = 2000 + entryYearShort;
+        }
+      }
+
+      // Compute B.Tech Graduation Batch
+      const graduationBatch = entryYear + 4;
+
+      // Determine year of study string as of 2026
+      let yearOfStudy = "3rd Year";
+      if (graduationBatch === 2026) yearOfStudy = "4th Year";
+      else if (graduationBatch === 2027) yearOfStudy = "3rd Year";
+      else if (graduationBatch === 2028) yearOfStudy = "2nd Year";
+      else if (graduationBatch === 2029) yearOfStudy = "1st Year";
+      else {
+        const diff = 2026 - entryYear;
+        if (diff === 1) yearOfStudy = "1st Year";
+        else if (diff === 2) yearOfStudy = "2nd Year";
+        else if (diff === 3) yearOfStudy = "3rd Year";
+        else if (diff === 4) yearOfStudy = "4th Year";
+        else if (diff > 4) yearOfStudy = "Alumni";
+      }
+
       const userData: ProfileInsert = {
         // REMOVED: user_id field (Column does not exist in DB)
         email: email,
@@ -122,7 +162,9 @@ export class AuthService {
         created_at: now,
         updated_at: now,
         last_active_at: now,
-        college: collegeName
+        college: collegeName,
+        graduation_batch: graduationBatch,
+        year_of_study: yearOfStudy
       };
 
       const { data, error } = await supabase.from('profiles').insert(userData).select().single();

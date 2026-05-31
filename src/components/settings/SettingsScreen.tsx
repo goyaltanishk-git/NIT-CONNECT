@@ -157,14 +157,7 @@ export function SettingsScreen({
         }
       }
 
-      const { error: dbPhotosError } = await supabase
-        .from("user_photos")
-        .delete()
-        .eq("user_email", userEmail);
-      if (dbPhotosError)
-        throw new Error(`Failed to clear photo records: ${dbPhotosError.message}`);
-
-      // 2. Delete ID card from id-documents storage + verification record
+      // 2. Delete ID card from id-documents storage
       const { data: verif } = await supabase
         .from("student_verifications")
         .select("id_card_url")
@@ -179,32 +172,15 @@ export function SettingsScreen({
           if (idPath) {
             await supabase.storage.from("id-documents").remove([idPath]);
           }
-        } catch { /* URL parse error — skip storage delete, still clear DB record */ }
+        } catch { /* URL parse error — skip storage delete */ }
       }
 
-      await supabase.from("student_verifications").delete().eq("email", userEmail);
-
-      // 3. Clear interests
-      const { error: interestsError } = await supabase
-        .from("user_interests")
-        .delete()
-        .eq("user_email", userEmail);
-      if (interestsError)
-        throw new Error(`Failed to clear interests: ${interestsError.message}`);
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          is_active: false,
-          bio: null,
-          height: null,
-          hometown: null,
-          phone_number: null,
-          instagram_handle: null,
-        })
-        .eq("email", userEmail);
-      if (profileError)
-        throw new Error(`Failed to update profile: ${profileError.message}`);
+      // 3. Call the secure RPC function to deactivate the profile and clear database data
+      const { error: rpcError } = await supabase.rpc("delete_user_account_db", {
+        p_email: userEmail
+      });
+      if (rpcError)
+        throw new Error(`Failed to deactivate account in database: ${rpcError.message}`);
 
       handleLogout();
     } catch (error: any) {
