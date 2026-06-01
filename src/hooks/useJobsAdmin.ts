@@ -54,6 +54,10 @@ export function useJobsAdmin(userEmail?: string): UseJobsAdminReturn {
   const ensureSession = useCallback(async () => {
     if (!userEmail) throw new Error("Missing user session");
     await syncAppSession(userEmail);
+    const { error } = await (supabase as any).rpc("set_app_session_user", {
+      user_email: userEmail.toLowerCase(),
+    });
+    if (error) throw error;
   }, [userEmail]);
 
   const fetchBranchCatalog = useCallback(async () => {

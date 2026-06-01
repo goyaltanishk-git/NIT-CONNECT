@@ -99,28 +99,181 @@ export function PendingJobsApprovalTab({ userEmail }: { userEmail?: string }) {
       return employmentType === "internship" ? currentYear + 2 : currentYear + 1;
    };
 
-   const getQuickTargetGroups = (job: PendingJob) => {
-      let finalBranches: string[] = [];
-      const filterGroup = branchFilter?.startsWith("GROUP:") ? branchFilter.replace("GROUP:", "") : null;
-      
-      if (filterGroup && groupedBranches[filterGroup]) {
-         // Priority 1: Use the active UI filter group if set
-         finalBranches = groupedBranches[filterGroup];
-      } else if (job.guessed_branches && job.guessed_branches.length > 0) {
-         // Priority 2: Use scraped branches
-         finalBranches = job.guessed_branches;
-      } else {
-         // Fallback
-         finalBranches = ["All Branches"];
+   const getGuessedBatch = (job: PendingJob) => {
+      if (job.guessed_batch) return job.guessed_batch;
+      for (const tag of job.tag_pills) {
+         const match = tag.match(/^(\d{4})\s+Batch$/i);
+         if (match) return parseInt(match[1], 10);
       }
-
-      const gradBatch = job.guessed_batch || (job.employment_type === "internship" ? 2027 : 2026);
-      
-      return finalBranches.map((branch) => ({
-         branch: branch.trim(),
-         graduation_batch: gradBatch,
-      }));
+      return null;
    };
+
+   const mapGuessedBranchesToSystem = (guessed: string[], systemBranches: string[]): string[] => {
+      const mapped = new Set<string>();
+      guessed.forEach(gb => {
+         const norm = gb.toLowerCase().trim();
+         
+         const exactMatch = systemBranches.find(sb => sb.toLowerCase() === norm);
+         if (exactMatch) {
+            mapped.add(exactMatch);
+            return;
+         }
+
+         if (norm === "cs/it") {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes("computer") || lsb.includes("information technology") || lsb.includes("software")) {
+                  mapped.add(sb);
+               }
+            });
+         } else if (norm === "ece") {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes("ece") || lsb.includes("electronics")) {
+                  mapped.add(sb);
+               }
+            });
+         } else if (norm === "ee") {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes("ee") || lsb.includes("electrical")) {
+                  mapped.add(sb);
+               }
+            });
+         } else if (norm === "mechanical") {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes("mechanical")) {
+                  mapped.add(sb);
+               }
+            });
+         } else if (norm === "civil") {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes("civil")) {
+                  mapped.add(sb);
+               }
+            });
+         } else if (norm === "pie") {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes("pie") || lsb.includes("production") || lsb.includes("industrial")) {
+                  mapped.add(sb);
+               }
+            });
+         } else {
+            systemBranches.forEach(sb => {
+               const lsb = sb.toLowerCase();
+               if (lsb.includes(norm) || norm.includes(lsb)) {
+                  mapped.add(sb);
+               }
+            });
+         }
+      });
+
+      if (mapped.size === 0) {
+         const allBranchesOpt = systemBranches.find(sb => sb.toLowerCase() === "all branches");
+         if (allBranchesOpt) {
+            mapped.add(allBranchesOpt);
+         } else {
+            guessed.forEach(g => mapped.add(g));
+         }
+      }
+      return Array.from(mapped);
+   };
+
+    const isComputerRelated = (job: PendingJob): boolean => {
+       const text = (job.title + " " + (job.description || "")).toLowerCase();
+       const keywords = [
+          "computer", "software", "developer", "frontend", "backend", "fullstack", "sde", 
+          "ai", "artificial intelligence", "machine learning", "data science", "cyber", 
+          "web", "coding", "programmer", "it", "cs/it", "cs"
+       ];
+       if (keywords.some(kw => text.includes(kw))) {
+          return true;
+       }
+       if (job.guessed_branches) {
+          const lowerGuessed = job.guessed_branches.map(b => b.toLowerCase());
+          if (lowerGuessed.some(b => b.includes("cs/it") || b.includes("data science") || b.includes("cybersecurity"))) {
+             return true;
+          }
+       }
+       return false;
+    };
+
+    const getQuickTargetGroups = (job: PendingJob) => {
+       let finalBranches: string[] = [];
+       const filterGroup = branchFilter?.startsWith("GROUP:") ? branchFilter.replace("GROUP:", "") : null;
+       
+       if (filterGroup && groupedBranches[filterGroup]) {
+          finalBranches = groupedBranches[filterGroup];
+       } else if (isComputerRelated(job)) {
+          // Send to the computer target group
+          const exactNewComputer = savedGroups.find(g => g.group_name.toLowerCase() === "new computer");
+          const computerGroup = exactNewComputer || savedGroups.find(g => {
+             const name = g.group_name.toLowerCase();
+             return name.includes("computer") || name.includes("cs/it") || name.includes("cs") || name.includes("it");
+          });
+          if (computerGroup && computerGroup.branches && computerGroup.branches.length > 0) {
+             finalBranches = computerGroup.branches;
+          } else {
+             // Fallback computer/IT branches in our system
+             finalBranches = ["Computer Science", "Information Technology", "Software Engineering", "AI & ML", "Data Science", "Cyber Security"];
+          }
+       } else if (job.guessed_branches && job.guessed_branches.length > 0) {
+          finalBranches = mapGuessedBranchesToSystem(job.guessed_branches, branches);
+       } else {
+          finalBranches = ["All Branches"];
+       }
+
+       // Get quick batches
+       const finalBatches: number[] = [];
+       const currentYear = new Date().getFullYear();
+       const allBatches = Array.from({ length: 5 }, (_, i) => currentYear + i); // e.g. [2026, 2027, 2028, 2029, 2030]
+
+       const needsReview = job.tag_pills.some(t => t.toLowerCase().includes("needs review"));
+       if (needsReview) {
+          allBatches.forEach(b => finalBatches.push(b));
+       } else {
+          // Look in tag pills for specific batch years
+          for (const tag of job.tag_pills) {
+             const match = tag.match(/^(\d{4})\s+Batch$/i);
+             if (match) {
+                finalBatches.push(parseInt(match[1], 10));
+             }
+          }
+          if (finalBatches.length === 0) {
+             const guessed = getGuessedBatch(job);
+             if (guessed) {
+                finalBatches.push(guessed);
+             } else {
+                finalBatches.push(2027);
+             }
+          }
+       }
+
+        // Map to target groups payload
+        const targetGroups: { branch: string; graduation_batch: number }[] = [];
+        finalBranches.forEach((branch) => {
+           if (!branch || !branch.trim()) return;
+           finalBatches.forEach((batch) => {
+              if (!batch || Number.isNaN(batch)) return;
+              targetGroups.push({
+                 branch: branch.trim(),
+                 graduation_batch: batch,
+              });
+           });
+        });
+
+        if (targetGroups.length === 0) {
+           targetGroups.push({
+              branch: "All Branches",
+              graduation_batch: 2027
+           });
+        }
+
+        return targetGroups;
+     };
 
   const handleApprove = async (formData: JobFormData) => {
     if (!selectedJob) return;
@@ -224,6 +377,38 @@ export function PendingJobsApprovalTab({ userEmail }: { userEmail?: string }) {
     }
   };
 
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    setIsActionLoading(true);
+    let successCount = 0;
+    let failCount = 0;
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+         const job = pendingJobs.find(j => j.id === id);
+         if (!job) continue;
+         try {
+            const targetGroups = getQuickTargetGroups(job);
+            await approveJob(job.id, targetGroups, job.expires_at || null);
+            successCount++;
+         } catch (err) {
+            console.error(`Failed to approve ${job.id}:`, err);
+            failCount++;
+         }
+      }
+      toast({ 
+         title: "Bulk Approval Complete ✅", 
+         description: `Approved ${successCount} jobs successfully.${failCount > 0 ? ` Failed to approve ${failCount} jobs.` : ''}` 
+      });
+      setSelectedIds(new Set());
+      await loadQueue();
+    } catch (err: any) {
+      toast({ title: "Bulk approve failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto pt-4 pb-12">
       <div className="mb-6 flex items-center justify-between border-b border-white/10 pb-4">
@@ -233,14 +418,24 @@ export function PendingJobsApprovalTab({ userEmail }: { userEmail?: string }) {
         </div>
         <div className="flex gap-2">
             {selectedIds.size > 0 && (
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleBulkReject} 
-                disabled={isActionLoading}
-              >
-                Reject Selected ({selectedIds.size})
-              </Button>
+              <>
+                <Button 
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                  size="sm" 
+                  onClick={handleBulkApprove} 
+                  disabled={isActionLoading}
+                >
+                  Approve Selected ({selectedIds.size})
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleBulkReject} 
+                  disabled={isActionLoading}
+                >
+                  Reject Selected ({selectedIds.size})
+                </Button>
+              </>
             )}
             <Button variant="outline" size="sm" onClick={() => void loadQueue()} disabled={loading} className="bg-white/5 border-white/10 text-white hover:bg-white/10">
                 {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
@@ -334,10 +529,17 @@ export function PendingJobsApprovalTab({ userEmail }: { userEmail?: string }) {
                 onClick={() => setSelectedJob(job)}
              >
                 <div className="flex-1">
-                   <div className="flex justify-between items-start mb-2">
-                       <div className="text-[10px] text-pink-400 font-bold uppercase tracking-widest bg-pink-500/10 px-2 py-0.5 rounded-full">
-                           {job.source_api || "Scraper"}
-                       </div>
+                   <div className="flex justify-between items-start mb-2" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-2">
+                            <Checkbox 
+                               checked={selectedIds.has(job.id)}
+                               onCheckedChange={() => toggleSelect(job.id)}
+                               className="border-white/20 data-[state=checked]:bg-pink-500 data-[state=checked]:border-pink-500"
+                            />
+                            <div className="text-[10px] text-pink-400 font-bold uppercase tracking-widest bg-pink-500/10 px-2 py-0.5 rounded-full">
+                                {job.source_api || "Scraper"}
+                            </div>
+                        </div>
                    </div>
                    <h4 className="font-bold text-lg leading-tight mb-1 text-white">{job.title}</h4>
                    <p className="text-zinc-400 text-sm mb-3 font-medium">
@@ -442,12 +644,21 @@ export function PendingJobsApprovalTab({ userEmail }: { userEmail?: string }) {
                        stipend_salary_label: selectedJob.stipend_salary_label || "",
                        application_url: selectedJob.application_url,
                        tag_pills: selectedJob.tag_pills.join(", "),
-                       target_batches: [String(selectedJob.guessed_batch || inferFallbackBatch(selectedJob.employment_type))],
+                       target_batches: [String(getGuessedBatch(selectedJob) || 2027)],
                        expires_at: toDateTimeLocalValue(selectedJob.expires_at),
-                       selected_manual_branches: selectedJob.guessed_branches,
+                       selected_manual_branches: mapGuessedBranchesToSystem(selectedJob.guessed_branches, branches),
                        selected_group_ids: branchFilter?.startsWith("GROUP:") 
                           ? savedGroups.filter(g => g.group_name === branchFilter.replace("GROUP:", "")).map(g => g.group_id)
-                          : []
+                          : (() => {
+                             const exactNewComputer = savedGroups.find(g => g.group_name.toLowerCase() === "new computer");
+                             if (exactNewComputer) return [exactNewComputer.group_id];
+
+                             const computerGroup = savedGroups.find(g => {
+                                const name = g.group_name.toLowerCase();
+                                return name.includes("computer") || name.includes("cs/it") || name.includes("cs") || name.includes("it");
+                             });
+                             return computerGroup ? [computerGroup.group_id] : [];
+                          })()
                     }}
                     onApprove={handleApprove}
                     onReject={handleReject}
