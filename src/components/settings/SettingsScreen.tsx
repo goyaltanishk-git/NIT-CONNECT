@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Heart,Sparkles } from "lucide-react";
-import { ArrowLeft } from "lucide-react";
-import * as Sentry from "@sentry/react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +34,7 @@ import {
   Settings,
   EyeOff,
   Info,
-  Bug,
+  ArrowLeft,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -91,7 +89,6 @@ export function SettingsScreen({
 
   const [isIncognitoLoading, setIsIncognitoLoading] = useState(false);
   const [showIncognitoDialog, setShowIncognitoDialog] = useState(false);
-  const [isSentryTesting, setIsSentryTesting] = useState(false);
   const { toast } = useToast();
 
   const handleLogout = () => {
@@ -99,20 +96,7 @@ export function SettingsScreen({
     window.location.reload();
   };
 
-  const handleSentryTest = async () => {
-    setIsSentryTesting(true);
-    try {
-      Sentry.captureException(
-        new Error("Test error from Settings - Sentry integration check")
-      );
-      toast({
-        title: "Test Error Sent",
-        description: "Check your Sentry dashboard to verify error tracking is working.",
-      });
-    } finally {
-      setIsSentryTesting(false);
-    }
-  };
+
 
   const handleIncognitoToggle = async (enabled: boolean) => {
     setIsIncognitoLoading(true);
@@ -173,14 +157,7 @@ export function SettingsScreen({
         }
       }
 
-      const { error: dbPhotosError } = await supabase
-        .from("user_photos")
-        .delete()
-        .eq("user_email", userEmail);
-      if (dbPhotosError)
-        throw new Error(`Failed to clear photo records: ${dbPhotosError.message}`);
-
-      // 2. Delete ID card from id-documents storage + verification record
+      // 2. Delete ID card from id-documents storage
       const { data: verif } = await supabase
         .from("student_verifications")
         .select("id_card_url")
@@ -195,32 +172,15 @@ export function SettingsScreen({
           if (idPath) {
             await supabase.storage.from("id-documents").remove([idPath]);
           }
-        } catch { /* URL parse error — skip storage delete, still clear DB record */ }
+        } catch { /* URL parse error — skip storage delete */ }
       }
 
-      await supabase.from("student_verifications").delete().eq("email", userEmail);
-
-      // 3. Clear interests
-      const { error: interestsError } = await supabase
-        .from("user_interests")
-        .delete()
-        .eq("user_email", userEmail);
-      if (interestsError)
-        throw new Error(`Failed to clear interests: ${interestsError.message}`);
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          is_active: false,
-          bio: null,
-          height: null,
-          hometown: null,
-          phone_number: null,
-          instagram_handle: null,
-        })
-        .eq("email", userEmail);
-      if (profileError)
-        throw new Error(`Failed to update profile: ${profileError.message}`);
+      // 3. Call the secure RPC function to deactivate the profile and clear database data
+      const { error: rpcError } = await supabase.rpc("delete_user_account_db", {
+        p_email: userEmail
+      });
+      if (rpcError)
+        throw new Error(`Failed to deactivate account in database: ${rpcError.message}`);
 
       handleLogout();
     } catch (error: any) {
@@ -429,20 +389,7 @@ export function SettingsScreen({
                 </div>
               </Button>
 
-              <Button
-                variant="ghost"
-                className="w-full justify-start glass-light border border-yellow-500/30 hover:bg-yellow-500/10 text-yellow-400 hover:text-yellow-300 interactive rounded-xl p-4 h-auto"
-                onClick={handleSentryTest}
-                disabled={isSentryTesting}
-              >
-                <Bug className="h-5 w-5 mr-3 flex-shrink-0" />
-                <div className="text-left whitespace-normal break-words">
-                  <p className="font-medium">Test Error Tracking</p>
-                  <p className="text-sm text-yellow-400/70">
-                    {isSentryTesting ? "Sending test error..." : "Verify Sentry integration"}
-                  </p>
-                </div>
-              </Button>
+
 
               <Separator className="bg-white/10" />
 

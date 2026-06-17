@@ -23,6 +23,7 @@ import {
   BookOpen
 } from "lucide-react";
 import { Database } from "@/integrations/supabase/types";
+import { formatYearOfStudy } from "@/utils/incognitoUtils";
 
 type ProfilePhoto = Database["public"]["Tables"]["user_photos"]["Row"];
 type UserPrompt = Database["public"]["Tables"]["user_prompts"]["Row"];
@@ -278,7 +279,7 @@ src={profilePhotos[currentPhotoIndex]?.photo_url
                 <CardContent className="p-4 flex items-center gap-2">
                   <GraduationCap className="w-5 h-5 text-pink-400 flex-shrink-0" />
                   <span className="text-base text-white">
-                    {profile.year_of_study}
+                    {formatYearOfStudy(profile.year_of_study)}
                     {profile.branch && ` • ${profile.branch}`}
                    
                   </span>

@@ -396,7 +396,7 @@ export function JobForm({
 
             {/* Create Branch Group Section */}
             {onCreateGroup && (
-              <div className="grid gap-3 mt-4 rounded-xl border border-emerald-500/20 p-4 bg-emerald-500/5">
+               <div className="grid gap-3 mt-4 rounded-xl border border-emerald-500/20 p-4 bg-emerald-500/5 col-span-1 md:col-span-2">
                 <Label className="text-emerald-400 font-medium">Create Branch Group</Label>
                 <p className="text-xs text-zinc-400">Save a preset of branches to use later.</p>
                 <Input

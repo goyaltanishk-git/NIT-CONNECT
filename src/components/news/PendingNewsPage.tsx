@@ -55,9 +55,9 @@ export function PendingNewsPage({
               No pending news submissions.
             </div>
           ) : (
-            pendingNews.map((item) => (
+            pendingNews.map((item, index) => (
               <Card
-                key={item.id}
+                key={`${item.id}-${index}`}
                 className="bg-white/5 border-white/10 backdrop-blur-sm overflow-hidden rounded-2xl shadow-xl"
               >
                 {/* Author */}

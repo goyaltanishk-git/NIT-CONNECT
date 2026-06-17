@@ -102,85 +102,103 @@ if (data === "CREATED") {
 }}
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-black border border-white/10 p-6 rounded-xl w-[400px] space-y-4">
-        <h2 className="text-lg font-bold">Create Community</h2>
-
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full p-2 bg-white/5 border border-white/10 rounded"
-        />
-
-        <input
-          placeholder="Description"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          className="w-full p-2 bg-white/5 border border-white/10 rounded"
-        />
-
-        <select
-          value={joinType}
-          onChange={(e) => setJoinType(e.target.value)}
-          className="w-full p-2 bg-white/5 border border-white/10 rounded"
-        >
-          <option value="open">Open</option>
-          <option value="approval">Approval</option>
-        </select>
-
-        {/* IMAGE */}
-        {/* IMAGE PICKER */}
-<div className="flex justify-center">
-  <label className="relative cursor-pointer">
-    
-    {/* BOX */}
-    <div className="h-40 w-40 rounded-2xl border-2 border-dashed border-pink-500/40 bg-white/5 flex items-center justify-center overflow-hidden hover:bg-white/10 transition">
-
-      {/* PREVIEW */}
-      {preview ? (
-        <img
-          src={preview}
-          alt="preview"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex flex-col items-center text-gray-400">
-          <span className="text-2xl">📷</span>
-          <span className="text-xs mt-1">Upload</span>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 select-none backdrop-blur-sm">
+      <div className="relative bg-black border border-pink-500/25 p-6 rounded-2xl w-[400px] space-y-5 shadow-[0_0_50px_rgba(236,72,153,0.25)] text-white animate-fade-in">
+        {/* Highlight top line accent */}
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-pink-500/50 to-transparent" />
+        
+        <div>
+          <h2 className="text-xl font-bold uppercase tracking-wider text-pink-400">Create Community</h2>
+          <p className="text-xs text-white/50 mt-1">Setup a new community hub for NIT students.</p>
         </div>
-      )}
-    </div>
 
-    {/* HIDDEN INPUT */}
-   <input
-  type="file"
-  accept="image/*"
-  className="hidden"
-  onChange={(e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase tracking-[0.2em] text-white/45 font-semibold block">Community Name</label>
+          <input
+            placeholder="e.g. Coding Club, Chess Group"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full p-3 bg-zinc-950 border border-white/15 rounded-xl text-white placeholder:text-white/30 focus:border-pink-500/50 focus:outline-none transition duration-200"
+          />
+        </div>
 
-    // remove previous preview from memory
-    if (preview) {
-      URL.revokeObjectURL(preview);
-    }
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase tracking-[0.2em] text-white/45 font-semibold block">Description</label>
+          <input
+            placeholder="What is this community about?"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            className="w-full p-3 bg-zinc-950 border border-white/15 rounded-xl text-white placeholder:text-white/30 focus:border-pink-500/50 focus:outline-none transition duration-200"
+          />
+        </div>
 
-    const objectUrl = URL.createObjectURL(f);
+        <div className="space-y-1">
+          <label className="text-[10px] uppercase tracking-[0.2em] text-white/45 font-semibold block">Join Policy</label>
+          <select
+            value={joinType}
+            onChange={(e) => setJoinType(e.target.value)}
+            className="w-full p-3 bg-zinc-950 border border-white/15 rounded-xl text-white focus:border-pink-500/50 focus:outline-none transition duration-200"
+          >
+            <option value="open" className="bg-zinc-950 text-white">Open - Anyone can join</option>
+            <option value="approval" className="bg-zinc-950 text-white">Approval - Anyone who you approve can join</option>
+          </select>
+        </div>
 
-    setFile(f);
-    setPreview(objectUrl);
-  }}
-/>
-  </label>
-</div>
+        {/* IMAGE PICKER */}
+        <div className="space-y-2">
+          <label className="text-[10px] uppercase tracking-[0.2em] text-white/45 font-semibold block text-center">Community Cover Image</label>
+          <div className="flex justify-center">
+            <label className="relative cursor-pointer">
+              <div className="h-32 w-32 rounded-2xl border border-dashed border-pink-500/30 bg-zinc-950 flex items-center justify-center overflow-hidden hover:bg-zinc-900 hover:border-pink-500/50 transition duration-200">
+                {preview ? (
+                  <img
+                    src={preview}
+                    alt="preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center text-gray-400">
+                    <span className="text-2xl">📷</span>
+                    <span className="text-xs mt-1 text-white/50">Upload Cover</span>
+                  </div>
+                )}
+              </div>
 
-        <div className="flex gap-2">
-          <Button onClick={handleCreate} disabled={loading}>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+
+                  if (preview) {
+                    URL.revokeObjectURL(preview);
+                  }
+
+                  const objectUrl = URL.createObjectURL(f);
+                  setFile(f);
+                  setPreview(objectUrl);
+                }}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <Button 
+            onClick={handleCreate} 
+            disabled={loading}
+            className="flex-1 h-12 border border-pink-500/30 bg-pink-500 text-black hover:bg-pink-400 font-bold uppercase tracking-wider rounded-xl transition duration-200"
+          >
             {loading ? "Creating..." : "Create"}
           </Button>
 
-          <Button variant="ghost" onClick={onClose}>
+          <Button 
+            variant="ghost" 
+            onClick={onClose}
+            className="flex-1 h-12 text-white/50 hover:text-white hover:bg-white/5 rounded-xl transition duration-200"
+          >
             Cancel
           </Button>
         </div>

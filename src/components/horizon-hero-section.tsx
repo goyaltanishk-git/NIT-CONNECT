@@ -589,7 +589,7 @@ export const Component = ({ onComplete }: ComponentProps) => {
        {[...Array(2)].map((_, i) => {
           const titles = { 1: 'Discover People', 2: 'Make Connections' };
           const subtitles = {
-            1: { line1: 'Scroll to explore profiles', line2: 'from right here at NIT Kurukshetra.' },
+            1: { line1: 'Scroll to explore profiles', line2: 'from NITs across the country.' },
             2: { line1: 'Genuine connections', line2: 'are just a swipe away.' }
           };
           

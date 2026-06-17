@@ -22,6 +22,19 @@ export function DiscoveryScreenIntegrated() {
 
   // State for alert dialog
   const [showLimitAlert, setShowLimitAlert] = useState(false);
+  const [showRotateTip, setShowRotateTip] = useState(false);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem("has-seen-card-rotate-tip");
+    if (!hasSeen) {
+      setShowRotateTip(true);
+      localStorage.setItem("has-seen-card-rotate-tip", "true");
+    }
+  }, []);
+
+  const dismissRotateTip = () => {
+    setShowRotateTip(false);
+  };
  
 
   
@@ -255,6 +268,29 @@ const currentProfile = transformProfileForCard(activeProfile);
         isOpen={showLimitAlert} 
         onClose={() => setShowLimitAlert(false)} 
       />
+
+      {/* Pro Swipe Tip Modal */}
+      {showRotateTip && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] px-4 animate-fade-in backdrop-blur-sm">
+          <div className="relative w-full max-w-[360px] bg-zinc-950 border border-pink-500/30 p-6 rounded-3xl text-center space-y-4 shadow-[0_0_50px_rgba(236,72,153,0.25)] text-white">
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-pink-500/50 to-transparent" />
+            
+            <div className="space-y-2 pt-2">
+              <h3 className="text-xl font-bold uppercase tracking-wider text-pink-400">Pro Swipe Tip</h3>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Click on any profile card to flip it around! You'll reveal their full bio, branch, college, hometown, height, and complete details.
+              </p>
+            </div>
+
+            <Button
+              onClick={dismissRotateTip}
+              className="w-full h-12 bg-pink-500 hover:bg-pink-400 text-black font-bold uppercase tracking-wider rounded-xl transition duration-200"
+            >
+              Got it!
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="p-0 m-0 w-full">
        <div className="relative w-[90%] max-w-[420px]  h-[78dvh] mx-auto mt-[4%]  profile-stack overflow-visible">

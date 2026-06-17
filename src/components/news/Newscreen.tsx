@@ -319,7 +319,7 @@ export default function NewsScreen() {
               <div className="grid gap-5">
                 {currentFeed.map((item, index) => (
                   <NewsCard
-                    key={item.id}
+                    key={`${activeTab}-${item.id}-${index}`}
                     item={item}
                     pending={false}
                     compact={index > 0}

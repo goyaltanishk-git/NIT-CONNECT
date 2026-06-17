@@ -22,6 +22,8 @@ import { MyProfileDialog, Profile as MyProfileType } from "./MyProfileDialog";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useSubscription } from "@/hooks/useSubscription";
 
+import { formatYearOfStudy } from "@/utils/incognitoUtils";
+
 interface UIProfile {
   name: string;
   age: number;
@@ -102,7 +104,7 @@ export function ProfileScreen() {
         : dbProfile.first_name,
       age: calculateAge(dbProfile.date_of_birth || '2000-01-01'),
       bio: dbProfile.bio || "No bio yet. Add one!",
-      year: dbProfile.year_of_study || "N/A",
+      year: formatYearOfStudy(dbProfile.year_of_study),
       branch: dbProfile.branch || "N/A",
       hometown: dbProfile.hometown || "N/A",
       height: dbProfile.height ? `${dbProfile.height} cm` : "N/A",

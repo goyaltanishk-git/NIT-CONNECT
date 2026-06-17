@@ -145,9 +145,9 @@ export function NewsAdminPanel({ onClose }: NewsAdminPanelProps) {
             No pending news submissions.
           </div>
         ) : (
-          news.map((item) => (
+          news.map((item, index) => (
             <Card
-              key={item.id}
+              key={`${item.id}-${index}`}
               className="bg-white/5 border-white/10 backdrop-blur-sm overflow-hidden"
             >
               {/* Author Info */}

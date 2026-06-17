@@ -21,6 +21,19 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
   const [showLimitAlert, setShowLimitAlert] = useState(false);
+  const [showRotateTip, setShowRotateTip] = useState(false);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem("has-seen-card-rotate-tip");
+    if (!hasSeen) {
+      setShowRotateTip(true);
+      localStorage.setItem("has-seen-card-rotate-tip", "true");
+    }
+  }, []);
+
+  const dismissRotateTip = () => {
+    setShowRotateTip(false);
+  };
   const [selectedColleges, setSelectedColleges] = useState<string[]>([]);
   const [showCollegeFilter, setShowCollegeFilter] = useState(false);
   const [isDatingEnabled, setIsDatingEnabled] = useState(false);
@@ -258,6 +271,29 @@ export function DiscoveryScreenGlobal({ onNavigateToLikes, onNavigateToChat, onN
   return (
     <div className="relative flex flex-col h-full bg-black text-white overflow-hidden">
       <DailyLimitAlert isOpen={showLimitAlert} onClose={() => setShowLimitAlert(false)} />
+
+      {/* Pro Swipe Tip Modal */}
+      {showRotateTip && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] px-4 animate-fade-in backdrop-blur-sm">
+          <div className="relative w-full max-w-[360px] bg-zinc-950 border border-pink-500/30 p-6 rounded-3xl text-center space-y-4 shadow-[0_0_50px_rgba(236,72,153,0.25)] text-white">
+            <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-pink-500/50 to-transparent" />
+            
+            <div className="space-y-2 pt-2">
+              <h3 className="text-xl font-bold uppercase tracking-wider text-pink-400">Pro Swipe Tip</h3>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Click on any profile card to flip it around! You'll reveal their full bio, branch, college, hometown, height, and complete details.
+              </p>
+            </div>
+
+            <Button
+              onClick={dismissRotateTip}
+              className="w-full h-12 bg-pink-500 hover:bg-pink-400 text-black font-bold uppercase tracking-wider rounded-xl transition duration-200"
+            >
+              Got it!
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Top Bar - Independent Filter Area */}
       <div className="w-full grid grid-cols-[1.15fr_1fr_1fr_1.3fr] gap-1 px-3 sm:px-4 py-2 z-50 overflow-hidden">

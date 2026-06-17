@@ -150,48 +150,66 @@ const [userProfile, setUserProfile] = useState<Profile | null>(initialProfile ||
   };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-  const files = Array.from(event.target.files || []);
-  
-  if (photos.length + files.length > MAX_PHOTOS) {
-    const msg = `You can only upload a maximum of ${MAX_PHOTOS} photos.`;
-    triggerError(msg); 
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    return;
-  }
+    const files = Array.from(event.target.files || []);
+    
+    if (photos.length + files.length > MAX_PHOTOS) {
+      const msg = `You can only upload a maximum of ${MAX_PHOTOS} photos.`;
+      triggerError(msg); 
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
-  // Compression options
-  const compressionOptions = {
-    maxSizeMB: 0.15,          // Shrink to under 1MB
-    maxWidthOrHeight: 1200, // Reasonable social media resolution
-    useWebWorker: true,
-    initialQuality: 0.7,
-    fileType: 'image/webp'
-  };
-  
-  for (const file of files) {
-    if (file.type.startsWith('image/')) {
-      try {
-        // ✅ COMPRESSION START
-        const compressedFile = await imageCompression(file, compressionOptions);
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const newPhoto: PhotoFile = { 
-            file: compressedFile as File, // Use the compressed blob
-            preview: e.target?.result as string, 
-            order: photos.length + 1 
-          };
-          setPhotos(prev => (prev.length < MAX_PHOTOS ? [...prev, newPhoto] : prev));
-        };
-        reader.readAsDataURL(compressedFile);
-      } catch (err) {
-       
+    // Compression options
+    const compressionOptions = {
+      maxSizeMB: 0.15,          // Shrink to under 1MB
+      maxWidthOrHeight: 1200, // Reasonable social media resolution
+      useWebWorker: true,
+      initialQuality: 0.7,
+      fileType: 'image/webp'
+    };
+    
+    const newPhotosList: PhotoFile[] = [];
+    
+    for (const file of files) {
+      if (file.type.startsWith('image/')) {
+        try {
+          // Compress the file
+          const compressedFile = await imageCompression(file, compressionOptions);
+          
+          // Read base64 preview as a promise to prevent async ordering race conditions
+          const previewUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(compressedFile);
+          });
+          
+          newPhotosList.push({
+            file: compressedFile as File,
+            preview: previewUrl,
+            order: 1 // Temporarily set, will be re-indexed when merged into state
+          });
+        } catch (err) {
+          console.error("Failed to process photo:", err);
+        }
       }
     }
-  }
-  
-  if (fileInputRef.current) fileInputRef.current.value = '';
-};
+    
+    if (newPhotosList.length > 0) {
+      setPhotos(prev => {
+        const updated = [...prev];
+        for (const newPhoto of newPhotosList) {
+          if (updated.length < MAX_PHOTOS) {
+            newPhoto.order = updated.length + 1;
+            updated.push(newPhoto);
+          }
+        }
+        return updated;
+      });
+    }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const removePhoto = (index: number) => {
     const updated = photos.filter((_, i) => i !== index);
