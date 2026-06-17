@@ -49,7 +49,7 @@ export default function NewsScreen() {
   const [pendingNews, setPendingNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<FeedTab>("college");
+  const [activeTab, setActiveTab] = useState<FeedTab>("global");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
@@ -231,6 +231,17 @@ export default function NewsScreen() {
 
               <div className="flex flex-wrap items-center gap-2">
                 <button
+                  onClick={() => setActiveTab("global")}
+                  className={`inline-flex items-center gap-2 border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-all ${
+                    activeTab === "global"
+                      ? "border-pink-500 bg-pink-500 text-black"
+                      : "border-white/10 bg-white/5 text-white/65 hover:border-white/20 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Globe className="h-4 w-4" />
+                  Global
+                </button>
+                <button
                   onClick={() => setActiveTab("college")}
                   className={`inline-flex items-center gap-2 border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-all ${
                     activeTab === "college"
@@ -242,17 +253,7 @@ export default function NewsScreen() {
                   My College
                 </button>
 
-                <button
-                  onClick={() => setActiveTab("global")}
-                  className={`inline-flex items-center gap-2 border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-all ${
-                    activeTab === "global"
-                      ? "border-pink-500 bg-pink-500 text-black"
-                      : "border-white/10 bg-white/5 text-white/65 hover:border-white/20 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <Globe className="h-4 w-4" />
-                  Global
-                </button>
+                
               </div>
             </div>
 
@@ -491,7 +492,7 @@ function NewsCard({
               <img
                 src={item.image_url}
                 alt={item.caption}
-                className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.03]"
+                className="h-full w-full object-contain transition-transform duration-700 hover:scale-[1.03]"
               />
             </div>
           ) : (

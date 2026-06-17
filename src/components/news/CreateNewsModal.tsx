@@ -108,7 +108,7 @@ toast.success("Image uploaded");
      if (error) {
   console.error("RPC ERROR:", error);
 
-toast.error(error.message || "Failed to create news");
+toast.error(error.message || "Failed to create news");}
 
 
       // ==========================================
@@ -125,10 +125,8 @@ toast.error(error.message || "Failed to create news");
   onClose();
 } else {
   toast.error(`Unexpected response: ${String(data)}`);
-}
-}
 
-  toast.error("Something went wrong");
+}
 }finally { setLoading(false); } };
 
   return (
