@@ -104,39 +104,15 @@ toast.success("Image uploaded");
         p_scope: scope
       });
 
-<<<<<<< HEAD
      if (error) {
   console.error("RPC ERROR:", error);
 
 toast.error(error.message || "Failed to create news");}
 
-=======
-      if (error) {
-        console.error("RPC ERROR:", error);
-        toast.error(error.message || "Failed to create news");
-        return;
-      }
->>>>>>> 2709dd8f94dfd3757e29884125b84e5aadd094ce
 
       // ==========================================
       // 4. Handle result
       // ==========================================
-<<<<<<< HEAD
-     if (data === "CREATED") {
-  toast.success("News submitted", {
-  description: "Your news post is awaiting admin approval.",
-});
-  console.log(data);
-  console.log(error);
-
-  onCreated();
-  onClose();
-} else {
-  toast.error(`Unexpected response: ${String(data)}`);
-
-}
-}finally { setLoading(false); } };
-=======
       if (data === "CREATED") {
         toast.success("News submitted", {
           description: "Your news post is awaiting admin approval.",
@@ -150,7 +126,6 @@ toast.error(error.message || "Failed to create news");}
       setLoading(false);
     }
   };
->>>>>>> 2709dd8f94dfd3757e29884125b84e5aadd094ce
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
