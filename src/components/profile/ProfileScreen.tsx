@@ -7,7 +7,7 @@ import { Settings, Camera, Heart, Shield, User, Edit, Ruler, Home, BookOpen, Git
 import { EditProfileModal, ProfileType } from "./EditProfileModal";
 import { SettingsScreen } from "../settings/SettingsScreen";
 import { useState, useEffect, useCallback } from "react";
-import { useUserProfile, FullProfile } from "@/hooks/useUserProfile";
+import { useUserProfile, FullProfile, updateProfileCacheSync } from "@/hooks/useUserProfile";
 import { AuthService } from "@/lib/auth";
 import { PhotoUpload } from "@/components/discovery/PhotoUpload";
 import { PhotoService, UserPhoto } from "@/lib/photoservice";
@@ -35,6 +35,25 @@ interface UIProfile {
   interests: string[];
 }
 
+function parsePhotosToUserPhotos(rawPhotos: any[], userEmail: string = ''): UserPhoto[] {
+  if (!Array.isArray(rawPhotos)) return [];
+  return rawPhotos
+    .map((p: any, i: number) => {
+      const url = typeof p === 'string' ? p : (p?.photo_url || p?.url || '');
+      const order = typeof p === 'object' && typeof p?.photo_order === 'number' ? p.photo_order : i;
+      const isPrimary = typeof p === 'object' && typeof p?.is_primary === 'boolean' ? p.is_primary : i === 0;
+      return {
+        user_email: (typeof p === 'object' && p?.user_email) || userEmail,
+        photo_url: url,
+        photo_order: order,
+        is_primary: isPrimary,
+        is_verified: false,
+        created_at: '',
+      };
+    })
+    .filter(p => Boolean(p.photo_url));
+}
+
 export function ProfileScreen() {
   const { profile, loading, updateProfile } = useUserProfile();
   const { toast } = useToast(); 
@@ -52,26 +71,21 @@ export function ProfileScreen() {
 
   const { isPremium, refresh: refreshSubscription } = useSubscription(profile?.email);
 
-  const [photos, setPhotos] = useState<UserPhoto[]>([]);
+  // Synchronously seed photos from profile or cache for instant 0ms rendering
+  const [photos, setPhotos] = useState<UserPhoto[]>(() => {
+    return parsePhotosToUserPhotos(profile?.photos || [], profile?.email || '');
+  });
   const [photosLoading, setPhotosLoading] = useState(false);
 
-  // ✅ FIX: Always mirror profile.photos into local UserPhoto[] state.
-  // No photos.length guard — we want this to overwrite if profile re-fetches.
-  // The retry loop in useUserProfile guarantees profile.photos is correct,
-  // so we should always trust it over any locally-fetched result.
+  // Always mirror profile.photos into local UserPhoto[] state when profile updates
   useEffect(() => {
-    if (profile?.photos) {
-      const seeded: UserPhoto[] = profile.photos.map((url, i) => ({
-        user_email: profile.email,
-        photo_url: url,
-        photo_order: i,
-        is_primary: i === 0,
-        is_verified: false,
-        created_at: '',
-      }));
-      setPhotos(seeded);
+    if (profile?.photos && profile.photos.length > 0) {
+      const seeded = parsePhotosToUserPhotos(profile.photos, profile.email || '');
+      if (seeded.length > 0) {
+        setPhotos(seeded);
+      }
     }
-  }, [profile?.photos]);
+  }, [profile?.photos, profile?.email]);
 
   const getUIProfile = (dbProfile: FullProfile | null): UIProfile => {
     if (!dbProfile) {
@@ -114,7 +128,7 @@ export function ProfileScreen() {
 
   const user = getUIProfile(profile);
 
-  // loadPhotos is kept for manual refresh after uploads (called from handlePhotosUpdate)
+  // loadPhotos is kept for manual refresh after uploads
   const loadPhotos = async () => {
     if (!profile?.email) return;
     setPhotosLoading(true);
@@ -122,9 +136,13 @@ export function ProfileScreen() {
       const userPhotos = await PhotoService.getUserPhotos(profile.email);
       if (userPhotos && userPhotos.length > 0) {
         setPhotos(userPhotos);
+        updateProfileCacheSync({
+          ...profile,
+          photos: userPhotos.map(p => p.photo_url)
+        });
       }
-    } catch (error) {
-      // silently ignore — photos from profile.photos are still shown
+    } catch {
+      // silently ignore
     } finally {
       setPhotosLoading(false);
     }
@@ -132,7 +150,13 @@ export function ProfileScreen() {
 
   const handlePhotosUpdate = useCallback((updatedPhotos: UserPhoto[]) => {
     setPhotos(updatedPhotos);
-  }, []);
+    if (profile) {
+      updateProfileCacheSync({
+        ...profile,
+        photos: updatedPhotos.map(p => p.photo_url).filter(Boolean)
+      });
+    }
+  }, [profile]);
 
   const handleSaveProfile = async (updatedUser: Partial<ProfileType>) => {
     if (!profile) return;

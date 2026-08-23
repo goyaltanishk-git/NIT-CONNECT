@@ -63,17 +63,46 @@ export function useProfilesGlobal(selectedColleges: string[] = [], enabled: bool
 
   // Helper to fetch list of available colleges (including user's college)
   const fetchAvailableColleges = useCallback(async () => {
+    const DEFAULT_COLLEGES = [
+      "NIT Kurukshetra",
+      "NIT Hamirpur",
+      "MNIT Jaipur",
+      "NIT Jamshedpur",
+      "NIT Trichy",
+      "NIT Surathkal",
+      "NIT Rourkela",
+      "NIT Warangal",
+      "NIT Calicut",
+      "NIT Durgapur",
+      "NIT Silchar",
+      "MNNIT Allahabad",
+      "VNIT Nagpur",
+      "SVNIT Surat",
+      "MANIT Bhopal",
+    ];
+
     try {
       if (!enabled) {
         setAvailableColleges([]);
         return;
       }
 
-      const userd = encryptedStorage.get('current-user');
-      if (!userd) return;
-      const user = JSON.parse(userd);
+      const userd = encryptedStorage.get('current-user') || localStorage.getItem('temp-user');
+      const user = userd ? JSON.parse(userd) : null;
+      const userCollege = user?.college || 'NIT Kurukshetra';
 
-      // Fetch all unique colleges
+      // Check sessionStorage cache first
+      try {
+        const cachedColleges = sessionStorage.getItem('cached-colleges-list');
+        if (cachedColleges) {
+          const parsed = JSON.parse(cachedColleges) as string[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAvailableColleges(parsed.filter(c => c !== userCollege).sort());
+          }
+        }
+      } catch {}
+
+      // Try fetching active colleges from profiles
       const { data: colleges, error: collegesError } = await supabase
         .from("profiles")
         .select("college")
@@ -81,14 +110,25 @@ export function useProfilesGlobal(selectedColleges: string[] = [], enabled: bool
         .eq("is_verified", true)
         .eq("is_dating", true);
 
-      if (collegesError) throw collegesError;
+      let uniqueColleges: string[] = [];
+      if (!collegesError && colleges && colleges.length > 0) {
+        uniqueColleges = [...new Set(colleges.map(c => c.college).filter(Boolean))];
+      }
 
-      const uniqueColleges = [...new Set(colleges?.map(c => c.college) || [])];
-      // Filter OUT the user's own college from the available list
-      const otherColleges = uniqueColleges.filter(c => c !== user.college).sort();
+      // Merge with default colleges
+      const merged = [...new Set([...uniqueColleges, ...DEFAULT_COLLEGES])];
+      try {
+        sessionStorage.setItem('cached-colleges-list', JSON.stringify(merged));
+      } catch {}
+
+      const otherColleges = merged.filter(c => c !== userCollege).sort();
       setAvailableColleges(otherColleges);
-    } catch (err) {
-      console.error('Failed to fetch colleges:', err);
+    } catch {
+      // Fallback without throwing or logging red errors
+      const userd = encryptedStorage.get('current-user');
+      const user = userd ? JSON.parse(userd) : null;
+      const userCollege = user?.college || 'NIT Kurukshetra';
+      setAvailableColleges(DEFAULT_COLLEGES.filter(c => c !== userCollege).sort());
     }
   }, [enabled]);
 

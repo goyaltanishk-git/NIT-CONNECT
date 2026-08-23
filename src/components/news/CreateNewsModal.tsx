@@ -104,11 +104,11 @@ toast.success("Image uploaded");
         p_scope: scope
       });
 
-     if (error) {
-  console.error("RPC ERROR:", error);
-
-toast.error(error.message || "Failed to create news");}
-
+      if (error) {
+        console.error("RPC ERROR:", error);
+        toast.error(error.message || "Failed to create news");
+        return;
+      }
 
       // ==========================================
       // 4. Handle result
