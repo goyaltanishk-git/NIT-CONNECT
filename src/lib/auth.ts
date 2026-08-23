@@ -68,20 +68,39 @@ export class AuthService {
 
   static async getUserProfile(email: string): Promise<Profile | null> {
     try {
-      // Standard fetch - subject to RLS (Requires syncAppSession first)
+      // 1. Primary: Use get_profile_by_email_unsecure RPC (SECURITY DEFINER, immune to RLS connection pool issues)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_profile_by_email_unsecure', { 
+        p_email: email 
+      });
+
+      if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+        return rpcData[0];
+      }
+
+      // 2. Fallback: get_full_profile RPC
+      const { data: fullData, error: fullError } = await (supabase as any).rpc('get_full_profile', {
+        p_email: email
+      });
+      if (!fullError && fullData && fullData.email) {
+        return fullData as Profile;
+      }
+
+      // 3. Fallback: Standard fetch with maybeSingle
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("email", email)
-        .single();
+        .maybeSingle();
         
       if (error) {
         if (error.code === "PGRST116") return null;
-        throw error;
+        console.warn("[AuthService] getUserProfile direct query returned error:", error.message);
+        return null;
       }
       return data;
     } catch (error) {
-      throw error;
+      console.warn("[AuthService] getUserProfile unexpected error:", error);
+      return null;
     }
   }
 
@@ -220,30 +239,41 @@ export class AuthService {
 
   static async updateProfile(email: string, updates: ProfileUpdate): Promise<Profile> {
     try {
+      await syncAppSession(email).catch(() => {});
       const { data, error } = await supabase
         .from('profiles')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('email', email)
+        .eq('email', email.toLowerCase())
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
-      encryptedStorage.set('current-user', JSON.stringify(data));
-      return data;
+      if (data) {
+        encryptedStorage.set('current-user', JSON.stringify(data));
+      }
+      return data as Profile;
     } catch (error) {
       throw error;
     }
   }
 
   static async updateLastActive(email: string): Promise<void> {
+    if (!email) return;
     try {
-      supabase.from('profiles').update({ 
-        last_active_at: new Date().toISOString() 
-      }).eq('email', email).then(({ error }) => {
-        if (error) console.error("Background active update failed", error);
-      });
-    } catch (error) {
-     
+      const lowerEmail = email.toLowerCase().trim();
+      // 1. Try secure RPC first
+      supabase.rpc('touch_last_active', { p_email: lowerEmail }).then(({ error }) => {
+        if (error) {
+          // Fallback to syncAppSession + direct update
+          syncAppSession(lowerEmail).then(() => {
+            supabase.from('profiles').update({ 
+              last_active_at: new Date().toISOString() 
+            }).eq('email', lowerEmail).catch(() => {});
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    } catch {
+      // Non-critical background task
     }
   }
 

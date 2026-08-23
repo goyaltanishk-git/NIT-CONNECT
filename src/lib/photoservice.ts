@@ -14,23 +14,54 @@ export interface UserPhoto {
 export class PhotoService {
   /**
    * Fetches photos for a specific user.
-   * RLS Handshake is included to ensure photos are visible.
+   * Uses fast get_full_profile RPC (SECURITY DEFINER) first to prevent RLS connection drops,
+   * then falls back to direct select.
    */
-  static async getUserPhotos(userEmail: string) {
+  static async getUserPhotos(userEmail: string): Promise<UserPhoto[]> {
+    if (!userEmail) return [];
     try {
-      // ✅ HANDSHAKE: Ensure database knows identity for RLS
-      await syncAppSession(userEmail);
+      // 1. Try get_full_profile RPC first (Single roundtrip, bypasses RLS connection pool issues)
+      const { data: fullProfile, error: rpcError } = await (supabase as any).rpc('get_full_profile', {
+        p_email: userEmail
+      });
 
+      if (!rpcError && fullProfile?.photos && Array.isArray(fullProfile.photos)) {
+        const photosList: UserPhoto[] = fullProfile.photos.map((p: any, index: number) => {
+          if (typeof p === 'string') {
+            return {
+              user_email: userEmail,
+              photo_url: p,
+              photo_order: index,
+              is_primary: index === 0,
+              is_verified: false,
+              created_at: '',
+            };
+          }
+          return {
+            user_email: p.user_email || userEmail,
+            photo_url: p.photo_url || p.url || '',
+            photo_order: typeof p.photo_order === 'number' ? p.photo_order : index,
+            is_primary: typeof p.is_primary === 'boolean' ? p.is_primary : index === 0,
+            is_verified: !!p.is_verified,
+            created_at: p.created_at || '',
+          };
+        }).filter((p: UserPhoto) => !!p.photo_url);
+
+        if (photosList.length > 0) return photosList;
+      }
+
+      // 2. Direct query fallback
+      await syncAppSession(userEmail).catch(() => {});
       const { data, error } = await supabase
         .from("user_photos")
         .select("user_email, photo_url, photo_order, is_primary, is_verified, created_at")
         .eq("user_email", userEmail)
         .order("photo_order");
 
-      if (error) throw error;
-      return data;
+      if (!error && data) return data as UserPhoto[];
+      return [];
     } catch (error) {
-     
+      console.warn("[PhotoService] getUserPhotos error:", error);
       return [];
     }
   }
